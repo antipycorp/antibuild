@@ -191,7 +191,7 @@ func executeTemplate() error {
 		if err != nil {
 			return fmt.Errorf("could not parse the template files: %v", err.Error())
 		}
-		template.Funcs(fn)
+		template = template.Funcs(fn)
 		err = template.ExecuteTemplate(OUTFile, "html", jsonImput.Data)
 		if err != nil {
 			return errors.New("Could not parse: " + err.Error())
