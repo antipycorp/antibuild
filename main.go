@@ -43,7 +43,7 @@ var (
 	}
 	flags = map[string]func(){
 		"--development": setRefresh,
-		"--host":        setRefresh,
+		"--host":        setHost,
 	}
 
 	isTemplateSet  bool
