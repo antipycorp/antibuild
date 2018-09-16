@@ -12,6 +12,7 @@ import (
 	"net/http"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/gorilla/mux"
 )
 
 type (
@@ -78,11 +79,14 @@ func main() {
 		if isHost {
 			addr := ":" + os.Getenv("PORT")
 			if addr == ":" {
-				addr = ":2017"
+				addr = ":8080"
 			}
 
-			mux := http.FileServer(http.Dir("public"))
-			server = http.Server{Addr: addr, Handler: mux}
+			r := mux.NewRouter()
+			r.PathPrefix("").Handler(http.StripPrefix("/", http.FileServer(http.Dir(folderJSON))))
+			server = http.Server{Addr: addr, Handler: r}
+			server.ErrorLog = log.New(os.Stdout, "", 0)
+
 			go server.ListenAndServe()
 			defer server.Shutdown(nil)
 		}
