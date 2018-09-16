@@ -64,7 +64,6 @@ Example in the config.json file:
 					]
 				}
 			]
-		
 		}
     ]
 }
