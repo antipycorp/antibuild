@@ -12,7 +12,6 @@ import (
 	"net/http"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/gorilla/mux"
 )
 
 type (
@@ -87,8 +86,7 @@ func main() {
 				addr = ":8080"
 			}
 
-			r := mux.NewRouter()
-			r.PathPrefix("").Handler(http.StripPrefix("/", http.FileServer(http.Dir(folderOUT))))
+			r := http.StripPrefix("/", http.FileServer(http.Dir(folderOUT)))
 			server = http.Server{Addr: addr, Handler: r}
 			server.ErrorLog = log.New(os.Stdout, "", 0)
 
