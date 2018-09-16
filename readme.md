@@ -1,24 +1,25 @@
-# easy template builder for generating static pages.
+# Easy template builder for generating static pages using go html templates and json files
 
-## usage
+## Usage
 
-### how to install
+### How to install
 `go get -u -v gitlab.com/antipy/templatebuilder`
 
-### how to use the template builder
+### How to use the template builder
 `templatebuilder --templates {templates directory} --json {json directory} --out {output directory} {options}`
 
 - `{templates dierectory}` will be the root directory containing all the templates.
 - `{json directory}` will be the root directory containing all json file, this must containing a config.json.
 - `{output directory}` will be the root directory containing all output files
 
-#### options:
+#### Options:
 
 - `--development` refreshes the html files after changing a file in the templates directory or the json directory
+- `--host` only works in combination with --development. Hosts a webserver at localhost:8080 from the output directory
 
 ### config.json
 
-#### layout
+#### Layout
 
 The config.json should contain a variable called "sites" which should be an array of  [type site](#examples)
 
@@ -30,10 +31,9 @@ The slug will be the ourput file relative to the output directory
 
 All variable names in the JSON files should be capitalized as otherwise the template won't be able to use them
 
-### examples
+### Examples
 
-type site:
-
+Type of a site in golang:
 ```golang
 type site struct {
     Slug      string   `json:"Slug"`
@@ -42,7 +42,7 @@ type site struct {
 }
 ```
 
-config.json:
+Example in the config.json file:
 ```json
 {
     "sites": [
