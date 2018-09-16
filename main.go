@@ -1,4 +1,4 @@
-package main
+package templatebuilder
 
 import (
 	"encoding/json"
@@ -8,6 +8,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+
+	"net/http"
 
 	"github.com/fsnotify/fsnotify"
 )
@@ -21,14 +23,14 @@ type (
 		Data map[string]interface{} `json:"Data"`
 	}
 
-	sites struct {
+	site struct {
 		Slug      string   `json:"Slug"`
 		Templates []string `json:"Templates"`
 		JSONFiles []string `json:"JSONfiles"`
 	}
 
 	config struct {
-		Sites []sites `json:"sites"`
+		Sites []site `json:"sites"`
 	}
 )
 
@@ -40,6 +42,7 @@ var (
 	}
 	flags = map[string]func(){
 		"--development": setRefresh,
+		"--host":        setRefresh,
 	}
 
 	isTemplateSet  bool
@@ -52,7 +55,10 @@ var (
 	folderOUT string
 
 	isRefreshEnabled bool
+	isHost           bool
 )
+
+var server http.Server
 
 func main() {
 	for i, comm := range os.Args {
@@ -67,6 +73,18 @@ func main() {
 		err := executeTemplate()
 		if err != nil {
 			fmt.Println("failled building templates: ", err.Error())
+		}
+
+		if isHost {
+			addr := ":" + os.Getenv("PORT")
+			if addr == ":" {
+				addr = ":2017"
+			}
+
+			mux := http.FileServer(http.Dir("public"))
+			server = http.Server{Addr: addr, Handler: mux}
+			go server.ListenAndServe()
+			defer server.Shutdown(nil)
 		}
 
 		if isRefreshEnabled {
@@ -216,4 +234,7 @@ func setOUT(OUTFolder string) {
 
 func setRefresh() {
 	isRefreshEnabled = true
+}
+func setHost() {
+	isHost = true
 }
