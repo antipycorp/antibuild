@@ -59,7 +59,12 @@ var (
 	isHost           bool
 )
 
-var server http.Server
+var (
+	server http.Server
+	fn     = template.FuncMap{
+		"noescape": noescape,
+	}
+)
 
 func main() {
 	for i, comm := range os.Args {
@@ -188,6 +193,7 @@ func executeTemplate() error {
 		if err != nil {
 			return fmt.Errorf("could not parse the template files: %v", err.Error())
 		}
+		template.Funcs(fn)
 		err = template.ExecuteTemplate(OUTFile, "html", jsonImput.Data)
 		if err != nil {
 			return errors.New("Could not parse: " + err.Error())
@@ -241,4 +247,8 @@ func setRefresh() {
 }
 func setHost() {
 	isHost = true
+}
+
+func noescape(str string) template.HTML {
+	return template.HTML(str)
 }
