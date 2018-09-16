@@ -1,4 +1,4 @@
-package templatebuilder
+package main
 
 import (
 	"encoding/json"
@@ -43,7 +43,7 @@ var (
 	}
 	flags = map[string]func(){
 		"--development": setRefresh,
-		"--host":        setRefresh,
+		"--host":        setHost,
 	}
 
 	isTemplateSet  bool
@@ -83,7 +83,7 @@ func main() {
 			}
 
 			r := mux.NewRouter()
-			r.PathPrefix("").Handler(http.StripPrefix("/", http.FileServer(http.Dir(folderJSON))))
+			r.PathPrefix("").Handler(http.StripPrefix("/", http.FileServer(http.Dir(folderOUT))))
 			server = http.Server{Addr: addr, Handler: r}
 			server.ErrorLog = log.New(os.Stdout, "", 0)
 
