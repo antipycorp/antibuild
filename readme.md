@@ -15,8 +15,7 @@
 #### Options:
 
 - `--development` refreshes the html files after changing a file in the templates directory or the json directory
-- `--host` only works in combination with --development. Hosts a webserver at localhost:8080 from the output directory
-
+- `--host` only works in combination with --development. Hosts a webserver at localhost from the output directory on port 8080, unless the POST envirement variable is set to specify a port, 
 ### config.json
 
 #### Layout
