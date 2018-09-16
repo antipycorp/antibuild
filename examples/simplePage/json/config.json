@@ -1,0 +1,10 @@
+{
+	"Slug": "/index.html",
+	"Templates": [
+		"Layout.html"
+	],
+	"JSONfiles": [
+		"Layout.json",
+		"pages/Home.json"
+	]
+}
