@@ -5,7 +5,6 @@ templaterefresh = $(templateargs) --development --host
 
 $(binary): ../main.go
 	go build -o $(binary) ../main.go 
-	chmod +x $(binary)
 
 build: $(binary)
 	./$(binary) $(templateargs)
