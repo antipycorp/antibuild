@@ -6,9 +6,16 @@
 				"Layout.html"
 			],
 			"JSONfiles": [
-				"Layout.json",
-				"pages/Home.json"
+				"Layout.json"
+			],
+			"sites": [
+				{
+					"JSONfiles": [
+						"pages/Home.json"
+					]
+				}
 			]
+		
 		}
     ]
 }

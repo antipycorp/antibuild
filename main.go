@@ -27,10 +27,7 @@ type (
 		Slug      string   `json:"Slug"`
 		Templates []string `json:"Templates"`
 		JSONFiles []string `json:"JSONfiles"`
-	}
-
-	config struct {
-		Sites []site `json:"sites"`
+		Sites     []site   `json:"sites"`
 	}
 )
 
@@ -139,7 +136,7 @@ func executeTemplate() error {
 	if err != nil {
 		fmt.Println("could not remove files: ", err, " old html will be left in place")
 	}
-	var config config
+	var config site
 	JSONFile, err := os.Open(filepath.Join(folderJSON, "/config.json"))
 	defer JSONFile.Close()
 	if err != nil {
@@ -154,56 +151,102 @@ func executeTemplate() error {
 
 	fmt.Println("------ START ------")
 	for _, site := range config.Sites {
-		var jsonImput jsonImput
-
-		for _, jsonLocation := range site.JSONFiles {
-			jsonPath := filepath.Join(folderJSON, jsonLocation)
-
-			JSONFile, err := os.Open(jsonPath)
-			defer JSONFile.Close()
-			if err != nil {
-				return err
-			}
-
-			dec := json.NewDecoder(JSONFile)
-			err = dec.Decode(&jsonImput)
-			if err != nil {
-				return err
-			}
-		}
-		for i := range site.Templates {
-			site.Templates[i] = filepath.Join(folderTemplate, site.Templates[i])
-		}
-
-		OUTPath := filepath.Join(folderOUT, site.Slug)
-
-		err = os.MkdirAll(filepath.Dir(OUTPath), 0766)
+		err := site.execute(config.JSONFiles, config.Templates, config.Slug)
 		if err != nil {
-			return errors.New("Couldn't create directory: " + err.Error())
+			return err
 		}
-
-		OUTFile, err := os.Create(OUTPath)
-		if err != nil {
-			return errors.New("Couldn't create file: " + err.Error())
-		}
-		fmt.Println(jsonImput.Data)
-		template, err := template.New("").Funcs(fn).ParseFiles(site.Templates...)
-		if err != nil {
-			return fmt.Errorf("could not parse the template files: %v", err.Error())
-		}
-		err = template.ExecuteTemplate(OUTFile, "html", jsonImput.Data)
-		if err != nil {
-			return errors.New("Could not parse: " + err.Error())
-		}
-
-		fmt.Printf("Finished file. Wrote to %s \n", OUTPath)
-		fmt.Println("-------------------")
-
 	}
 	if err != nil {
 		return err
 	}
 
+	return nil
+}
+
+func (s *site) execute(JSONFiles, templates []string, slug string) error {
+	s.JSONFiles = append(s.JSONFiles, JSONFiles...)
+	s.Templates = append(s.Templates, templates...)
+	s.Slug = slug + s.Slug
+	fmt.Println(s.JSONFiles)
+	if s.Sites != nil {
+		for _, site := range s.Sites {
+			err := site.execute(s.JSONFiles, s.Templates, s.Slug)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	fmt.Println(s)
+	var jsonImput jsonImput
+
+	err := s.gatherJSON(&jsonImput)
+	if err != nil {
+		return err
+	}
+
+	template, err := s.gatherTemplates()
+	if err != nil {
+		return err
+	}
+
+	err = s.executeTemplate(template, jsonImput)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *site) gatherJSON(jsonImput *jsonImput) error {
+	for _, jsonLocation := range s.JSONFiles {
+		jsonPath := filepath.Join(folderJSON, jsonLocation)
+
+		JSONFile, err := os.Open(jsonPath)
+		defer JSONFile.Close()
+		if err != nil {
+			return err
+		}
+
+		dec := json.NewDecoder(JSONFile)
+		err = dec.Decode(&jsonImput)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *site) gatherTemplates() (*template.Template, error) {
+	for i := range s.Templates {
+		s.Templates[i] = filepath.Join(folderTemplate, s.Templates[i])
+	}
+
+	OUTPath := filepath.Join(folderOUT, s.Slug)
+
+	err := os.MkdirAll(filepath.Dir(OUTPath), 0766)
+	if err != nil {
+		return nil, errors.New("Couldn't create directory: " + err.Error())
+	}
+
+	template, err := template.New("").Funcs(fn).ParseFiles(s.Templates...)
+	if err != nil {
+		return nil, fmt.Errorf("could not parse the template files: %v", err.Error())
+	}
+	return template, nil
+}
+
+func (s *site) executeTemplate(template *template.Template, jsonImput jsonImput) error {
+	OUTPath := filepath.Join(folderOUT, s.Slug)
+
+	OUTFile, err := os.Create(OUTPath)
+	if err != nil {
+		return errors.New("Couldn't create file: " + err.Error())
+	}
+	err = template.ExecuteTemplate(OUTFile, "html", jsonImput.Data)
+	if err != nil {
+		return errors.New("Could not parse: " + err.Error())
+	}
 	return nil
 }
 
