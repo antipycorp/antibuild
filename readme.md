@@ -47,24 +47,20 @@ type site struct {
 Example in the config.json file:
 ```json
 {
-    "sites": [
-        {
-            "Slug": "/index",
-			"Templates": [
-				"Layout.html"
-			],
+	"Slug": "/index",
+	"Templates": [
+		"Layout.html"
+	],
+	"JSONfiles": [
+		"Layout.json"
+	],
+	"sites": [
+		{
+			"Slug": ".html",
 			"JSONfiles": [
-				"Layout.json"
-			],
-			"sites": [
-				{
-					"Slug": ".html",
-					"JSONfiles": [
-						"pages/Home.json"
-					]
-				}
+				"pages/Home.json"
 			]
 		}
-    ]
+	]
 }
 ```

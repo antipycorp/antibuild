@@ -164,10 +164,20 @@ func executeTemplate() error {
 }
 
 func (s *site) execute(JSONFiles, templates []string, slug string) error {
-	s.JSONFiles = append(s.JSONFiles, JSONFiles...)
-	s.Templates = append(s.Templates, templates...)
+	if s.JSONFiles != nil {
+		s.JSONFiles = append(JSONFiles, s.JSONFiles...)
+	} else {
+		s.JSONFiles = make([]string, len(JSONFiles))
+		copy(s.JSONFiles, JSONFiles)
+	}
+	if s.Templates != nil {
+		s.Templates = append(templates, s.Templates...)
+	} else {
+		s.Templates = make([]string, len(templates))
+		copy(s.Templates, templates)
+	}
 	s.Slug = slug + s.Slug
-	fmt.Println(s.JSONFiles)
+
 	if s.Sites != nil {
 		for _, site := range s.Sites {
 			err := site.execute(s.JSONFiles, s.Templates, s.Slug)
@@ -177,19 +187,17 @@ func (s *site) execute(JSONFiles, templates []string, slug string) error {
 		}
 		return nil
 	}
-	fmt.Println(s)
+
 	var jsonImput jsonImput
 
 	err := s.gatherJSON(&jsonImput)
 	if err != nil {
 		return err
 	}
-
 	template, err := s.gatherTemplates()
 	if err != nil {
 		return err
 	}
-
 	err = s.executeTemplate(template, jsonImput)
 	if err != nil {
 		return err
@@ -199,6 +207,7 @@ func (s *site) execute(JSONFiles, templates []string, slug string) error {
 }
 
 func (s *site) gatherJSON(jsonImput *jsonImput) error {
+	fmt.Println("gathering JSON files for: ", s.Slug)
 	for _, jsonLocation := range s.JSONFiles {
 		jsonPath := filepath.Join(folderJSON, jsonLocation)
 
@@ -213,11 +222,14 @@ func (s *site) gatherJSON(jsonImput *jsonImput) error {
 		if err != nil {
 			return err
 		}
+		fmt.Println(jsonLocation)
+
 	}
 	return nil
 }
 
 func (s *site) gatherTemplates() (*template.Template, error) {
+
 	for i := range s.Templates {
 		s.Templates[i] = filepath.Join(folderTemplate, s.Templates[i])
 	}
@@ -238,7 +250,7 @@ func (s *site) gatherTemplates() (*template.Template, error) {
 
 func (s *site) executeTemplate(template *template.Template, jsonImput jsonImput) error {
 	OUTPath := filepath.Join(folderOUT, s.Slug)
-
+	fmt.Println(s.Slug)
 	OUTFile, err := os.Create(OUTPath)
 	if err != nil {
 		return errors.New("Couldn't create file: " + err.Error())
