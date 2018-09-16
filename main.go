@@ -187,11 +187,10 @@ func executeTemplate() error {
 			return errors.New("Couldn't create file: " + err.Error())
 		}
 		fmt.Println(jsonImput.Data)
-		template, err := (template.ParseFiles(site.Templates...))
+		template, err := template.New("").Funcs(fn).ParseFiles(site.Templates...)
 		if err != nil {
 			return fmt.Errorf("could not parse the template files: %v", err.Error())
 		}
-		template = template.Funcs(fn)
 		err = template.ExecuteTemplate(OUTFile, "html", jsonImput.Data)
 		if err != nil {
 			return errors.New("Could not parse: " + err.Error())
