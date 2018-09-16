@@ -15,13 +15,14 @@
 #### Options:
 
 - `--development` refreshes the html files after changing a file in the templates directory or the json directory
-- `--host` only works in combination with --development. Hosts a webserver at localhost:8080 from the output directory
-
+- `--host` only works in combination with --development. Hosts a webserver at localhost from the output directory on port 8080, unless the POST envirement variable is set to specify a port, 
 ### config.json
 
 #### Layout
 
-The config.json should contain a variable called "sites" which should be an array of  [type site](#examples)
+The config.json should contain a variable of type [type site](#examples), only the sites variable has to be set.
+
+All sites inside the sides element of the site struct, will append on to the previously JSONFiles, templateFiles, and the slug will be appended as well. if the sites element is not nil it will not be executed, so the [example below](#examples) will only create one site with th Slug: /index.html, Templates: [ "Layout.html" ], JSONFiles: [ "Layout.json", "pages/Home.json" ]
 
 The templates variable should contain a list of template files relative to the templates directory.
 
@@ -39,6 +40,7 @@ type site struct {
     Slug      string   `json:"Slug"`
     Templates []string `json:"Templates"`
     JSONFiles []string `json:"JSONfiles"`
+	Sites     []site   `json:"sites"`
 }
 ```
 
@@ -47,13 +49,20 @@ Example in the config.json file:
 {
     "sites": [
         {
-            "Slug": "/index.html",
+            "Slug": "/index",
 			"Templates": [
 				"Layout.html"
 			],
 			"JSONfiles": [
-				"Layout.json",
-				"pages/Home.json"
+				"Layout.json"
+			],
+			"sites": [
+				{
+					"Slug": ".html",
+					"JSONfiles": [
+						"pages/Home.json"
+					]
+				}
 			]
 		}
     ]
