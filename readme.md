@@ -20,7 +20,7 @@
 
 #### Layout
 
-The config.json should contain a variable of type [type site](#examples), only the sites variable has to be set.
+The config.json should contain a variable of type [type site](#examples). Only the sites variable has to be set if you want multipole distinct websites, but you can start nesting you pages from the root! If you want seperate sites you can just leave the root JSONFiles, Templates and/or Slug empty so that all your sub sites start with their own JSONFiles, Templates and/or Slug.
 
 All sites inside the sides element of the site struct, will append on to the previously JSONFiles, templateFiles, and the slug will be appended as well. if the sites element is not nil it will not be executed, so the [example below](#examples) will only create one site with th Slug: /index.html, Templates: [ "Layout.html" ], JSONFiles: [ "Layout.json", "pages/Home.json" ]
 
