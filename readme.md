@@ -6,11 +6,9 @@
 `go get -u -v gitlab.com/antipy/antibuild`
 
 ### How to use the template builder
-`antibuild --templates {templates directory} --json {json directory} --out {output directory} {options}`
+`antibuild --config {configfile} {options}`
 
-- `{templates dierectory}` will be the root directory containing all the templates.
-- `{json directory}` will be the root directory containing all json file, this must containing a config.json.
-- `{output directory}` will be the root directory containing all output files
+- `{configfile}` will be the config.json containing all the sites
 
 #### Options:
 
@@ -20,9 +18,9 @@
 
 #### Layout
 
-The config.json should contain a variable of type [type site](#examples). Only the sites variable has to be set if you want multipole distinct websites, but you can start nesting you pages from the root! If you want seperate sites you can just leave the root JSONFiles, Templates and/or Slug empty so that all your sub sites start with their own JSONFiles, Templates and/or Slug.
+The config.json should contain a variable of type [type site](#examples). the root site should contain a templateroot, jsonroot, and outroot. If you want multiple distinct websites you can leve these out but make sure to have them futher up in the config file!!! If you do this you can also leave the root JSONFiles, Templates and/or Slug empty so that all your sub sites start with their own JSONFiles, Templates and/or Slug.
 
-All sites inside the sides element of the site struct, will append on to the previously JSONFiles, templateFiles, and the slug will be appended as well. if the sites element is not nil it will not be executed, so the [example below](#examples) will only create one site with th Slug: /index.html, Templates: [ "Layout.html" ], JSONFiles: [ "Layout.json", "pages/Home.json" ]
+All sites inside the sides element of the site struct, will append on to the previously JSONFiles, templateFiles, and the slug will be appended as well. templateroot, jsonroot, and outroot will be overwritten by parrend, as long as that is not empty. If the sites element is not nil it will not be executed, so the [example below](#examples) will only create one site with the Slug: /index.html, Templates: [ "Layout.html" ], JSONFiles: [ "Layout.json", "pages/Home.json" ]. templateroot, jsonroot, and outroot will always be overwritten by the site's parent.
 
 The templates variable should contain a list of template files relative to the templates directory.
 
@@ -32,21 +30,32 @@ The slug will be the ourput file relative to the output directory
 
 All variable names in the JSON files should be capitalized as otherwise the template won't be able to use them
 
+If staticroot is set on an site, antibuild will move everything from that static page to the outroot
+
 ### Examples
 
 Type of a site in golang:
 ```golang
 type site struct {
-    Slug      string   `json:"Slug"`
-    Templates []string `json:"Templates"`
-    JSONFiles []string `json:"JSONfiles"`
-	Sites     []site   `json:"sites"`
+	Slug           string   `json:"Slug"`
+	Templates      []string `json:"Templates"`
+	JSONFiles      []string `json:"JSONfiles"`
+	Sites          []site   `json:"sites"`
+	TemplateFolder string   `json:"templateroot"`
+	JSONFolder     string   `json:"jsonroot"`
+	OUTFolder      string   `json:"outroot"`
+	Static         string   `json:"staticroot"`
 }
 ```
 
 Example in the config.json file:
 ```json
 {
+	"templateroot": "templates/",
+	"jsonroot": "json/",
+	"outroot": "public/",
+	"staticroot": "static/",
+	
 	"Slug": "/index",
 	"Templates": [
 		"Layout.html"
