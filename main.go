@@ -10,6 +10,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 
 	"net/http"
 
@@ -163,7 +165,10 @@ func executeTemplate() (*site, error) {
 	}
 
 	fmt.Println("------ START ------")
-	config.execute(nil)
+	err = config.execute(nil)
+	if err != nil {
+		fmt.Println("failled parsing config file")
+	}
 
 	if config.TemplateFolder == "" {
 		return &config, noTEMPLATE
@@ -211,6 +216,41 @@ func (s *site) execute(parent *site) error {
 		}
 		fmt.Println(genCopy(s.Static, s.OUTFolder, info))
 	}
+	for jIndex, jsonfile := range s.JSONFiles {
+		if strings.Contains(jsonfile, "*") {
+			jsonfile := strings.Replace(jsonfile, "*", "([a-zA-Z0-9.]{0,})", -1)
+			jsonPath := filepath.Dir(filepath.Join(s.JSONFolder, jsonfile))
+			re := regexp.MustCompile(jsonfile)
+			var matches [][][]string
+			err := filepath.Walk(jsonPath, func(path string, file os.FileInfo, err error) error {
+				if path == jsonPath {
+					return nil
+				}
+				if file.IsDir() {
+					return filepath.SkipDir
+				}
+				if ok, _ := regexp.MatchString(jsonfile, file.Name()); ok {
+					matches = append(matches, re.FindAllStringSubmatch(file.Name(), -1))
+				}
+				return nil
+			})
+			if err != nil {
+				return nil
+			}
+			for _, file := range matches {
+				site := s.copy()
+				for _, match := range file {
+					site.Slug = strings.Replace(site.Slug, "*", match[1], 1)
+					site.JSONFiles[jIndex] = strings.Replace(site.JSONFiles[jIndex], "*", match[1], 1)
+				}
+				err := site.execute(nil)
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}
 
 	if s.Sites != nil {
 		for _, site := range s.Sites {
@@ -257,7 +297,6 @@ func (s *site) gatherJSON(jsonImput *jsonImput) error {
 			return err
 		}
 		fmt.Println(jsonLocation)
-
 	}
 	return nil
 }
@@ -296,6 +335,19 @@ func (s *site) executeTemplate(template *template.Template, jsonImput jsonImput)
 	return nil
 }
 
+func (s *site) copy() site {
+	newSite := *s
+	for i, site := range s.Sites {
+		newSite.Sites[i] = site.copy()
+	}
+	newSite.JSONFiles = make([]string, len(s.JSONFiles))
+	copy(newSite.JSONFiles, s.JSONFiles)
+
+	newSite.Templates = make([]string, len(s.Templates))
+	copy(newSite.Templates, s.Templates)
+
+	return newSite
+}
 func (ji *jsonImput) UnmarshalJSON(data []byte) error {
 	var input map[string]interface{}
 	err := json.Unmarshal(data, &input)
@@ -329,9 +381,6 @@ func noescape(str string) template.HTML {
 	return template.HTML(str)
 }
 
-// copy dispatches copy-funcs according to the mode.
-// Because this "copy" could be called recursively,
-// "info" MUST be given here, NOT nil.
 func genCopy(src, dest string, info os.FileInfo) error {
 	if info.IsDir() {
 		return dirCopy(src, dest, info)
