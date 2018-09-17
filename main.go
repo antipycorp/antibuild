@@ -12,6 +12,7 @@ import (
 	"net/http"
 
 	"github.com/fsnotify/fsnotify"
+	blackfriday "gopkg.in/russross/blackfriday.v2"
 )
 
 type (
@@ -58,7 +59,8 @@ var (
 var (
 	server http.Server
 	fn     = template.FuncMap{
-		"noescape": noescape,
+		"noescape":  noescape,
+		"mdprocess": mdprocess,
 	}
 )
 
@@ -303,4 +305,8 @@ func setHost() {
 
 func noescape(str string) template.HTML {
 	return template.HTML(str)
+}
+
+func mdprocess(md string) template.HTML {
+	return template.HTML(string(blackfriday.Run([]byte(md))))
 }
