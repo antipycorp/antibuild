@@ -1,4 +1,7 @@
 {
+	"templateroot": "templates/",
+	"jsonroot": "json/",
+	"outroot": "public/",
 	"Slug": "/index.html",
 	"Templates": [
 		"Layout.html"

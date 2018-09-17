@@ -1,10 +1,10 @@
 binary = templateBuilder
 output = public/
-templateargs = --templates templates/ --json json/ --out $(output)
+templateargs = --config config.json
 templaterefresh = $(templateargs) --development --host
 
 $(binary):  ../../main.go
-	go build -o $(binary)  ../../main.go 
+	go build -o $(binary) ../../main.go 
 
 build: $(binary)
 	./$(binary) $(templateargs)
