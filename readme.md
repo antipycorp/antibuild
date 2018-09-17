@@ -1,12 +1,12 @@
-# Easy template builder for generating static pages using go html templates and json files
+# Easy static site generator that uses go html templates and json files
 
 ## Usage
 
 ### How to install
-`go get -u -v gitlab.com/antipy/templatebuilder`
+`go get -u -v gitlab.com/antipy/antibuild`
 
 ### How to use the template builder
-`templatebuilder --templates {templates directory} --json {json directory} --out {output directory} {options}`
+`antibuild --templates {templates directory} --json {json directory} --out {output directory} {options}`
 
 - `{templates dierectory}` will be the root directory containing all the templates.
 - `{json directory}` will be the root directory containing all json file, this must containing a config.json.
