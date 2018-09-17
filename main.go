@@ -16,6 +16,7 @@ import (
 	"net/http"
 
 	"github.com/fsnotify/fsnotify"
+	blackfriday "gopkg.in/russross/blackfriday.v2"
 )
 
 type (
@@ -58,7 +59,8 @@ var (
 var (
 	server http.Server
 	fn     = template.FuncMap{
-		"noescape": noescape,
+		"noescape":  noescape,
+		"mdprocess": mdprocess,
 	}
 	noTEMPLATE = errors.New("the template folder is not set")
 	noJSON     = errors.New("the json folder is not set")
@@ -381,6 +383,16 @@ func noescape(str string) template.HTML {
 	return template.HTML(str)
 }
 
+<<<<<<< HEAD
+=======
+func mdprocess(md string) template.HTML {
+	return template.HTML(string(blackfriday.Run([]byte(md))))
+}
+
+// copy dispatches copy-funcs according to the mode.
+// Because this "copy" could be called recursively,
+// "info" MUST be given here, NOT nil.
+>>>>>>> 24836341d4ed9ef17c4186a96638f2a1f5f4b3cf
 func genCopy(src, dest string, info os.FileInfo) error {
 	if info.IsDir() {
 		return dirCopy(src, dest, info)
