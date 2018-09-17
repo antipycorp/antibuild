@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -25,35 +27,31 @@ type (
 	}
 
 	site struct {
-		Slug      string   `json:"Slug"`
-		Templates []string `json:"Templates"`
-		JSONFiles []string `json:"JSONfiles"`
-		Sites     []site   `json:"sites"`
+		Slug           string   `json:"Slug"`
+		Templates      []string `json:"Templates"`
+		JSONFiles      []string `json:"JSONfiles"`
+		Sites          []site   `json:"sites"`
+		TemplateFolder string   `json:"templateroot"`
+		JSONFolder     string   `json:"jsonroot"`
+		OUTFolder      string   `json:"outroot"`
+		Static         string   `json:"staticroot"`
 	}
 )
 
 var (
 	comms = map[string]func(string){
-		"--templates": setTemplate,
-		"--json":      setJSON,
-		"--out":       setOUT,
+		"--config": setConfig,
 	}
 	flags = map[string]func(){
 		"--development": setRefresh,
 		"--host":        setHost,
 	}
 
-	isTemplateSet  bool
-	folderTemplate string
-
-	isJSONSet  bool
-	folderJSON string
-
-	isOUTSet  bool
-	folderOUT string
-
 	isRefreshEnabled bool
 	isHost           bool
+
+	configLocation string
+	isConfigSet    bool
 )
 
 var (
@@ -62,6 +60,9 @@ var (
 		"noescape":  noescape,
 		"mdprocess": mdprocess,
 	}
+	noTEMPLATE = errors.New("the template folder is not set")
+	noJSON     = errors.New("the json folder is not set")
+	noOUT      = errors.New("the output folder is not set")
 )
 
 func main() {
@@ -73,19 +74,23 @@ func main() {
 		}
 	}
 
-	if isTemplateSet && isJSONSet && isOUTSet {
-		err := executeTemplate()
-		if err != nil {
-			fmt.Println("failled building templates: ", err.Error())
+	if isConfigSet {
+		config, templateErr := executeTemplate()
+		if templateErr != nil {
+			fmt.Println("failled building templates: ", templateErr.Error())
 		}
 
 		if isHost {
+			if templateErr == noOUT {
+				panic("could not get the output folder from config.json")
+			}
+
 			addr := ":" + os.Getenv("PORT")
 			if addr == ":" {
 				addr = ":8080"
 			}
 
-			r := http.StripPrefix("/", http.FileServer(http.Dir(folderOUT)))
+			r := http.StripPrefix("/", http.FileServer(http.Dir(config.OUTFolder)))
 			server = http.Server{Addr: addr, Handler: r}
 			server.ErrorLog = log.New(os.Stdout, "", 0)
 
@@ -94,18 +99,22 @@ func main() {
 		}
 
 		if isRefreshEnabled {
+			if templateErr == noTEMPLATE || templateErr == noJSON || templateErr == noOUT {
+				panic("could not get one of: template, json or output from config.json")
+
+			}
 			watcher, err := fsnotify.NewWatcher()
 			if err != nil {
 				fmt.Println("could not open a file watcher: ", err)
 			}
-			err = filepath.Walk(folderJSON, func(path string, file os.FileInfo, err error) error {
+			err = filepath.Walk(config.JSONFolder, func(path string, file os.FileInfo, err error) error {
 				return watcher.Add(path)
 			})
 			if err != nil {
 				fmt.Println("failled walking over all folders: ", err)
 			}
 
-			err = filepath.Walk(folderTemplate, func(path string, file os.FileInfo, err error) error {
+			err = filepath.Walk(config.TemplateFolder, func(path string, file os.FileInfo, err error) error {
 				return watcher.Add(path)
 			})
 
@@ -118,7 +127,7 @@ func main() {
 					if !ok {
 						return
 					}
-					err := executeTemplate()
+					config, err = executeTemplate()
 					if err != nil {
 						fmt.Println("failled building templates: ", err.Error())
 					}
@@ -133,56 +142,81 @@ func main() {
 	}
 }
 
-func executeTemplate() error {
-	err := os.RemoveAll(folderOUT)
-	if err != nil {
-		fmt.Println("could not remove files: ", err, " old html will be left in place")
-	}
+func executeTemplate() (*site, error) {
 	var config site
-	JSONFile, err := os.Open(filepath.Join(folderJSON, "/config.json"))
+	JSONFile, err := os.Open(configLocation)
 	defer JSONFile.Close()
 	if err != nil {
-		return errors.New("Could not open the layout file: " + err.Error())
+		return nil, errors.New("Could not open the layout file: " + err.Error())
 	}
 
 	dec := json.NewDecoder(JSONFile)
 	err = dec.Decode(&config)
 	if err != nil {
-		return err
+		return &config, err
+	}
+
+	if config.OUTFolder == "" {
+		err = os.RemoveAll(config.OUTFolder)
+	}
+
+	if err != nil {
+		fmt.Println("could not remove files: ", err, " old html will be left in place")
 	}
 
 	fmt.Println("------ START ------")
-	for _, site := range config.Sites {
-		err := site.execute(config.JSONFiles, config.Templates, config.Slug)
+	config.execute(nil)
+
+	if config.TemplateFolder == "" {
+		return &config, noTEMPLATE
+	}
+	if config.JSONFolder == "" {
+		return &config, noJSON
+	}
+	if config.OUTFolder == "" {
+		return &config, noOUT
+	}
+	return &config, nil
+}
+
+func (s *site) execute(parent *site) error {
+	if parent != nil {
+		if s.JSONFiles != nil {
+			s.JSONFiles = append(parent.JSONFiles, s.JSONFiles...)
+		} else {
+			s.JSONFiles = make([]string, len(parent.JSONFiles))
+			copy(s.JSONFiles, parent.JSONFiles)
+		}
+		if s.Templates != nil {
+			s.Templates = append(parent.Templates, s.Templates...)
+		} else {
+			s.Templates = make([]string, len(parent.Templates))
+			copy(s.Templates, parent.Templates)
+		}
+		s.Slug = parent.Slug + s.Slug
+		if parent.OUTFolder != "" {
+			s.OUTFolder = parent.OUTFolder
+		}
+		if parent.TemplateFolder != "" {
+			s.TemplateFolder = parent.TemplateFolder
+		}
+		if parent.JSONFolder != "" {
+			s.JSONFolder = parent.JSONFolder
+		}
+	}
+
+	if s.Static != "" && s.OUTFolder != "" {
+		fmt.Println("copying static files")
+		info, err := os.Lstat(s.Static)
 		if err != nil {
 			return err
 		}
+		fmt.Println(genCopy(s.Static, s.OUTFolder, info))
 	}
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (s *site) execute(JSONFiles, templates []string, slug string) error {
-	if s.JSONFiles != nil {
-		s.JSONFiles = append(JSONFiles, s.JSONFiles...)
-	} else {
-		s.JSONFiles = make([]string, len(JSONFiles))
-		copy(s.JSONFiles, JSONFiles)
-	}
-	if s.Templates != nil {
-		s.Templates = append(templates, s.Templates...)
-	} else {
-		s.Templates = make([]string, len(templates))
-		copy(s.Templates, templates)
-	}
-	s.Slug = slug + s.Slug
 
 	if s.Sites != nil {
 		for _, site := range s.Sites {
-			err := site.execute(s.JSONFiles, s.Templates, s.Slug)
+			err := site.execute(s)
 			if err != nil {
 				return err
 			}
@@ -211,7 +245,7 @@ func (s *site) execute(JSONFiles, templates []string, slug string) error {
 func (s *site) gatherJSON(jsonImput *jsonImput) error {
 	fmt.Println("gathering JSON files for: ", s.Slug)
 	for _, jsonLocation := range s.JSONFiles {
-		jsonPath := filepath.Join(folderJSON, jsonLocation)
+		jsonPath := filepath.Join(s.JSONFolder, jsonLocation)
 
 		JSONFile, err := os.Open(jsonPath)
 		defer JSONFile.Close()
@@ -233,10 +267,10 @@ func (s *site) gatherJSON(jsonImput *jsonImput) error {
 func (s *site) gatherTemplates() (*template.Template, error) {
 
 	for i := range s.Templates {
-		s.Templates[i] = filepath.Join(folderTemplate, s.Templates[i])
+		s.Templates[i] = filepath.Join(s.TemplateFolder, s.Templates[i])
 	}
 
-	OUTPath := filepath.Join(folderOUT, s.Slug)
+	OUTPath := filepath.Join(s.OUTFolder, s.Slug)
 
 	err := os.MkdirAll(filepath.Dir(OUTPath), 0766)
 	if err != nil {
@@ -251,7 +285,7 @@ func (s *site) gatherTemplates() (*template.Template, error) {
 }
 
 func (s *site) executeTemplate(template *template.Template, jsonImput jsonImput) error {
-	OUTPath := filepath.Join(folderOUT, s.Slug)
+	OUTPath := filepath.Join(s.OUTFolder, s.Slug)
 	fmt.Println(s.Slug)
 	OUTFile, err := os.Create(OUTPath)
 	if err != nil {
@@ -281,19 +315,9 @@ func (ji *jsonImput) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func setTemplate(templateFolder string) {
-	isTemplateSet = true
-	folderTemplate = templateFolder
-}
-
-func setJSON(JSONFolder string) {
-	isJSONSet = true
-	folderJSON = JSONFolder
-}
-
-func setOUT(OUTFolder string) {
-	isOUTSet = true
-	folderOUT = OUTFolder
+func setConfig(config string) {
+	configLocation = config
+	isConfigSet = true
 }
 
 func setRefresh() {
@@ -309,4 +333,61 @@ func noescape(str string) template.HTML {
 
 func mdprocess(md string) template.HTML {
 	return template.HTML(string(blackfriday.Run([]byte(md))))
+}
+
+// copy dispatches copy-funcs according to the mode.
+// Because this "copy" could be called recursively,
+// "info" MUST be given here, NOT nil.
+func genCopy(src, dest string, info os.FileInfo) error {
+	if info.IsDir() {
+		return dirCopy(src, dest, info)
+	}
+	return fileCopy(src, dest, info)
+}
+
+func fileCopy(src, dest string, info os.FileInfo) error {
+
+	if err := os.MkdirAll(filepath.Dir(dest), os.ModePerm); err != nil {
+		return err
+	}
+
+	f, err := os.Create(dest)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	if err = os.Chmod(f.Name(), info.Mode()); err != nil {
+		return err
+	}
+
+	s, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer s.Close()
+
+	_, err = io.Copy(f, s)
+	return err
+}
+
+func dirCopy(srcdir, destdir string, info os.FileInfo) error {
+
+	if err := os.MkdirAll(destdir, info.Mode()); err != nil {
+		return err
+	}
+
+	contents, err := ioutil.ReadDir(srcdir)
+	if err != nil {
+		return err
+	}
+
+	for _, content := range contents {
+		cs, cd := filepath.Join(srcdir, content.Name()), filepath.Join(destdir, content.Name())
+		if err := genCopy(cs, cd, content); err != nil {
+			// If any error, exit immediately
+			return err
+		}
+	}
+	return nil
 }
