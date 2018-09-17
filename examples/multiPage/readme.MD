@@ -1,5 +1,10 @@
 ```json
 {
+	"templateroot": "templates/", //the root of the template files
+	"jsonroot": "json/", //the root of the json files
+	"outroot": "public/", //the root of the output
+	"staticroot": "static/", //the root of any static files
+
 	"Slug": "/content",
 	"Templates": [
 		"Layout.html"
