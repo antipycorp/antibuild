@@ -54,8 +54,9 @@ Example in the config.json file:
 	"templateroot": "templates/",
 	"jsonroot": "json/",
 	"outroot": "public/",
-	"Slug": "/index",
 	"staticroot": "static/",
+	
+	"Slug": "/index",
 	"Templates": [
 		"Layout.html"
 	],
