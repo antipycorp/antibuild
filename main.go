@@ -181,7 +181,7 @@ func executeTemplate() (*site, error) {
 	if config.OUTFolder == "" {
 		return &config, noOUT
 	}
-	return &config, nil
+	return &config, err
 }
 
 func (s *site) execute(parent *site) error {
@@ -220,14 +220,18 @@ func (s *site) execute(parent *site) error {
 	}
 	for jIndex, jsonfile := range s.JSONFiles {
 		if strings.Contains(jsonfile, "*") {
-			jsonfile := strings.Replace(jsonfile, "*", "([^/]){0,}", -1)
 			jsonPath := filepath.Dir(filepath.Join(s.JSONFolder, jsonfile))
+			jsonfile := strings.Replace(filepath.Base(jsonfile), "*", "([^/]*)", -1)
 			re := regexp.MustCompile(jsonfile)
 			var matches [][][]string
+			//fmt.Println(jsonfile)
+			//fmt.Println(jsonPath)
 			err := filepath.Walk(jsonPath, func(path string, file os.FileInfo, err error) error {
 				if path == jsonPath {
 					return nil
 				}
+				fmt.Println(file.Name())
+				fmt.Println(jsonfile)
 				if file.IsDir() {
 					return filepath.SkipDir
 				}
@@ -239,6 +243,7 @@ func (s *site) execute(parent *site) error {
 			if err != nil {
 				return nil
 			}
+			fmt.Println(matches)
 			for _, file := range matches {
 				site := s.copy()
 				for _, match := range file {
