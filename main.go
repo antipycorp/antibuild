@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"reflect"
 
 	"net/http"
 
@@ -390,6 +391,11 @@ func noescape(str string) template.HTML {
 
 func mdprocess(md string) template.HTML {
 	return template.HTML(string(blackfriday.Run([]byte(md))))
+}
+
+func typeof(thing interface{}) string {
+	fmt.Println(reflect.TypeOf(thing))
+	return "Check Console"
 }
 
 func genCopy(src, dest string, info os.FileInfo) error {
