@@ -220,7 +220,7 @@ func (s *site) execute(parent *site) error {
 	}
 	for jIndex, jsonfile := range s.JSONFiles {
 		if strings.Contains(jsonfile, "*") {
-			jsonfile := strings.Replace(jsonfile, "*", "([a-zA-Z0-9.]{0,})", -1)
+			jsonfile := strings.Replace(jsonfile, "*", "([^/]){0,})", -1)
 			jsonPath := filepath.Dir(filepath.Join(s.JSONFolder, jsonfile))
 			re := regexp.MustCompile(jsonfile)
 			var matches [][][]string
