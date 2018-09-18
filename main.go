@@ -62,6 +62,7 @@ var (
 	fn     = template.FuncMap{
 		"noescape":  noescape,
 		"mdprocess": mdprocess,
+		"typeof": typeof,
 	}
 	noTEMPLATE = errors.New("the template folder is not set")
 	noJSON     = errors.New("the json folder is not set")
