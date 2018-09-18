@@ -10,9 +10,9 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
-	"reflect"
 
 	"net/http"
 
@@ -62,7 +62,7 @@ var (
 	fn     = template.FuncMap{
 		"noescape":  noescape,
 		"mdprocess": mdprocess,
-		"typeof": typeof,
+		"typeof":    typeof,
 	}
 	noTEMPLATE = errors.New("the template folder is not set")
 	noJSON     = errors.New("the json folder is not set")
@@ -391,7 +391,7 @@ func noescape(str string) template.HTML {
 }
 
 func mdprocess(md string) template.HTML {
-	return template.HTML(string(blackfriday.Run([]byte(md))))
+	return template.HTML(string(blackfriday.Run([]byte(md), blackfriday.WithExtensions(blackfriday.HardLineBreak))))
 }
 
 func typeof(thing interface{}) string {
