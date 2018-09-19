@@ -63,6 +63,7 @@ var (
 		"noescape":  noescape,
 		"mdprocess": mdprocess,
 		"typeof":    typeof,
+		"increment": increment,
 	}
 	noTEMPLATE = errors.New("the template folder is not set")
 	noJSON     = errors.New("the json folder is not set")
@@ -392,6 +393,11 @@ func noescape(str string) template.HTML {
 
 func mdprocess(md string) template.HTML {
 	return template.HTML(string(blackfriday.Run([]byte(md), blackfriday.WithExtensions(blackfriday.HardLineBreak))))
+}
+
+func increment(no int) int {
+	no++
+	return no
 }
 
 func typeof(thing interface{}) string {
