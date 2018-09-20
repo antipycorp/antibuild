@@ -70,7 +70,7 @@ var (
 	noOUT      = errors.New("the output folder is not set")
 )
 
-const version = "v0.1.0"
+const version = "v0.1.1"
 
 func main() {
 	fmt.Println(version)
@@ -112,6 +112,8 @@ func main() {
 
 			}
 			watcher, err := fsnotify.NewWatcher()
+			staticWatcher, err := fsnotify.NewWatcher()
+
 			if err != nil {
 				fmt.Println("could not open a file watcher: ", err)
 			}
@@ -125,25 +127,46 @@ func main() {
 			err = filepath.Walk(config.TemplateFolder, func(path string, file os.FileInfo, err error) error {
 				return watcher.Add(path)
 			})
+			if err != nil {
+				fmt.Println("failled walking over all folders: ", err)
+			}
+
+			err = filepath.Walk(config.Static, func(path string, file os.FileInfo, err error) error {
+				return staticWatcher.Add(path)
+			})
 
 			if err != nil {
 				fmt.Println("failled walking over all folders: ", err)
 			}
-			for {
-				select {
-				case ev, ok := <-watcher.Events:
-					if !ok {
-						return
-					}
-					if filepath.SplitList(ev.Name)[0] == config.Static {
+			go func() {
+				for {
+					select {
+					case _, ok := <-staticWatcher.Events:
+						if !ok {
+							return
+						}
+						fmt.Println("copying over files")
 						info, err := os.Lstat(config.Static)
 						if err != nil {
 							fmt.Println("Couldnt move files form static to out: ", err.Error())
 						}
 						genCopy(config.Static, config.OUTFolder, info)
-					} else {
-						config, err = executeTemplate()
+					case err, ok := <-watcher.Errors:
+						if !ok {
+							return
+						}
+						log.Println("error:", err)
 					}
+				}
+			}()
+
+			for {
+				select {
+				case _, ok := <-watcher.Events:
+					if !ok {
+						return
+					}
+					config, err = executeTemplate()
 					if err != nil {
 						fmt.Println("failled building templates: ", err.Error())
 					}
