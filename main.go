@@ -122,13 +122,6 @@ func main() {
 				fmt.Println("failled walking over all folders: ", err)
 			}
 
-			err = filepath.Walk(config.Static, func(path string, file os.FileInfo, err error) error {
-				return watcher.Add(path)
-			})
-			if err != nil {
-				fmt.Println("failled walking over all folders: ", err)
-			}
-
 			err = filepath.Walk(config.TemplateFolder, func(path string, file os.FileInfo, err error) error {
 				return watcher.Add(path)
 			})
