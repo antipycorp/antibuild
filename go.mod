@@ -1,4 +1,4 @@
-module gitlab.com/antipy/templatebuilder
+module gitlab.com/antipy/antibuild
 
 require (
 	github.com/Workiva/go-datastructures v1.0.50
