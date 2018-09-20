@@ -131,11 +131,19 @@ func main() {
 			}
 			for {
 				select {
-				case _, ok := <-watcher.Events:
+				case ev, ok := <-watcher.Events:
 					if !ok {
 						return
 					}
-					config, err = executeTemplate()
+					if filepath.SplitList(ev.Name)[0] == config.Static {
+						info, err := os.Lstat(config.Static)
+						if err != nil {
+							fmt.Println("Couldnt move files form static to out: ", err.Error())
+						}
+						genCopy(config.Static, config.OUTFolder, info)
+					} else {
+						config, err = executeTemplate()
+					}
 					if err != nil {
 						fmt.Println("failled building templates: ", err.Error())
 					}
