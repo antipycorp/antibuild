@@ -70,7 +70,10 @@ var (
 	errNoOutput   = errors.New("the output folder is not set")
 )
 
+const version = "v0.1.0"
+
 func main() {
+	fmt.Println(version)
 	for i, comm := range os.Args {
 		if _, ok := comms[comm]; ok {
 			comms[comm](os.Args[i+1])
@@ -128,11 +131,19 @@ func main() {
 			}
 			for {
 				select {
-				case _, ok := <-watcher.Events:
+				case ev, ok := <-watcher.Events:
 					if !ok {
 						return
 					}
-					config, err = executeTemplate()
+					if filepath.SplitList(ev.Name)[0] == config.Static {
+						info, err := os.Lstat(config.Static)
+						if err != nil {
+							fmt.Println("Couldnt move files form static to out: ", err.Error())
+						}
+						genCopy(config.Static, config.OUTFolder, info)
+					} else {
+						config, err = executeTemplate()
+					}
 					if err != nil {
 						fmt.Println("failled building templates: ", err.Error())
 					}
@@ -219,46 +230,11 @@ func (s *site) execute(parent *site) error {
 		if err != nil {
 			return err
 		}
-		fmt.Println(genCopy(s.Static, s.OUTFolder, info))
+		genCopy(s.Static, s.OUTFolder, info)
 	}
 	for jIndex, jsonfile := range s.JSONFiles {
 		if strings.Contains(jsonfile, "*") {
-			jsonPath := filepath.Dir(filepath.Join(s.JSONFolder, jsonfile))
-			jsonfile := strings.Replace(filepath.Base(jsonfile), "*", "([^/]*)", -1)
-			re := regexp.MustCompile(jsonfile)
-			var matches [][][]string
-			//fmt.Println(jsonfile)
-			//fmt.Println(jsonPath)
-			err := filepath.Walk(jsonPath, func(path string, file os.FileInfo, err error) error {
-				if path == jsonPath {
-					return nil
-				}
-				fmt.Println(file.Name())
-				fmt.Println(jsonfile)
-				if file.IsDir() {
-					return filepath.SkipDir
-				}
-				if ok, _ := regexp.MatchString(jsonfile, file.Name()); ok {
-					matches = append(matches, re.FindAllStringSubmatch(file.Name(), -1))
-				}
-				return nil
-			})
-			if err != nil {
-				return nil
-			}
-			fmt.Println(matches)
-			for _, file := range matches {
-				site := s.copy()
-				for _, match := range file {
-					site.Slug = strings.Replace(site.Slug, "*", match[1], 1)
-					site.JSONFiles[jIndex] = strings.Replace(site.JSONFiles[jIndex], "*", match[1], 1)
-				}
-				err := site.execute(nil)
-				if err != nil {
-					return err
-				}
-			}
-			return nil
+			return parseStar(s, jIndex)
 		}
 	}
 
@@ -290,6 +266,44 @@ func (s *site) execute(parent *site) error {
 	return nil
 }
 
+func parseStar(s *site, jIndex int) error {
+	jsonPath := filepath.Dir(filepath.Join(s.JSONFolder, s.JSONFiles[jIndex]))
+	jsonfile := strings.Replace(filepath.Base(s.JSONFiles[jIndex]), "*", "([^/]*)", -1)
+	re := regexp.MustCompile(jsonfile)
+	var matches [][][]string
+	//fmt.Println(jsonfile)
+	//fmt.Println(jsonPath)
+	err := filepath.Walk(jsonPath, func(path string, file os.FileInfo, err error) error {
+		if path == jsonPath {
+			return nil
+		}
+		//fmt.Println(file.Name())
+		//fmt.Println(jsonfile)
+		if file.IsDir() {
+			return filepath.SkipDir
+		}
+		if ok, _ := regexp.MatchString(jsonfile, file.Name()); ok {
+			matches = append(matches, re.FindAllStringSubmatch(file.Name(), -1))
+		}
+		return nil
+	})
+	if err != nil {
+		return nil
+	}
+	//fmt.Println(matches)
+	for _, file := range matches {
+		site := s.copy()
+		for _, match := range file {
+			site.Slug = strings.Replace(site.Slug, "*", match[1], 1)
+			site.JSONFiles[jIndex] = strings.Replace(site.JSONFiles[jIndex], "*", match[1], 1)
+		}
+		err := site.execute(nil)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 func (s *site) gatherJSON(jsonImput *jsonImput) error {
 	fmt.Println("gathering JSON files for: ", s.Slug)
 	for _, jsonLocation := range s.JSONFiles {
@@ -306,7 +320,6 @@ func (s *site) gatherJSON(jsonImput *jsonImput) error {
 		if err != nil {
 			return err
 		}
-		fmt.Println(jsonLocation)
 	}
 	return nil
 }
@@ -333,11 +346,15 @@ func (s *site) gatherTemplates() (*template.Template, error) {
 
 func (s *site) executeTemplate(template *template.Template, jsonImput jsonImput) error {
 	OUTPath := filepath.Join(s.OUTFolder, s.Slug)
-	fmt.Println(s.Slug)
+	//fmt.Println(s.Slug)
 	OUTFile, err := os.Create(OUTPath)
 	if err != nil {
 		return errors.New("Couldn't create file: " + err.Error())
 	}
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "    ")
+	//enc.Encode(jsonImput)
+
 	err = template.ExecuteTemplate(OUTFile, "html", jsonImput.Data)
 	if err != nil {
 		return errors.New("Could not parse: " + err.Error())
