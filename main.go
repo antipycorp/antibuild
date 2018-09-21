@@ -67,9 +67,9 @@ var (
 		"typeof":    typeof,
 		"increment": increment,
 	}
-	noTEMPLATE = errors.New("the template folder is not set")
-	noJSON     = errors.New("the json folder is not set")
-	noOUT      = errors.New("the output folder is not set")
+	errNoTemplate = errors.New("the template folder is not set")
+	errNoJSON     = errors.New("the json folder is not set")
+	errNoOutput   = errors.New("the output folder is not set")
 )
 
 const version = "v0.1.1"
@@ -91,7 +91,7 @@ func main() {
 		}
 
 		if isHost {
-			if templateErr == noOUT {
+			if templateErr == errNoOutput {
 				panic("could not get the output folder from config.json")
 			}
 
@@ -109,7 +109,7 @@ func main() {
 		}
 
 		if isRefreshEnabled {
-			if templateErr == noTEMPLATE || templateErr == noJSON || templateErr == noOUT {
+			if templateErr == errNoTemplate || templateErr == errNoJSON || templateErr == errNoOutput {
 				panic("could not get one of: template, json or output from config.json")
 			}
 			watcher, err := fsnotify.NewWatcher()
@@ -211,13 +211,13 @@ func executeTemplate() (*site, error) {
 	}
 
 	if config.TemplateFolder == "" {
-		return &config, noTEMPLATE
+		return &config, errNoTemplate
 	}
 	if config.JSONFolder == "" {
-		return &config, noJSON
+		return &config, errNoJSON
 	}
 	if config.OUTFolder == "" {
-		return &config, noOUT
+		return &config, errNoOutput
 	}
 	return &config, err
 }
