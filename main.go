@@ -30,16 +30,17 @@ type (
 	}
 
 	site struct {
-		Slug           string   `json:"Slug"`
-		Templates      []string `json:"Templates"`
-		JSONFiles      []string `json:"JSONfiles"`
-		Languages      []string `json:"languages"`
-		Sites          []site   `json:"sites"`
-		TemplateFolder string   `json:"templateroot"`
-		JSONFolder     string   `json:"jsonroot"`
-		OUTFolder      string   `json:"outroot"`
-		Static         string   `json:"staticroot"`
-		language       string
+		Slug            string   `json:"Slug"`
+		Templates       []string `json:"Templates"`
+		JSONFiles       []string `json:"JSONfiles"`
+		Languages       []string `json:"languages"`
+		Sites           []site   `json:"sites"`
+		TemplateFolder  string   `json:"templateroot"`
+		JSONFolder      string   `json:"jsonroot"`
+		OUTFolder       string   `json:"outroot"`
+		Static          string   `json:"staticroot"`
+		DefaultLanguage string   `json:"defaultlanguage"`
+		language        string
 	}
 )
 
@@ -252,6 +253,9 @@ func (s *site) execute(parent *site) error {
 		if parent.JSONFolder != "" {
 			s.JSONFolder = parent.JSONFolder
 		}
+		if parent.DefaultLanguage != "" {
+			s.DefaultLanguage = parent.DefaultLanguage
+		}
 	}
 
 	if s.Static != "" && s.OUTFolder != "" {
@@ -388,7 +392,7 @@ func (s *site) gatherTemplates() (*template.Template, error) {
 
 func (s *site) executeTemplate(template *template.Template, jsonImput jsonImput) error {
 	OUTPath := filepath.Join(s.OUTFolder, s.Slug)
-	if s.language != "" {
+	if s.language != "" && s.DefaultLanguage != s.language {
 		OUTPath = filepath.Join(s.OUTFolder, s.language, s.Slug)
 	}
 

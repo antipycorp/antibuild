@@ -14,6 +14,7 @@
 	"languages": [ // all the languages available, are inherited same way as templates and jsonfiles, if the languages are not found in the json files it will use the whole JSON file.
 		"en",
 		"nl"
-	]
+	],
+	"defaultlanguage": "en" // the default language will not have a prefix in the url. eg: /layout.html /nl/layout.html
 }
 ```
