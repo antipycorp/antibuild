@@ -33,11 +33,13 @@ type (
 		Slug           string   `json:"Slug"`
 		Templates      []string `json:"Templates"`
 		JSONFiles      []string `json:"JSONfiles"`
+		Languages      []string `json:"languages"`
 		Sites          []site   `json:"sites"`
 		TemplateFolder string   `json:"templateroot"`
 		JSONFolder     string   `json:"jsonroot"`
 		OUTFolder      string   `json:"outroot"`
 		Static         string   `json:"staticroot"`
+		language       string
 	}
 )
 
@@ -109,7 +111,6 @@ func main() {
 		if isRefreshEnabled {
 			if templateErr == noTEMPLATE || templateErr == noJSON || templateErr == noOUT {
 				panic("could not get one of: template, json or output from config.json")
-
 			}
 			watcher, err := fsnotify.NewWatcher()
 			staticWatcher, err := fsnotify.NewWatcher()
@@ -235,6 +236,12 @@ func (s *site) execute(parent *site) error {
 			s.Templates = make([]string, len(parent.Templates))
 			copy(s.Templates, parent.Templates)
 		}
+		if s.Languages != nil {
+			s.Languages = append(parent.Languages, s.Languages...)
+		} else {
+			s.Languages = make([]string, len(parent.Languages))
+			copy(s.Languages, parent.Languages)
+		}
 		s.Slug = parent.Slug + s.Slug
 		if parent.OUTFolder != "" {
 			s.OUTFolder = parent.OUTFolder
@@ -255,6 +262,7 @@ func (s *site) execute(parent *site) error {
 		}
 		genCopy(s.Static, s.OUTFolder, info)
 	}
+
 	for jIndex, jsonfile := range s.JSONFiles {
 		if strings.Contains(jsonfile, "*") {
 			return parseStar(s, jIndex)
@@ -266,6 +274,18 @@ func (s *site) execute(parent *site) error {
 			err := site.execute(s)
 			if err != nil {
 				return err
+			}
+		}
+		return nil
+	}
+
+	if s.Languages != nil && s.Sites == nil && s.language == "" {
+		for _, lang := range s.Languages {
+			site := s.copy()
+			site.language = lang
+			err := site.execute(nil)
+			if err != nil {
+				return fmt.Errorf("could not execute %s the for lang %s:", site.Slug, lang, err)
 			}
 		}
 		return nil
@@ -329,6 +349,7 @@ func parseStar(s *site, jIndex int) error {
 }
 func (s *site) gatherJSON(jsonImput *jsonImput) error {
 	fmt.Println("gathering JSON files for: ", s.Slug)
+
 	for _, jsonLocation := range s.JSONFiles {
 		jsonPath := filepath.Join(s.JSONFolder, jsonLocation)
 
@@ -340,6 +361,11 @@ func (s *site) gatherJSON(jsonImput *jsonImput) error {
 
 		dec := json.NewDecoder(JSONFile)
 		err = dec.Decode(&jsonImput)
+		if s.language != "" {
+			if v, ok := jsonImput.Data[s.language].(map[string]interface{}); ok {
+				jsonImput.Data = v
+			} // else: if it cant find the language just use the whole json to allow for languageless jsonfiles
+		}
 		if err != nil {
 			return err
 		}
@@ -353,13 +379,6 @@ func (s *site) gatherTemplates() (*template.Template, error) {
 		s.Templates[i] = filepath.Join(s.TemplateFolder, s.Templates[i])
 	}
 
-	OUTPath := filepath.Join(s.OUTFolder, s.Slug)
-
-	err := os.MkdirAll(filepath.Dir(OUTPath), 0766)
-	if err != nil {
-		return nil, errors.New("Couldn't create directory: " + err.Error())
-	}
-
 	template, err := template.New("").Funcs(fn).ParseFiles(s.Templates...)
 	if err != nil {
 		return nil, fmt.Errorf("could not parse the template files: %v", err.Error())
@@ -369,6 +388,15 @@ func (s *site) gatherTemplates() (*template.Template, error) {
 
 func (s *site) executeTemplate(template *template.Template, jsonImput jsonImput) error {
 	OUTPath := filepath.Join(s.OUTFolder, s.Slug)
+	if s.language != "" {
+		OUTPath = filepath.Join(s.OUTFolder, s.language, s.Slug)
+	}
+
+	err := os.MkdirAll(filepath.Dir(OUTPath), 0766)
+	if err != nil {
+		return errors.New("Couldn't create directory: " + err.Error())
+	}
+
 	//fmt.Println(s.Slug)
 	OUTFile, err := os.Create(OUTPath)
 	if err != nil {
