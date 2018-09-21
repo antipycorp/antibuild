@@ -1,0 +1,15 @@
+{{define "html"}}
+    <!DOCTYPE html>
+    <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <meta http-equiv="X-UA-Compatible" content="ie=edge">
+            <title>{{.Name}}</title> <!-- you can acces all variables in both JSON files, .Page.Name is from the Home.json and .Name is from Layout.json -->
+        </head>
+        <body>
+            <div class="ui vertical sidebar menu">
+				<h1>{{.Name}} is the page header</h1>
+			</div>
+    </html>
+{{end}}

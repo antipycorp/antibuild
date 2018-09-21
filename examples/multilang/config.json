@@ -1,0 +1,17 @@
+{
+	"templateroot": "templates/",
+	"jsonroot": "json/",
+	"outroot": "public/",
+	"Slug": "*.html",
+	"Templates": [
+		"Layout.html"
+	],
+	"JSONfiles": [
+		"*.json"
+	],
+	"languages": [
+		"en",
+		"nl"
+	]
+
+}
