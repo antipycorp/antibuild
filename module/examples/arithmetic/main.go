@@ -1,8 +1,6 @@
 package main
 
 import (
-	"reflect"
-
 	abm "gitlab.com/antipy/antibuild/module"
 )
 
@@ -10,19 +8,18 @@ func main() {
 	module := abm.Register("arithmetic")
 
 	module.TemplateFunctionRegister("add", func(w abm.Request, r *abm.Response) {
-		if reflect.TypeOf(w.Data).String() != "[]interface{}" {
+
+		args := w.Data
+
+		// since all data coming in is of type interface and we expect 2 intergers, we have to convert the types
+		a1, ok1 := args[0].(int)
+		a2, ok2 := args[1].(int)
+		if !ok1 || !ok2 {
 			r.Error = abm.ErrInvalidInput
 			return
 		}
 
-		args := w.Data.([]interface{})
-
-		if reflect.TypeOf(args[0]).String() != "int" || reflect.TypeOf(args[1]).String() != "int" {
-			r.Error = abm.ErrInvalidInput
-			return
-		}
-
-		sum := args[0].(int) + args[1].(int)
+		sum := a1 + a2
 		r.Data = sum
 		return
 	})
