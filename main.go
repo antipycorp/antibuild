@@ -17,7 +17,7 @@ import (
 	"net/http"
 
 	"github.com/fsnotify/fsnotify"
-	"gopkg.in/russross/blackfriday.v2"
+	"github.com/russross/blackfriday"
 )
 
 type (
