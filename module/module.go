@@ -3,16 +3,18 @@ package module
 import "errors"
 
 type (
+	templateFunction func(Request, *Response)
+
 	//Module is the collection of registered events that the module API should react to.
 	Module struct {
 		name string
 
-		templateFunctions map[string]func(Request, *Response)
+		templateFunctions map[string]templateFunction
 	}
 
 	//Request is the request with data and meta from the module caller.
 	Request struct {
-		Data interface{}
+		Data []interface{}
 	}
 
 	//Response is the response to the module API that will be used to respond to the client
@@ -48,7 +50,7 @@ func register(name string) *Module {
 
 	module.name = name
 
-	module.templateFunctions = make(map[string]func(Request, *Response))
+	module.templateFunctions = make(map[string]templateFunction)
 
 	return module
 }
@@ -58,12 +60,12 @@ func register(name string) *Module {
 */
 
 //TemplateFunctionRegister registers a new template function with identifier "identifier" to the module.
-func (m *Module) TemplateFunctionRegister(identifer string, function func(Request, *Response)) {
+func (m *Module) TemplateFunctionRegister(identifer string, function templateFunction) {
 	templateFunctionRegister(m, identifer, function)
 	return
 }
 
-func templateFunctionRegister(m *Module, identifer string, function func(Request, *Response)) {
+func templateFunctionRegister(m *Module, identifer string, function templateFunction) {
 	if identifer == "" {
 		panic("module: templateFunctionRegister: identifer is not defined")
 	}
