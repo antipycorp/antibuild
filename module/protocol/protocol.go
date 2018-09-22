@@ -2,17 +2,11 @@ package protocol
 
 import (
 	"encoding/gob"
-	"io"
 	"os"
-	"sync"
 )
 
 type (
-	//Methods is a map of available commands to list of functions allowed to be called
-	Methods map[string][]string
-
-	//GetMethods is the type used as payload for GetAll
-	GetMethods struct{}
+	getMethods struct{}
 
 	executeMethod struct {
 		Function string
@@ -20,116 +14,70 @@ type (
 	}
 
 	payload interface {
-		excecute(ID) Token
+		excecute([]byte) token
 	}
 
 	message struct {
 		Command string
 		Payload payload
-		ID      ID
+		ID      []byte
 	}
 
-	Response struct {
-		ID   ID
-		Data interface{}
-	}
-	//Token is a token used to receive data and send it back to the host
-	Token struct {
+	token struct {
 		Command string
 		Data    []interface{}
-		ID      ID
+		ID      []byte
 	}
-
-	//ID is the type used for identification of the messages
-	ID [10]byte
+	response struct {
+		ID   []byte
+		Data interface{}
+	}
 )
 
 var (
-	outInit   sync.Once
-	Out       = io.Writer(os.Stdout)
-	writer    *gob.Encoder
-	writeLock = sync.RWMutex{}
+	out    = os.Stdout
+	writer *gob.Encoder
 
-	inInit   sync.Once
-	In       = io.Reader(os.Stdin)
-	reader   *gob.Decoder
-	readLock = sync.RWMutex{}
+	in     = os.Stdin
+	reader *gob.Decoder
 
-	tokenGetMessages = Token{Command: "getmessages"}
-	tokenReturnVars  = Token{Command: "return vars"}
-	IDError          = [10]byte{0}
+	tokenGetMessages = token{Command: "getmessages"}
 )
 
 func init() {
 	gob.RegisterName("message", message{})
-	gob.RegisterName("getmethods", GetMethods{})
+	gob.RegisterName("getmethods", getMethods{})
+
+	writer = gob.NewEncoder(out)
+	reader = gob.NewDecoder(in)
 }
 
-//Receive waits for a command from the host to excecute
-func Receive() Token {
+func Receive() token {
 	var command message
-
-	getMessage(&command)
+	reader.Decode(&command)
 	return command.excecute()
 }
 
-//GetResponse waits for a response from the client
-func GetResponse() Response {
-	var resp Response
-	getMessage(&resp)
-	return resp
-}
-
-func Send(command string, payload payload, id ID) {
-	outInit.Do(initOut)
-
-	var message message
-
-	message.Command = command
-	message.Payload = payload
-	message.ID = id
-	writeLock.Lock()
-	writer.Encode(command)
-	writeLock.Unlock()
-
-}
-
-func getMessage(message interface{}) {
-	inInit.Do(initIn)
-	readLock.Lock()
-	reader.Decode(message)
-	readLock.Unlock()
-}
-
-func (m message) excecute() Token {
+func (m message) excecute() token {
 	return m.Payload.excecute(m.ID)
 }
 
-func (gm GetMethods) excecute(id ID) Token {
+func (gm getMethods) excecute(id []byte) token {
 	ret := tokenGetMessages
 	ret.ID = id
 	return ret
 }
 
-func (gm executeMethod) excecute(id ID) Token {
-	ret := Token{Command: gm.Function}
+func (gm executeMethod) excecute(id []byte) token {
+	ret := token{Command: gm.Function}
 	ret.ID = id
 	ret.Data = gm.Args
 	return ret
 }
 
-//Respond sends the given data back to the host
-func (t *Token) Respond(data interface{}) {
-	var resp Response
+func (t *token) Respond(data interface{}) {
+	var resp response
 	resp.Data = data
 	resp.ID = t.ID
 	writer.Encode(resp)
-}
-
-func initOut() {
-	writer = gob.NewEncoder(Out)
-}
-
-func initIn() {
-	reader = gob.NewDecoder(In)
 }
