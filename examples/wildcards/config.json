@@ -5,13 +5,13 @@
         "output": "public/"
     },
     "pages": {
-        "slug": "/index.html",
+        "slug": "*.html",
         "templates": [
             "Layout.html"
         ],
         "data": [
             "Layout.json",
-            "pages/Home.json"
+            "articles/*.json"
         ]
     },
     "modules":{}
