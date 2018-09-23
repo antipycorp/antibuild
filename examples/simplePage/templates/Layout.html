@@ -8,7 +8,7 @@
             <title>{{.Page.Name}} | {{.Name}}</title> <!-- you can acces all variables in both JSON files, .Page.Name is from the Home.json and .Name is from Layout.json -->
         </head>
         <body>
-            <div class="ui vertical sidebar menu">
+            <div>
                 {{range .Headers }}
                     <h1>{{.Name}}</h1> <!-- you can use all variables as normal, you can itterateover them etc -->
                 {{end}}
