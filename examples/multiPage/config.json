@@ -1,28 +1,32 @@
 {
-	"templateroot": "templates/",
-	"jsonroot": "json/",
-	"outroot": "public/",
-	"Slug": "/content",
-	"staticroot": "static/",
-	"Templates": [
-		"Layout.html"
-	],
-	"JSONfiles": [
-		"Layout.json"
-	],
-	"sites": [
-		{
-			"Slug": "/index.html",
-			"JSONfiles": [
-				"pages/Home.json"
-			]
-		},
-		{
-			"Slug": "/alternate.html",
-			"JSONfiles": [
-				"pages/links.json"
-			]
-		}
-	]
-
+    "folders": {
+        "templates": "templates/",
+        "data": "data/",
+        "output": "public/"
+    },
+    "pages": {
+        "slug": "/content",
+        "templates": [
+            "Layout.html"
+        ],
+        "data": [
+            "Layout.json"
+        ],
+        "sites": [
+            {
+                "slug": "/index.html",
+                "data": [
+                    "pages/Home.json"
+                ]
+            },
+            {
+                "Slug": "/alternate.html",
+                "data": [
+                    "pages/Links.json"
+                ]
+            }
+        ]
+    
+    },
+    "modules":{}
 }
