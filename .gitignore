@@ -1,3 +1,9 @@
+<<<<<<< HEAD
 vendor
-main
 go.sum
+antibuild
+main
+=======
+antibuild
+main
+>>>>>>> b866e55e271683811ede319196d6f7910716b401
