@@ -22,7 +22,7 @@ func TestReceive(t *testing.T) {
 	reader = gob.NewDecoder(&in)
 
 	var command message
-	var methods getMethods
+	var methods GetMethods
 	command.Command = "GetAll"
 	command.Payload = methods
 
