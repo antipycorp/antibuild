@@ -257,7 +257,9 @@ func (s *site) execute(parent *site) error {
 			s.DefaultLanguage = parent.DefaultLanguage
 		}
 	}
-
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "    ")
+	enc.Encode(s)
 	if s.Static != "" && s.OUTFolder != "" {
 		fmt.Println("copying static files")
 		info, err := os.Lstat(s.Static)
@@ -272,8 +274,9 @@ func (s *site) execute(parent *site) error {
 			return parseStar(s, jIndex)
 		}
 	}
+	fmt.Println(len(s.Sites))
 
-	if s.Sites != nil {
+	if len(s.Sites) != 0 {
 		for _, site := range s.Sites {
 			err := site.execute(s)
 			if err != nil {
@@ -282,8 +285,8 @@ func (s *site) execute(parent *site) error {
 		}
 		return nil
 	}
-
-	if s.Languages != nil && s.Sites == nil && s.language == "" {
+	fmt.Println(len(s.Languages))
+	if len(s.Languages) != 0 && len(s.Sites) == 0 && s.language == "" {
 		for _, lang := range s.Languages {
 			site := s.copy()
 			site.language = lang
