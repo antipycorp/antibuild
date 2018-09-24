@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"encoding/gob"
+	"errors"
 	"io"
 	"os"
 	"sync"
@@ -13,6 +14,8 @@ type (
 
 	//GetMethods is the type used as payload for GetAll
 	GetMethods struct{}
+	//Version is the version type used for transmission of the version number
+	Version int
 
 	executeMethod struct {
 		Function string
@@ -29,6 +32,7 @@ type (
 		ID      ID
 	}
 
+	//Response is the response for a given command
 	Response struct {
 		ID   ID
 		Data interface{}
@@ -46,25 +50,75 @@ type (
 )
 
 var (
-	outInit   sync.Once
+	outInit sync.Once
+	//Out is the variable where the Guest/Host writes to
 	Out       = io.Writer(os.Stdout)
 	writer    *gob.Encoder
 	writeLock = sync.RWMutex{}
 
-	inInit   sync.Once
+	inInit sync.Once
+	//In is the variable where the Guest/Host reads from
 	In       = io.Reader(os.Stdin)
 	reader   *gob.Decoder
 	readLock = sync.RWMutex{}
 
+	tokenGetVersion           = Token{Command: "getversion"}
 	tokenGetTemplateFunctions = Token{Command: "getTemplateFunctions"}
-	tokenReturnVars           = Token{Command: "return vars"}
 
-	IDError = [10]byte{0}
+	//version ID used for verifying versioning
+	verifyVersionID = [10]byte{1}
+	version         = Version(1)
+
+	//ErrProtocoolViolation is the error thrown whenever a protocol violation occurs
+	ErrProtocoolViolation = errors.New("the protocol is violated by the opposite party, either the version is incompatible or the module is not a module")
 )
 
 func init() {
 	gob.RegisterName("message", message{})
 	gob.RegisterName("getmethods", GetMethods{})
+}
+
+//Init initiates the protocol with a version exchange, returns 0 as version when a protocol violation happens
+func Init(isHost bool) (int, error) {
+	if isHost {
+		Send("GetVersion", version, verifyVersionID)
+		resp := GetResponse()
+		if resp.ID != verifyVersionID {
+			return 0, ErrProtocoolViolation
+		}
+		v, ok := resp.Data.(Version)
+		if !ok {
+			return 0, ErrProtocoolViolation
+		}
+		if v < version {
+			return int(v), errors.New("Guest is using an older version of the API")
+		}
+		if v > version {
+			return int(v), errors.New("Guest is using a newer version of the API")
+		}
+
+		return int(v), nil
+	}
+	message := Receive()
+	if message.ID != verifyVersionID {
+		return 0, ErrProtocoolViolation
+	}
+	if len(message.Data) != 0 {
+		return 0, ErrProtocoolViolation
+	}
+	v, ok := message.Data[0].(Version)
+	if !ok {
+		return 0, ErrProtocoolViolation
+	}
+	if v < version {
+		return int(v), errors.New("Host is using an older version of the API")
+	}
+	if v > version {
+		return int(v), errors.New("Host is using a newer version of the API")
+	}
+
+	message.Respond(version)
+	return int(v), nil
 }
 
 //Receive waits for a command from the host to excecute
@@ -83,6 +137,7 @@ func GetResponse() Response {
 	return resp
 }
 
+//Send sends a command to the guest
 func Send(command string, payload payload, id ID) {
 	outInit.Do(initOut)
 
@@ -111,6 +166,14 @@ func (m message) excecute() Token {
 func (gm GetMethods) excecute(id ID) Token {
 	ret := tokenGetTemplateFunctions
 	ret.ID = id
+	return ret
+}
+
+func (v Version) excecute(id ID) Token {
+	ret := tokenGetVersion
+	ret.ID = id
+	ret.Data = make([]interface{}, 1)
+	ret.Data[0] = v
 	return ret
 }
 

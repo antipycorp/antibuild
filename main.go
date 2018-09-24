@@ -17,7 +17,6 @@ import (
 	"net/http"
 
 	"github.com/fsnotify/fsnotify"
-	"gopkg.in/russross/blackfriday.v2"
 )
 
 type (
@@ -81,7 +80,6 @@ var (
 	server http.Server
 	fn     = template.FuncMap{
 		"noescape":  noescape,
-		"mdprocess": mdprocess,
 		"typeof":    typeof,
 		"increment": increment,
 	}
@@ -262,6 +260,19 @@ func executeTemplate(config *config) (err error) {
 
 func (s *site) execute(parent *site, config *config) error {
 	if parent != nil {
+		if s.Data != nil {
+			s.Data = append(parent.Data, s.Data...)
+		} else {
+			s.Data = make([]string, len(parent.Data))
+			copy(s.Data, parent.Data)
+		}
+		if s.Templates != nil {
+			s.Templates = append(parent.Templates, s.Templates...)
+		} else {
+			s.Templates = make([]string, len(parent.Templates))
+			copy(s.Templates, parent.Templates)
+		}
+
 		if s.Languages != nil {
 			s.Languages = append(parent.Languages, s.Languages...)
 		} else {
@@ -290,8 +301,9 @@ func (s *site) execute(parent *site, config *config) error {
 			return parseStar(s, config, jIndex)
 		}
 	}
+	fmt.Println(len(s.Sites))
 
-	if s.Sites != nil {
+	if len(s.Sites) != 0 {
 		for _, site := range s.Sites {
 			err := site.execute(s, config)
 			if err != nil {
@@ -300,8 +312,8 @@ func (s *site) execute(parent *site, config *config) error {
 		}
 		return nil
 	}
-
-	if s.Languages != nil && s.Sites == nil && s.language == "" {
+	fmt.Println(len(s.Languages))
+	if len(s.Languages) != 0 && len(s.Sites) == 0 && s.language == "" {
 		for _, lang := range s.Languages {
 			site := s.copy()
 			site.language = lang
@@ -448,6 +460,7 @@ func (s *site) copy() site {
 
 	return newSite
 }
+
 func (ji *jsonDataFile) UnmarshalJSON(data []byte) error {
 	var input map[string]interface{}
 	err := json.Unmarshal(data, &input)
@@ -479,10 +492,6 @@ func setHost() {
 
 func noescape(str string) template.HTML {
 	return template.HTML(str)
-}
-
-func mdprocess(md string) template.HTML {
-	return template.HTML(string(blackfriday.Run([]byte(md), blackfriday.WithExtensions(blackfriday.HardLineBreak))))
 }
 
 func increment(no int) int {
