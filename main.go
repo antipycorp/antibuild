@@ -17,7 +17,6 @@ import (
 	"net/http"
 
 	"github.com/fsnotify/fsnotify"
-	"gopkg.in/russross/blackfriday.v2"
 )
 
 type (
@@ -81,7 +80,6 @@ var (
 	server http.Server
 	fn     = template.FuncMap{
 		"noescape":  noescape,
-		"mdprocess": mdprocess,
 		"typeof":    typeof,
 		"increment": increment,
 	}
@@ -262,6 +260,19 @@ func executeTemplate(config *config) (err error) {
 
 func (s *site) execute(parent *site, config *config) error {
 	if parent != nil {
+		if s.Data != nil {
+			s.Data = append(parent.Data, s.Data...)
+		} else {
+			s.Data = make([]string, len(parent.Data))
+			copy(s.Data, parent.Data)
+		}
+		if s.Templates != nil {
+			s.Templates = append(parent.Templates, s.Templates...)
+		} else {
+			s.Templates = make([]string, len(parent.Templates))
+			copy(s.Templates, parent.Templates)
+		}
+
 		if s.Languages != nil {
 			s.Languages = append(parent.Languages, s.Languages...)
 		} else {
@@ -449,6 +460,7 @@ func (s *site) copy() site {
 
 	return newSite
 }
+
 func (ji *jsonDataFile) UnmarshalJSON(data []byte) error {
 	var input map[string]interface{}
 	err := json.Unmarshal(data, &input)
@@ -480,10 +492,6 @@ func setHost() {
 
 func noescape(str string) template.HTML {
 	return template.HTML(str)
-}
-
-func mdprocess(md string) template.HTML {
-	return template.HTML(string(blackfriday.Run([]byte(md), blackfriday.WithExtensions(blackfriday.HardLineBreak))))
 }
 
 func increment(no int) int {
