@@ -50,10 +50,10 @@ func AskMethods() (protocol.Methods, error) {
 	addConnection(id)
 	resp := awaitResponse(id)
 	if resp == nil {
-		if v, ok := resp.(error); ok {
-			return nil, v
-		}
 		return nil, errors.New("could not receive error")
+	}
+	if v, ok := resp.(error); ok {
+		return nil, v
 	}
 	if v, ok := resp.(protocol.Methods); ok {
 		return v, nil
