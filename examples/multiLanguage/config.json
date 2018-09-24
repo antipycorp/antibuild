@@ -5,14 +5,18 @@
         "output": "public/"
     },
     "pages": {
-        "slug": "/index.html",
+        "slug": "index.html",
         "templates": [
             "Layout.html"
         ],
         "data": [
-            "Layout.json",
-            "pages/Home.json"
-        ]
+            "Layout.json"
+        ],
+        "languages": [
+            "en",
+            "nl"
+        ],
+        "language_default": "en"        
     },
     "modules":{}
 }

@@ -24,7 +24,10 @@ var (
 func Start(in io.Reader, out io.Writer) {
 	protocol.In = in
 	protocol.Out = out
+<<<<<<< HEAD
 	protocol.Init(true)
+=======
+>>>>>>> ebe3b2a495d0338e065b3484550fc1b8a199b64a
 	go func() {
 		resp := protocol.GetResponse()
 		conn := getCon(resp.ID)

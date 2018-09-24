@@ -25,22 +25,39 @@ type (
 		Layout interface{}
 		Page   interface{}
 	}
-	jsonImput struct {
+
+	jsonDataFile struct {
 		Data map[string]interface{} `json:"Data"`
 	}
 
+	config struct {
+		Folders configFolder  `json:"folders"`
+		Modules configModules `json:"modules"`
+		Pages   site          `json:"pages"`
+	}
+
+	configFolder struct {
+		Templates string `json:"templates"`
+		Data      string `json:"data"`
+		Static    string `json:"static"`
+		Output    string `json:"output"`
+	}
+
+	configModules struct {
+		Dependencies map[string]string                 `json:"dependencies"`
+		Config       map[string]map[string]interface{} `json:"config"`
+	}
+
 	site struct {
-		Slug            string   `json:"Slug"`
-		Templates       []string `json:"Templates"`
-		JSONFiles       []string `json:"JSONfiles"`
+		Slug            string   `json:"slug"`
+		Templates       []string `json:"templates"`
+		Data            []string `json:"data"`
 		Languages       []string `json:"languages"`
-		Sites           []site   `json:"sites"`
-		TemplateFolder  string   `json:"templateroot"`
-		JSONFolder      string   `json:"jsonroot"`
-		OUTFolder       string   `json:"outroot"`
-		Static          string   `json:"staticroot"`
-		DefaultLanguage string   `json:"defaultlanguage"`
-		language        string
+		DefaultLanguage string   `json:"language_default"`
+
+		Sites []site `json:"sites"`
+
+		language string
 	}
 )
 
@@ -69,11 +86,11 @@ var (
 		"increment": increment,
 	}
 	errNoTemplate = errors.New("the template folder is not set")
-	errNoJSON     = errors.New("the json folder is not set")
+	errNoData     = errors.New("the data folder is not set")
 	errNoOutput   = errors.New("the output folder is not set")
 )
 
-const version = "v0.1.1"
+const version = "v0.2.0"
 
 func main() {
 	fmt.Println(version)
@@ -86,13 +103,10 @@ func main() {
 	}
 
 	if isConfigSet {
-		config, templateErr := executeTemplate()
-		if templateErr != nil {
-			fmt.Println("failled building templates: ", templateErr.Error())
-		}
+		config, parseErr := startParse()
 
 		if isHost {
-			if templateErr == errNoOutput {
+			if parseErr == errNoData {
 				panic("could not get the output folder from config.json")
 			}
 
@@ -101,7 +115,7 @@ func main() {
 				addr = ":8080"
 			}
 
-			r := http.StripPrefix("/", http.FileServer(http.Dir(config.OUTFolder)))
+			r := http.StripPrefix("/", http.FileServer(http.Dir(config.Folders.Output)))
 			server = http.Server{Addr: addr, Handler: r}
 			server.ErrorLog = log.New(os.Stdout, "", 0)
 
@@ -110,8 +124,8 @@ func main() {
 		}
 
 		if isRefreshEnabled {
-			if templateErr == errNoTemplate || templateErr == errNoJSON || templateErr == errNoOutput {
-				panic("could not get one of: template, json or output from config.json")
+			if parseErr == errNoTemplate || parseErr == errNoData || parseErr == errNoOutput {
+				panic("could not get one of: template, data or output from config.json")
 			}
 			watcher, err := fsnotify.NewWatcher()
 			staticWatcher, err := fsnotify.NewWatcher()
@@ -119,27 +133,28 @@ func main() {
 			if err != nil {
 				fmt.Println("could not open a file watcher: ", err)
 			}
-			err = filepath.Walk(config.JSONFolder, func(path string, file os.FileInfo, err error) error {
+			err = filepath.Walk(config.Folders.Data, func(path string, file os.FileInfo, err error) error {
 				return watcher.Add(path)
 			})
 			if err != nil {
 				fmt.Println("failled walking over all folders: ", err)
 			}
 
-			err = filepath.Walk(config.TemplateFolder, func(path string, file os.FileInfo, err error) error {
+			err = filepath.Walk(config.Folders.Templates, func(path string, file os.FileInfo, err error) error {
 				return watcher.Add(path)
 			})
 			if err != nil {
 				fmt.Println("failled walking over all folders: ", err)
 			}
 
-			err = filepath.Walk(config.Static, func(path string, file os.FileInfo, err error) error {
+			err = filepath.Walk(config.Folders.Static, func(path string, file os.FileInfo, err error) error {
 				return staticWatcher.Add(path)
 			})
 
 			if err != nil {
 				fmt.Println("failled walking over all folders: ", err)
 			}
+
 			go func() {
 				for {
 					select {
@@ -148,11 +163,11 @@ func main() {
 							return
 						}
 						fmt.Println("copying over files")
-						info, err := os.Lstat(config.Static)
+						info, err := os.Lstat(config.Folders.Static)
 						if err != nil {
 							fmt.Println("Couldnt move files form static to out: ", err.Error())
 						}
-						genCopy(config.Static, config.OUTFolder, info)
+						genCopy(config.Folders.Static, config.Folders.Output, info)
 					case err, ok := <-watcher.Errors:
 						if !ok {
 							return
@@ -168,10 +183,8 @@ func main() {
 					if !ok {
 						return
 					}
-					config, err = executeTemplate()
-					if err != nil {
-						fmt.Println("failled building templates: ", err.Error())
-					}
+
+					startParse()
 				case err, ok := <-watcher.Errors:
 					if !ok {
 						return
@@ -183,102 +196,112 @@ func main() {
 	}
 }
 
-func executeTemplate() (*site, error) {
-	var config site
-	JSONFile, err := os.Open(configLocation)
-	defer JSONFile.Close()
-	if err != nil {
-		return nil, errors.New("Could not open the layout file: " + err.Error())
+func startParse() (*config, error) {
+	config, configErr := parseConfig()
+	if configErr != nil {
+		fmt.Println(configErr.Error())
+		return config, configErr
 	}
 
-	dec := json.NewDecoder(JSONFile)
+	templateErr := executeTemplate(config)
+	if templateErr != nil {
+		fmt.Println("failed building templates: ", templateErr.Error())
+		return config, templateErr
+	}
+
+	return config, nil
+}
+
+func parseConfig() (*config, error) {
+	var config config
+
+	configFile, err := os.Open(configLocation)
+	defer configFile.Close()
+	if err != nil {
+		return nil, errors.New("could not open the config file: " + err.Error())
+	}
+
+	dec := json.NewDecoder(configFile)
 	err = dec.Decode(&config)
 	if err != nil {
 		return &config, err
 	}
 
-	if config.OUTFolder == "" {
-		err = os.RemoveAll(config.OUTFolder)
+	if config.Folders.Templates == "" {
+		return &config, errNoTemplate
+	}
+
+	if config.Folders.Data == "" {
+		return &config, errNoData
+	}
+
+	if config.Folders.Output == "" {
+		return &config, errNoOutput
+	}
+
+	return &config, nil
+}
+
+func executeTemplate(config *config) (err error) {
+	if config.Folders.Output == "" {
+		err = os.RemoveAll(config.Folders.Output)
 	}
 
 	if err != nil {
-		fmt.Println("could not remove files: ", err, " old html will be left in place")
+		fmt.Println("could not remove files: ", err, ". Old html will be left in place")
 	}
 
 	fmt.Println("------ START ------")
-	err = config.execute(nil)
+	err = config.Pages.execute(nil, config)
 	if err != nil {
 		fmt.Println("failled parsing config file")
 	}
 
-	if config.TemplateFolder == "" {
-		return &config, errNoTemplate
-	}
-	if config.JSONFolder == "" {
-		return &config, errNoJSON
-	}
-	if config.OUTFolder == "" {
-		return &config, errNoOutput
-	}
-	return &config, err
+	return
 }
 
-func (s *site) execute(parent *site) error {
+func (s *site) execute(parent *site, config *config) error {
 	if parent != nil {
-		if s.JSONFiles != nil {
-			s.JSONFiles = append(parent.JSONFiles, s.JSONFiles...)
-		} else {
-			s.JSONFiles = make([]string, len(parent.JSONFiles))
-			copy(s.JSONFiles, parent.JSONFiles)
-		}
-		if s.Templates != nil {
-			s.Templates = append(parent.Templates, s.Templates...)
-		} else {
-			s.Templates = make([]string, len(parent.Templates))
-			copy(s.Templates, parent.Templates)
-		}
 		if s.Languages != nil {
 			s.Languages = append(parent.Languages, s.Languages...)
 		} else {
 			s.Languages = make([]string, len(parent.Languages))
 			copy(s.Languages, parent.Languages)
 		}
+
 		s.Slug = parent.Slug + s.Slug
-		if parent.OUTFolder != "" {
-			s.OUTFolder = parent.OUTFolder
-		}
-		if parent.TemplateFolder != "" {
-			s.TemplateFolder = parent.TemplateFolder
-		}
-		if parent.JSONFolder != "" {
-			s.JSONFolder = parent.JSONFolder
-		}
+
 		if parent.DefaultLanguage != "" {
 			s.DefaultLanguage = parent.DefaultLanguage
 		}
 	}
+<<<<<<< HEAD
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "    ")
 	enc.Encode(s)
 	if s.Static != "" && s.OUTFolder != "" {
+=======
+
+	if config.Folders.Static != "" && config.Folders.Output != "" {
+>>>>>>> ebe3b2a495d0338e065b3484550fc1b8a199b64a
 		fmt.Println("copying static files")
-		info, err := os.Lstat(s.Static)
+		info, err := os.Lstat(config.Folders.Static)
 		if err != nil {
 			return err
 		}
-		genCopy(s.Static, s.OUTFolder, info)
+		genCopy(config.Folders.Static, config.Folders.Output, info)
 	}
 
-	for jIndex, jsonfile := range s.JSONFiles {
+	for jIndex, jsonfile := range s.Data {
 		if strings.Contains(jsonfile, "*") {
-			return parseStar(s, jIndex)
+			return parseStar(s, config, jIndex)
 		}
 	}
 	fmt.Println(len(s.Sites))
 
 	if len(s.Sites) != 0 {
 		for _, site := range s.Sites {
-			err := site.execute(s)
+			err := site.execute(s, config)
 			if err != nil {
 				return err
 			}
@@ -290,7 +313,7 @@ func (s *site) execute(parent *site) error {
 		for _, lang := range s.Languages {
 			site := s.copy()
 			site.language = lang
-			err := site.execute(nil)
+			err := site.execute(nil, config)
 			if err != nil {
 				return fmt.Errorf("could not execute %s the for lang %s:", site.Slug, lang, err)
 			}
@@ -298,17 +321,17 @@ func (s *site) execute(parent *site) error {
 		return nil
 	}
 
-	var jsonImput jsonImput
+	var jsonDataFile jsonDataFile
 
-	err := s.gatherJSON(&jsonImput)
+	err := s.gatherJSON(&jsonDataFile, config)
 	if err != nil {
 		return err
 	}
-	template, err := s.gatherTemplates()
+	template, err := s.gatherTemplates(config)
 	if err != nil {
 		return err
 	}
-	err = s.executeTemplate(template, jsonImput)
+	err = s.executeTemplate(template, jsonDataFile, config)
 	if err != nil {
 		return err
 	}
@@ -316,23 +339,23 @@ func (s *site) execute(parent *site) error {
 	return nil
 }
 
-func parseStar(s *site, jIndex int) error {
-	jsonPath := filepath.Dir(filepath.Join(s.JSONFolder, s.JSONFiles[jIndex]))
-	jsonfile := strings.Replace(filepath.Base(s.JSONFiles[jIndex]), "*", "([^/]*)", -1)
-	re := regexp.MustCompile(jsonfile)
+func parseStar(s *site, config *config, jIndex int) error {
+	jsonPath := filepath.Dir(filepath.Join(config.Folders.Data, s.Data[jIndex]))
+	jsonFile := strings.Replace(filepath.Base(s.Data[jIndex]), "*", "([^/]*)", -1)
+	re := regexp.MustCompile(jsonFile)
+
 	var matches [][][]string
-	//fmt.Println(jsonfile)
-	//fmt.Println(jsonPath)
+
 	err := filepath.Walk(jsonPath, func(path string, file os.FileInfo, err error) error {
 		if path == jsonPath {
 			return nil
 		}
-		//fmt.Println(file.Name())
-		//fmt.Println(jsonfile)
+
 		if file.IsDir() {
 			return filepath.SkipDir
 		}
-		if ok, _ := regexp.MatchString(jsonfile, file.Name()); ok {
+
+		if ok, _ := regexp.MatchString(jsonFile, file.Name()); ok {
 			matches = append(matches, re.FindAllStringSubmatch(file.Name(), -1))
 		}
 		return nil
@@ -345,20 +368,20 @@ func parseStar(s *site, jIndex int) error {
 		site := s.copy()
 		for _, match := range file {
 			site.Slug = strings.Replace(site.Slug, "*", match[1], 1)
-			site.JSONFiles[jIndex] = strings.Replace(site.JSONFiles[jIndex], "*", match[1], 1)
+			site.Data[jIndex] = strings.Replace(site.Data[jIndex], "*", match[1], 1)
 		}
-		err := site.execute(nil)
+		err := site.execute(nil, config)
 		if err != nil {
 			return err
 		}
 	}
 	return nil
 }
-func (s *site) gatherJSON(jsonImput *jsonImput) error {
+func (s *site) gatherJSON(jsonImput *jsonDataFile, config *config) error {
 	fmt.Println("gathering JSON files for: ", s.Slug)
 
-	for _, jsonLocation := range s.JSONFiles {
-		jsonPath := filepath.Join(s.JSONFolder, jsonLocation)
+	for _, jsonLocation := range s.Data {
+		jsonPath := filepath.Join(config.Folders.Data, jsonLocation)
 
 		JSONFile, err := os.Open(jsonPath)
 		defer JSONFile.Close()
@@ -380,10 +403,10 @@ func (s *site) gatherJSON(jsonImput *jsonImput) error {
 	return nil
 }
 
-func (s *site) gatherTemplates() (*template.Template, error) {
+func (s *site) gatherTemplates(config *config) (*template.Template, error) {
 
 	for i := range s.Templates {
-		s.Templates[i] = filepath.Join(s.TemplateFolder, s.Templates[i])
+		s.Templates[i] = filepath.Join(config.Folders.Templates, s.Templates[i])
 	}
 
 	template, err := template.New("").Funcs(fn).ParseFiles(s.Templates...)
@@ -393,10 +416,10 @@ func (s *site) gatherTemplates() (*template.Template, error) {
 	return template, nil
 }
 
-func (s *site) executeTemplate(template *template.Template, jsonImput jsonImput) error {
-	OUTPath := filepath.Join(s.OUTFolder, s.Slug)
+func (s *site) executeTemplate(template *template.Template, jsonImput jsonDataFile, config *config) error {
+	OUTPath := filepath.Join(config.Folders.Output, s.Slug)
 	if s.language != "" && s.DefaultLanguage != s.language {
-		OUTPath = filepath.Join(s.OUTFolder, s.language, s.Slug)
+		OUTPath = filepath.Join(config.Folders.Output, s.language, s.Slug)
 	}
 
 	err := os.MkdirAll(filepath.Dir(OUTPath), 0766)
@@ -425,15 +448,15 @@ func (s *site) copy() site {
 	for i, site := range s.Sites {
 		newSite.Sites[i] = site.copy()
 	}
-	newSite.JSONFiles = make([]string, len(s.JSONFiles))
-	copy(newSite.JSONFiles, s.JSONFiles)
+	newSite.Data = make([]string, len(s.Data))
+	copy(newSite.Data, s.Data)
 
 	newSite.Templates = make([]string, len(s.Templates))
 	copy(newSite.Templates, s.Templates)
 
 	return newSite
 }
-func (ji *jsonImput) UnmarshalJSON(data []byte) error {
+func (ji *jsonDataFile) UnmarshalJSON(data []byte) error {
 	var input map[string]interface{}
 	err := json.Unmarshal(data, &input)
 	if err != nil {

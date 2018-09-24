@@ -1,3 +1,5 @@
 vendor
-main
 go.sum
+
+antibuild
+main
