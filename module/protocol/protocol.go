@@ -61,9 +61,8 @@ var (
 	reader   *gob.Decoder
 	readLock = sync.RWMutex{}
 
-	tokenGetMessages = Token{Command: "getmessages"}
 	tokenGetVersion  = Token{Command: "getversion"}
-	tokenReturnVars  = Token{Command: "return vars"}
+	tokenGetMessages = Token{Command: "getmessages"}
 
 	//version ID used for verifying versioning
 	verifyVersionID = [10]byte{1}
