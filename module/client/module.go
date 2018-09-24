@@ -1,15 +1,18 @@
 package module
 
-import "errors"
+import (
+	"errors"
+	"strings"
+
+	"gitlab.com/antipy/antibuild/module/protocol"
+)
 
 type (
-	templateFunction func(Request, *Response)
-
 	//Module is the collection of registered events that the module API should react to.
 	Module struct {
 		name string
 
-		templateFunctions map[string]templateFunction
+		templateFunctions map[string]func(Request, *Response)
 	}
 
 	//Request is the request with data and meta from the module caller.
@@ -25,6 +28,9 @@ type (
 )
 
 var (
+	//ErrInvalidCommand is the error that occurs when a function is called that is not registered with the module.
+	ErrInvalidCommand = errors.New("module: the provided command does not exist")
+
 	//ErrInvalidInput is the error that occurs when a function is called with data that is not correct, valid or applicable.
 	ErrInvalidInput = errors.New("module: the provided data is invalid")
 
@@ -50,9 +56,71 @@ func register(name string) *Module {
 
 	module.name = name
 
-	module.templateFunctions = make(map[string]templateFunction)
+	module.templateFunctions = make(map[string]func(Request, *Response))
 
 	return module
+}
+
+/*
+	Module Start
+*/
+
+//Start listenes to messages from host and responds if possible. Should be called AFTER registering all functions to the module.
+func (m *Module) Start() {
+	start(m)
+}
+
+func start(m *Module) {
+	//protocol.Init(false)
+
+	for {
+		r := protocol.Receive()
+
+		commandSplit := strings.SplitN(r.Command, "_", 1)
+
+		switch commandSplit[0] {
+		case "internal":
+			internalHandle(commandSplit[1], r, m)
+		case "templateFunctions":
+			templateFunctionsHandle(commandSplit[1], r, m)
+		}
+	}
+}
+
+func internalHandle(command string, r protocol.Token, m *Module) {
+	switch command {
+	case "getTemplateFunctions":
+		var functions = make([]string, len(m.templateFunctions))
+
+		for key := range m.templateFunctions {
+			functions = append(functions, key)
+		}
+
+		r.Respond(protocol.Methods{
+			"templateFunctions": functions,
+		})
+	}
+}
+
+func templateFunctionsHandle(command string, r protocol.Token, m *Module) {
+	if m.templateFunctions[command] == nil {
+		r.Respond(ErrInvalidCommand)
+		return
+	}
+
+	var request = Request{
+		Data: r.Data,
+	}
+	var response = &Response{}
+
+	m.templateFunctions[command](request, response)
+
+	if response.Error != nil {
+		r.Respond(response.Error)
+		return
+	}
+
+	r.Respond(r.Data)
 }
 
 /*

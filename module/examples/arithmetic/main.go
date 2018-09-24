@@ -8,7 +8,6 @@ func main() {
 	module := abm.Register("arithmetic")
 
 	module.TemplateFunctionRegister("add", func(w abm.Request, r *abm.Response) {
-
 		args := w.Data
 
 		// since all data coming in is of type interface and we expect 2 intergers, we have to convert the types

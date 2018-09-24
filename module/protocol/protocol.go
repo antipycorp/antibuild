@@ -37,6 +37,7 @@ type (
 		ID   ID
 		Data interface{}
 	}
+
 	//Token is a token used to receive data and send it back to the host
 	Token struct {
 		Command string
@@ -61,15 +62,10 @@ var (
 	reader   *gob.Decoder
 	readLock = sync.RWMutex{}
 
-	tokenGetVersion  = Token{Command: "getversion"}
-	tokenGetMessages = Token{Command: "getmessages"}
+	tokenGetTemplateFunctions = Token{Command: "getTemplateFunctions"}
+	tokenReturnVars           = Token{Command: "return vars"}
 
-	//version ID used for verifying versioning
-	verifyVersionID = [10]byte{1}
-	version         = Version(1)
-
-	//ErrProtocoolViolation is the error thrown whenever a protocol violation occurs
-	ErrProtocoolViolation = errors.New("the protocol is violated by the opposite party, either the version is incompatible or the module is not a module")
+	IDError = [10]byte{0}
 )
 
 func init() {
@@ -131,6 +127,7 @@ func Receive() Token {
 //GetResponse waits for a response from the client
 func GetResponse() Response {
 	var resp Response
+
 	getMessage(&resp)
 	return resp
 }
@@ -162,7 +159,7 @@ func (m message) excecute() Token {
 }
 
 func (gm GetMethods) excecute(id ID) Token {
-	ret := tokenGetMessages
+	ret := tokenGetTemplateFunctions
 	ret.ID = id
 	return ret
 }
