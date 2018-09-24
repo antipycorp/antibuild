@@ -1,0 +1,18 @@
+{
+    "folders": {
+        "templates": "templates/",
+        "data": "data/",
+        "output": "public/"
+    },
+    "pages": {
+        "slug": "*.html",
+        "templates": [
+            "Layout.html"
+        ],
+        "data": [
+            "Layout.json",
+            "articles/*.json"
+        ]
+    },
+    "modules":{}
+}

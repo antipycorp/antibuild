@@ -1,13 +1,18 @@
 {
-	"templateroot": "templates/",
-	"jsonroot": "json/",
-	"outroot": "public/",
-	"Slug": "/index.html",
-	"Templates": [
-		"Layout.html"
-	],
-	"JSONfiles": [
-		"Layout.json",
-		"pages/Home.json"
-	]
+    "folders": {
+        "templates": "templates/",
+        "data": "data/",
+        "output": "public/"
+    },
+    "pages": {
+        "slug": "/index.html",
+        "templates": [
+            "Layout.html"
+        ],
+        "data": [
+            "Layout.json",
+            "pages/Home.json"
+        ]
+    },
+    "modules":{}
 }
