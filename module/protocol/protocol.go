@@ -55,9 +55,9 @@ type (
 )
 
 const (
-	GetAll     = "internal_getTemplateFunctions"
-	Execute    = "ExecuteMethod"
-	GetVersion = "getversion"
+	GetVersion           = "getversion"
+	GetTemplateFunctions = "internal_getTemplateFunctions"
+	Execute              = "ExecuteMethod"
 )
 
 var (
