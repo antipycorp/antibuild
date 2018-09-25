@@ -82,17 +82,16 @@ var (
 	loadedModules = false
 )
 
-const version = "v0.2.0"
-
 //Start the build process
 func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSet bool) {
 	if isConfigSet {
 		config, parseErr := startParse(configLocation)
 
+		if parseErr != nil {
+			panic(fmt.Sprintf("could not get the output folder from config.json: %s", parseErr))
+		}
+
 		if isHost {
-			if parseErr == errNoData {
-				panic("could not get the output folder from config.json")
-			}
 
 			addr := ":" + os.Getenv("PORT")
 			if addr == ":" {
@@ -181,18 +180,39 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 }
 
 func startParse(configLocation string) (*config, error) {
+
 	config, configErr := parseConfig(configLocation)
 	if configErr != nil {
 		fmt.Println(configErr.Error())
 		return config, configErr
 	}
 
-	if loadedModules == false {
+	//var outb, inb bytes.Buffer
 
-		loadModules(config)
+	config.moduleHost = host.New()
+	module := exec.Command("abm_arithmetic")
 
-		loadedModules = true
+	stdin, err := module.StdinPipe()
+	if nil != err {
+		log.Fatalf("Error obtaining stdin: %s", err.Error())
 	}
+	stdout, err := module.StdoutPipe()
+	if nil != err {
+		log.Fatalf("Error obtaining stdout: %s", err.Error())
+	}
+	module.Stderr = os.Stderr
+
+	if err := module.Start(); err != nil {
+		fmt.Println("process failles")
+		return nil, err
+	}
+
+	err = config.moduleHost.Start(stdout, stdin)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	fmt.Println(config.moduleHost.AskMethods())
 
 	templateErr := executeTemplate(config)
 	if templateErr != nil {
@@ -272,6 +292,7 @@ func executeTemplate(config *config) (err error) {
 	}
 
 	fmt.Println("------ START ------")
+
 	err = config.Pages.execute(nil, config)
 	if err != nil {
 		fmt.Println("failled parsing config file")
@@ -281,6 +302,7 @@ func executeTemplate(config *config) (err error) {
 }
 
 func (s *site) execute(parent *site, config *config) error {
+	fmt.Println("new site")
 	if parent != nil {
 		if s.Data != nil {
 			s.Data = append(parent.Data, s.Data...)
