@@ -3,8 +3,8 @@ output = public/
 templateargs = build
 templaterefresh = develop
 
-$(binary):  ../../main.go
-	go build -o $(binary) ../../main.go 
+$(binary): ../../main.go ../../builder ../../cli ../../module
+	go build -o $(binary) ../../main.go
 
 build: $(binary)
 	./$(binary) $(templateargs)
