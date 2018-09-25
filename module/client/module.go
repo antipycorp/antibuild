@@ -92,10 +92,12 @@ func start(m *Module) {
 	for {
 		r := protocol.Receive()
 
-		commandSplit := strings.SplitN(r.Command, "_", 1)
+		commandSplit := strings.SplitN(r.Command, "_", 2)
+		//json.NewEncoder(os.Stderr).Encode(commandSplit)
 
 		switch commandSplit[0] {
 		case "internal":
+			//json.NewEncoder(os.Stderr).Encode(r)
 			internalHandle(commandSplit[1], r, m)
 		case "templateFunctions":
 			templateFunctionsHandle(commandSplit[1], r, m)
@@ -104,14 +106,16 @@ func start(m *Module) {
 }
 
 func internalHandle(command string, r protocol.Token, m *Module) {
+	//fmt.Fprintf(os.Stderr, "internal handle!")
 	switch command {
 	case "getTemplateFunctions":
+
 		var functions = make([]string, len(m.templateFunctions))
 
 		for key := range m.templateFunctions {
 			functions = append(functions, key)
 		}
-
+		//fmt.Fprintf(os.Stderr, "sending back now!")
 		r.Respond(protocol.Methods{
 			"templateFunctions": functions,
 		})
