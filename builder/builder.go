@@ -180,39 +180,17 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 }
 
 func startParse(configLocation string) (*config, error) {
-
 	config, configErr := parseConfig(configLocation)
 	if configErr != nil {
 		fmt.Println(configErr.Error())
 		return config, configErr
 	}
 
-	//var outb, inb bytes.Buffer
+	if loadedModules == false {
+		loadModules(config)
 
-	config.moduleHost = host.New()
-	module := exec.Command("abm_arithmetic")
-
-	stdin, err := module.StdinPipe()
-	if nil != err {
-		log.Fatalf("Error obtaining stdin: %s", err.Error())
+		loadedModules = true
 	}
-	stdout, err := module.StdoutPipe()
-	if nil != err {
-		log.Fatalf("Error obtaining stdout: %s", err.Error())
-	}
-	module.Stderr = os.Stderr
-
-	if err := module.Start(); err != nil {
-		fmt.Println("process failled")
-		return nil, err
-	}
-
-	err = config.moduleHost.Start(stdout, stdin)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-
-	fmt.Println(config.moduleHost.AskMethods())
 
 	templateErr := executeTemplate(config)
 	if templateErr != nil {
@@ -236,16 +214,16 @@ func loadModules(config *config) {
 			log.Fatalf("Error obtaining stdin: %s", err.Error())
 		}
 
-		/*stdout, err := module.StdoutPipe()
+		stdout, err := module.StdoutPipe()
 		if nil != err {
 			log.Fatalf("Error obtaining stdout: %s", err.Error())
-		}*/
+		}
 
 		if err := module.Start(); err != nil {
 			panic(err)
 		}
 
-		err = config.moduleHost.Start(os.Stdout, stdin)
+		err = config.moduleHost.Start(stdout, stdin)
 		if err != nil {
 			panic(err)
 		}
