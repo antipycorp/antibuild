@@ -17,7 +17,7 @@ type (
 	//Version is the version type used for transmission of the version number
 	Version int
 
-	executeMethod struct {
+	ExecuteMethod struct {
 		Function string
 		Args     []interface{}
 	}
@@ -46,6 +46,11 @@ type (
 
 	//ID is the type used for identification of the messages
 	ID [10]byte
+)
+
+const (
+	GetAll  = "GetAll"
+	Execute = "ExecuteMethod"
 )
 
 var (
@@ -175,7 +180,7 @@ func (v Version) excecute(id ID) Token {
 	return ret
 }
 
-func (gm executeMethod) excecute(id ID) Token {
+func (gm ExecuteMethod) excecute(id ID) Token {
 	ret := Token{Command: gm.Function}
 	ret.ID = id
 	ret.Data = gm.Args
