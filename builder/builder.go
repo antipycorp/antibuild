@@ -185,19 +185,30 @@ func startParse(configLocation string) (*config, error) {
 	}
 
 	config.moduleHost = host.New()
-	module := exec.Command("abm_arithmetic")
-	err := module.Start()
-	if err != nil {
-		fmt.Println(err.Error())
-	}
+	module := exec.Command("amb_arithmetic")
 
-	err = config.moduleHost.Start(module.Stdin, module.Stdout)
+	stdin, err := module.StdinPipe()
+	if nil != err {
+		log.Fatalf("Error obtaining stdin: %s", err.Error())
+	}
+	stdout, err := module.StdoutPipe()
+	if nil != err {
+		log.Fatalf("Error obtaining stdout: %s", err.Error())
+	}
+	if err := module.Start(); err != nil {
+		return nil, err
+	}
+	fmt.Println(stdin, stdout)
+	fmt.Println("finshed! almost?")
+
+	err = config.moduleHost.Start(os.Stdout, stdin)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
+	fmt.Println("finshed! almost")
 
 	fmt.Println(config.moduleHost.AskMethods())
-
+	fmt.Println("finshed!")
 	templateErr := executeTemplate(config)
 	if templateErr != nil {
 		fmt.Println("failed building templates: ", templateErr.Error())
@@ -316,7 +327,7 @@ func (s *site) execute(parent *site, config *config) error {
 			site.language = lang
 			err := site.execute(nil, config)
 			if err != nil {
-				return fmt.Errorf("could not execute %s the for lang %s:", site.Slug, lang, err)
+				return fmt.Errorf("could not execute %s the for lang %s: %s", site.Slug, lang, err)
 			}
 		}
 		return nil
