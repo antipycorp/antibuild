@@ -4,8 +4,15 @@
 
 package main
 
-import "gitlab.com/antipy/antibuild/cli"
+import (
+	"fmt"
+
+	"gitlab.com/antipy/antibuild/cli"
+)
+
+const version = "v0.2.0"
 
 func main() {
+	fmt.Println(version)
 	cli.Execute()
 }

@@ -6,6 +6,7 @@ package protocol
 
 import (
 	"encoding/gob"
+	"encoding/json"
 	"errors"
 	"io"
 	"os"
@@ -71,20 +72,27 @@ var (
 	reader   *gob.Decoder
 	readLock = sync.RWMutex{}
 
-	tokenGetVersion           = Token{Command: "getversion"}
-	tokenGetTemplateFunctions = Token{Command: "getTemplateFunctions"}
+	tokenGetVersion           = Token{Command: GetVersion}
+	tokenGetTemplateFunctions = Token{Command: GetTemplateFunctions}
 
 	//version ID used for verifying versioning
-	verifyVersionID = [10]byte{1}
+	verifyVersionID = ID{1}
 	version         = Version(1)
 
 	//ErrProtocoolViolation is the error thrown whenever a protocol violation occurs
 	ErrProtocoolViolation = errors.New("the protocol is violated by the opposite party, either the version is incompatible or the module is not a module")
 )
 
+const (
+	GetVersion           = "getversion"
+	GetTemplateFunctions = "getTemplateFunctions"
+)
+
 func init() {
 	gob.RegisterName("message", message{})
 	gob.RegisterName("getmethods", GetMethods{})
+	gob.RegisterName("version", version)
+	gob.RegisterName("id", verifyVersionID)
 }
 
 //Init initiates the protocol with a version exchange, returns 0 as version when a protocol violation happens
@@ -113,7 +121,7 @@ func Init(isHost bool) (int, error) {
 	if message.ID != verifyVersionID {
 		return 0, ErrProtocoolViolation
 	}
-	if len(message.Data) != 0 {
+	if len(message.Data) != 1 {
 		return 0, ErrProtocoolViolation
 	}
 	v, ok := message.Data[0].(Version)
@@ -126,7 +134,6 @@ func Init(isHost bool) (int, error) {
 	if v > version {
 		return int(v), errors.New("Host is using a newer version of the API")
 	}
-
 	message.Respond(version)
 	return int(v), nil
 }
@@ -136,6 +143,7 @@ func Receive() Token {
 	var command message
 
 	getMessage(&command)
+	json.NewEncoder(os.Stderr).Encode(command)
 	return command.excecute()
 }
 
@@ -157,15 +165,14 @@ func Send(command string, payload payload, id ID) {
 	message.Payload = payload
 	message.ID = id
 	writeLock.Lock()
-	writer.Encode(command)
+	writer.Encode(message)
 	writeLock.Unlock()
-
 }
 
-func getMessage(message interface{}) {
+func getMessage(m interface{}) {
 	inInit.Do(initIn)
 	readLock.Lock()
-	reader.Decode(message)
+	reader.Decode(m)
 	readLock.Unlock()
 }
 
@@ -176,6 +183,8 @@ func (m message) excecute() Token {
 func (gm GetMethods) excecute(id ID) Token {
 	ret := tokenGetTemplateFunctions
 	ret.ID = id
+	json.NewEncoder(os.Stderr).Encode(ret)
+
 	return ret
 }
 
@@ -196,10 +205,14 @@ func (gm ExecuteMethod) excecute(id ID) Token {
 
 //Respond sends the given data back to the host
 func (t *Token) Respond(data interface{}) {
+	outInit.Do(initOut)
+
 	var resp Response
 	resp.Data = data
 	resp.ID = t.ID
+	gob.NewEncoder(os.Stderr).Encode(resp)
 	writer.Encode(resp)
+
 }
 
 func initOut() {
