@@ -41,9 +41,11 @@ func (m *ModuleHost) Start(in io.Reader, out io.Writer) error {
 	}
 
 	go func() {
-		resp := protocol.GetResponse()
-		conn := m.getCon(resp.ID)
-		conn.send <- resp
+		for {
+			resp := protocol.GetResponse()
+			conn := m.getCon(resp.ID)
+			conn.send <- resp
+		}
 	}()
 	return nil
 }
@@ -56,21 +58,15 @@ func (m *ModuleHost) addConnection(id protocol.ID) {
 
 // AskMethods asks for the methods a moduleHost can handle, it returns a methods type
 func (m *ModuleHost) AskMethods() (protocol.Methods, error) {
-	fmt.Println("started stuf")
 
 	var id [10]byte
 	_, err := rand.Read(id[:])
 	if err != nil {
 		return nil, errors.New("could not generate random ID")
 	}
-	fmt.Println("started stuf2")
 	protocol.Send(protocol.GetAll, protocol.GetMethods{}, id)
-	fmt.Println("started stuf3")
-
 	m.addConnection(id)
-	fmt.Println("started stuf4")
 	resp := m.awaitResponse(id)
-	fmt.Println("started stuf5")
 	fmt.Println(resp)
 	if resp == nil {
 		return nil, errors.New("could not receive error")
