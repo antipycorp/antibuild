@@ -199,16 +199,13 @@ func startParse(configLocation string) (*config, error) {
 		return nil, err
 	}
 	fmt.Println(stdin, stdout)
-	fmt.Println("finshed! almost?")
 
 	err = config.moduleHost.Start(os.Stdout, stdin)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
-	fmt.Println("finshed! almost")
 
 	fmt.Println(config.moduleHost.AskMethods())
-	fmt.Println("finshed!")
 	templateErr := executeTemplate(config)
 	if templateErr != nil {
 		fmt.Println("failed building templates: ", templateErr.Error())
