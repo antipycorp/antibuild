@@ -48,7 +48,7 @@ type (
 		Modules configModules `json:"modules"`
 		Pages   site          `json:"pages"`
 	}
-	
+
 	configFolder struct {
 		Templates string `json:"templates"`
 		Data      string `json:"data"`
@@ -103,7 +103,6 @@ Example in the config.json file:
                 ]
             }
         ]
-    
     },
     "modules":{}
 }
