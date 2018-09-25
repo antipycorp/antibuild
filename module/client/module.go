@@ -1,3 +1,7 @@
+// Copyright © 2018 Antipy V.O.F. info@antipy.com
+//
+// Licensed under the MIT License
+
 package module
 
 import (
@@ -128,12 +132,12 @@ func templateFunctionsHandle(command string, r protocol.Token, m *Module) {
 */
 
 //TemplateFunctionRegister registers a new template function with identifier "identifier" to the module.
-func (m *Module) TemplateFunctionRegister(identifer string, function templateFunction) {
+func (m *Module) TemplateFunctionRegister(identifer string, function func(Request, *Response)) {
 	templateFunctionRegister(m, identifer, function)
 	return
 }
 
-func templateFunctionRegister(m *Module, identifer string, function templateFunction) {
+func templateFunctionRegister(m *Module, identifer string, function func(Request, *Response)) {
 	if identifer == "" {
 		panic("module: templateFunctionRegister: identifer is not defined")
 	}
