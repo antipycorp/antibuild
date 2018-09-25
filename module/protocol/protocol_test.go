@@ -1,3 +1,7 @@
+// Copyright © 2018 Antipy V.O.F. info@antipy.com
+//
+// Licensed under the MIT License
+
 package protocol
 
 import (
@@ -22,11 +26,7 @@ func TestReceive(t *testing.T) {
 	reader = gob.NewDecoder(&in)
 
 	var command message
-<<<<<<< HEAD
 	var methods GetMethods
-=======
-	var methods getMethods
->>>>>>> ebe3b2a495d0338e065b3484550fc1b8a199b64a
 	command.Command = "GetAll"
 	command.Payload = methods
 
