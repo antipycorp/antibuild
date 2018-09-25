@@ -1,3 +1,7 @@
+// Copyright © 2018 Antipy V.O.F. info@antipy.com
+//
+// Licensed under the MIT License
+
 package protocol
 
 import (
@@ -37,6 +41,7 @@ type (
 		ID   ID
 		Data interface{}
 	}
+
 	//Token is a token used to receive data and send it back to the host
 	Token struct {
 		Command string
@@ -66,8 +71,8 @@ var (
 	reader   *gob.Decoder
 	readLock = sync.RWMutex{}
 
-	tokenGetVersion  = Token{Command: "getversion"}
-	tokenGetMessages = Token{Command: "getmessages"}
+	tokenGetVersion           = Token{Command: "getversion"}
+	tokenGetTemplateFunctions = Token{Command: "getTemplateFunctions"}
 
 	//version ID used for verifying versioning
 	verifyVersionID = [10]byte{1}
@@ -136,6 +141,7 @@ func Receive() Token {
 //GetResponse waits for a response from the client
 func GetResponse() Response {
 	var resp Response
+
 	getMessage(&resp)
 	return resp
 }
@@ -167,7 +173,7 @@ func (m message) excecute() Token {
 }
 
 func (gm GetMethods) excecute(id ID) Token {
-	ret := tokenGetMessages
+	ret := tokenGetTemplateFunctions
 	ret.ID = id
 	return ret
 }
