@@ -187,25 +187,8 @@ func startParse(configLocation string) (*config, error) {
 		return config, configErr
 	}
 
-	//var outb, inb bytes.Buffer
-
-	config.moduleHost = host.New()
-	module := exec.Command("abm_arithmetic")
-
-	stdin, err := module.StdinPipe()
-	if nil != err {
-		log.Fatalf("Error obtaining stdin: %s", err.Error())
-	}
-	stdout, err := module.StdoutPipe()
-	if nil != err {
-		log.Fatalf("Error obtaining stdout: %s", err.Error())
-	}
-	module.Stderr = os.Stderr
-
-	if err := module.Start(); err != nil {
-		fmt.Println("process failles")
-		return nil, err
-	}
+	if loadedModules == false {
+		loadModules(config)
 
 	err = config.moduleHost.Start(stdout, stdin)
 	if err != nil {
@@ -235,15 +218,17 @@ func loadModules(config *config) {
 		if nil != err {
 			log.Fatalf("Error obtaining stdin: %s", err.Error())
 		}
-		stdout, err := module.StdoutPipe()
+
+		/*stdout, err := module.StdoutPipe()
 		if nil != err {
 			log.Fatalf("Error obtaining stdout: %s", err.Error())
-		}
+		}*/
+
 		if err := module.Start(); err != nil {
 			panic(err)
 		}
 
-		err = config.moduleHost.Start(stdout, stdin)
+		err = config.moduleHost.Start(os.Stdout, stdin)
 		if err != nil {
 			panic(err)
 		}
