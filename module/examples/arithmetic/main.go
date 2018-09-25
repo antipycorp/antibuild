@@ -11,19 +11,30 @@ import (
 func main() {
 	module := abm.Register("arithmetic")
 
-	module.TemplateFunctionRegister("add", func(w abm.Request, r *abm.Response) {
-		args := w.Data
+	module.TemplateFunctionRegister("add", func(w abm.TFRequest, r *abm.TFResponse) {
+		var args []int
+		var err bool
 
-		// since all data coming in is of type interface and we expect 2 intergers, we have to convert the types
-		a1, ok1 := args[0].(int)
-		a2, ok2 := args[1].(int)
-		if !ok1 || !ok2 {
+		if args, err = w.Data.([]int); err == false {
 			r.Error = abm.ErrInvalidInput
 			return
 		}
 
-		sum := a1 + a2
+		sum := args[0] + args[1]
+
 		r.Data = sum
 		return
+	}, &abm.TFTest{
+		Request: abm.TFRequest{
+			Data: []int{
+				1,
+				2,
+			},
+		},
+		Response: &abm.TFResponse{
+			Data: 3,
+		},
 	})
+
+	module.Start()
 }
