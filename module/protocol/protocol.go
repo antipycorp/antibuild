@@ -55,9 +55,9 @@ type (
 )
 
 const (
-	GetAll     = "internal_getTemplateFunctions"
-	Execute    = "ExecuteMethod"
-	GetVersion = "getversion"
+	GetVersion           = "internal_getVersion"
+	GetTemplateFunctions = "internal_getTemplateFunctions"
+	Execute              = "ExecuteMethod"
 )
 
 var (
@@ -74,7 +74,7 @@ var (
 	readLock = sync.RWMutex{}
 
 	tokenGetVersion           = Token{Command: GetVersion}
-	tokenGetTemplateFunctions = Token{Command: GetAll}
+	tokenGetTemplateFunctions = Token{Command: GetTemplateFunctions}
 
 	//version ID used for verifying versioning
 	verifyVersionID = ID{1}
@@ -86,7 +86,7 @@ var (
 
 func init() {
 	gob.RegisterName("message", message{})
-	gob.RegisterName("getmethods", GetMethods{})
+	gob.RegisterName("getMethods", GetMethods{})
 	gob.RegisterName("version", version)
 	gob.RegisterName("id", verifyVersionID)
 	gob.RegisterName("methds", Methods{})
@@ -95,7 +95,7 @@ func init() {
 //Init initiates the protocol with a version exchange, returns 0 as version when a protocol violation happens
 func Init(isHost bool) (int, error) {
 	if isHost {
-		Send("GetVersion", version, verifyVersionID)
+		Send(GetVersion, version, verifyVersionID)
 		resp := GetResponse()
 
 		if resp.ID != verifyVersionID {
