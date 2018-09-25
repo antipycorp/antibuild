@@ -87,7 +87,7 @@ func (m *Module) Start() {
 }
 
 func start(m *Module) {
-	//protocol.Init(false)
+	protocol.Init(false)
 
 	for {
 		r := protocol.Receive()
