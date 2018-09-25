@@ -17,14 +17,21 @@ type (
 	connection struct {
 		send chan protocol.Response
 	}
-	module struct {
+	Module struct {
 		connections map[protocol.ID]*connection
 		lock        sync.RWMutex
 	}
 )
 
+func New() *Module {
+	var module Module
+	module.lock = sync.RWMutex{}
+	module.connections = make(map[protocol.ID]*connection)
+	return &module
+}
+
 //Start starts the Initites protocol for a given io.Reader and io.Writer.
-func (m *module) Start(in io.Reader, out io.Writer) {
+func (m *Module) Start(in io.Reader, out io.Writer) {
 	protocol.In = in
 	protocol.Out = out
 	protocol.Init(true)
@@ -35,14 +42,14 @@ func (m *module) Start(in io.Reader, out io.Writer) {
 	}()
 }
 
-func (m *module) addConnection(id protocol.ID) {
+func (m *Module) addConnection(id protocol.ID) {
 	connection := connection{}
 	connection.send = make(chan protocol.Response)
 	m.setCon(id, &connection)
 }
 
 // AskMethods asks for the methods a module can handle, it returns a methods type
-func (m *module) AskMethods() (protocol.Methods, error) {
+func (m *Module) AskMethods() (protocol.Methods, error) {
 	var id [10]byte
 	_, err := rand.Read(id[:])
 	if err != nil {
@@ -64,8 +71,8 @@ func (m *module) AskMethods() (protocol.Methods, error) {
 	return nil, errors.New("return datatype is incorrect")
 }
 
-// AskMethods asks for the methods a module can handle, it returns a methods type
-func (m *module) ExcecuteFunction(function string, args []interface{}) (interface{}, error) {
+// ExcecuteFunction asks for the methods a module can handle, it returns a methods type
+func (m *Module) ExcecuteFunction(function string, args []interface{}) (interface{}, error) {
 	var id [10]byte
 	_, err := rand.Read(id[:])
 	if err != nil {
@@ -87,25 +94,25 @@ func (m *module) ExcecuteFunction(function string, args []interface{}) (interfac
 	return nil, errors.New("return datatype is incorrect")
 }
 
-func (m *module) awaitResponse(id protocol.ID) interface{} {
+func (m *Module) awaitResponse(id protocol.ID) interface{} {
 	con := m.getCon(id)
 	resp := <-con.send
 	return resp.Data
 }
 
-func (m *module) getCon(id protocol.ID) *connection {
+func (m *Module) getCon(id protocol.ID) *connection {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 	return m.connections[id]
 }
 
-func (m *module) setCon(id protocol.ID, con *connection) {
+func (m *Module) setCon(id protocol.ID, con *connection) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	m.connections[id] = con
 }
 
-func (m *module) remCon(id protocol.ID, con connection) {
+func (m *Module) remCon(id protocol.ID, con connection) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	delete(m.connections, id)
