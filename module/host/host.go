@@ -17,39 +17,44 @@ type (
 	connection struct {
 		send chan protocol.Response
 	}
-	Module struct {
+	ModuleHost struct {
 		connections map[protocol.ID]*connection
 		lock        sync.RWMutex
 	}
 )
 
-func New() *Module {
-	var module Module
-	module.lock = sync.RWMutex{}
-	module.connections = make(map[protocol.ID]*connection)
-	return &module
+func New() *ModuleHost {
+	var moduleHost ModuleHost
+	moduleHost.lock = sync.RWMutex{}
+	moduleHost.connections = make(map[protocol.ID]*connection)
+	return &moduleHost
 }
 
 //Start starts the Initites protocol for a given io.Reader and io.Writer.
-func (m *Module) Start(in io.Reader, out io.Writer) {
+func (m *ModuleHost) Start(in io.Reader, out io.Writer) error {
 	protocol.In = in
 	protocol.Out = out
-	protocol.Init(true)
+	_, err := protocol.Init(true)
+	if err != nil {
+		return err
+	}
+
 	go func() {
 		resp := protocol.GetResponse()
 		conn := m.getCon(resp.ID)
 		conn.send <- resp
 	}()
+	return nil
 }
 
-func (m *Module) addConnection(id protocol.ID) {
+func (m *ModuleHost) addConnection(id protocol.ID) {
 	connection := connection{}
 	connection.send = make(chan protocol.Response)
 	m.setCon(id, &connection)
 }
 
-// AskMethods asks for the methods a module can handle, it returns a methods type
-func (m *Module) AskMethods() (protocol.Methods, error) {
+// AskMethods asks for the methods a moduleHost can handle, it returns a methods type
+func (m *ModuleHost) AskMethods() (protocol.Methods, error) {
 	var id [10]byte
 	_, err := rand.Read(id[:])
 	if err != nil {
@@ -71,8 +76,8 @@ func (m *Module) AskMethods() (protocol.Methods, error) {
 	return nil, errors.New("return datatype is incorrect")
 }
 
-// ExcecuteFunction asks for the methods a module can handle, it returns a methods type
-func (m *Module) ExcecuteFunction(function string, args []interface{}) (interface{}, error) {
+// ExcecuteFunction asks for the methods a moduleHost can handle, it returns a methods type
+func (m *ModuleHost) ExcecuteFunction(function string, args []interface{}) (interface{}, error) {
 	var id [10]byte
 	_, err := rand.Read(id[:])
 	if err != nil {
@@ -94,25 +99,25 @@ func (m *Module) ExcecuteFunction(function string, args []interface{}) (interfac
 	return nil, errors.New("return datatype is incorrect")
 }
 
-func (m *Module) awaitResponse(id protocol.ID) interface{} {
+func (m *ModuleHost) awaitResponse(id protocol.ID) interface{} {
 	con := m.getCon(id)
 	resp := <-con.send
 	return resp.Data
 }
 
-func (m *Module) getCon(id protocol.ID) *connection {
+func (m *ModuleHost) getCon(id protocol.ID) *connection {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 	return m.connections[id]
 }
 
-func (m *Module) setCon(id protocol.ID, con *connection) {
+func (m *ModuleHost) setCon(id protocol.ID, con *connection) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	m.connections[id] = con
 }
 
-func (m *Module) remCon(id protocol.ID, con connection) {
+func (m *ModuleHost) remCon(id protocol.ID, con connection) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	delete(m.connections, id)

@@ -16,18 +16,30 @@ type (
 	Module struct {
 		name string
 
-		templateFunctions map[string]func(Request, *Response)
+		templateFunctions map[string]TemplateFunction
 	}
 
-	//Request is the request with data and meta from the module caller.
-	Request struct {
-		Data []interface{}
+	//TFRequest is the request with data and meta from the module caller.
+	TFRequest struct {
+		Data interface{}
 	}
 
-	//Response is the response to the module API that will be used to respond to the client
-	Response struct {
+	//TFResponse is the response to the module API that will be used to respond to the client
+	TFResponse struct {
 		Error error
 		Data  interface{}
+	}
+
+	//TFTest is a object that is used to test a function.
+	TFTest struct {
+		Request  TFRequest
+		Response *TFResponse
+	}
+
+	//TemplateFunction is a object that stores the template function and its tests.
+	TemplateFunction struct {
+		Function func(TFRequest, *TFResponse)
+		Test     *TFTest
 	}
 )
 
@@ -60,7 +72,7 @@ func register(name string) *Module {
 
 	module.name = name
 
-	module.templateFunctions = make(map[string]func(Request, *Response))
+	module.templateFunctions = make(map[string]TemplateFunction)
 
 	return module
 }
@@ -103,21 +115,24 @@ func internalHandle(command string, r protocol.Token, m *Module) {
 		r.Respond(protocol.Methods{
 			"templateFunctions": functions,
 		})
+	case "testTemplateFunctions":
+		r.Respond(testTemplateFunctions(m))
 	}
 }
 
 func templateFunctionsHandle(command string, r protocol.Token, m *Module) {
-	if m.templateFunctions[command] == nil {
+	if m.templateFunctions[command].Function == nil {
 		r.Respond(ErrInvalidCommand)
 		return
 	}
 
-	var request = Request{
+	var request = TFRequest{
 		Data: r.Data,
 	}
-	var response = &Response{}
 
-	m.templateFunctions[command](request, response)
+	var response = &TFResponse{}
+
+	m.templateFunctions[command].Function(request, response)
 
 	if response.Error != nil {
 		r.Respond(response.Error)
@@ -127,17 +142,35 @@ func templateFunctionsHandle(command string, r protocol.Token, m *Module) {
 	r.Respond(r.Data)
 }
 
+func testTemplateFunctions(m *Module) bool {
+	for _, templateFunction := range m.templateFunctions {
+		var response = &TFResponse{}
+
+		templateFunction.Function(templateFunction.Test.Request, response)
+
+		if response.Error != nil {
+			return false
+		}
+
+		if response.Data != templateFunction.Test.Response.Data {
+			return false
+		}
+	}
+
+	return true
+}
+
 /*
 	Module Part Registration Functions
 */
 
 //TemplateFunctionRegister registers a new template function with identifier "identifier" to the module.
-func (m *Module) TemplateFunctionRegister(identifer string, function func(Request, *Response)) {
-	templateFunctionRegister(m, identifer, function)
+func (m *Module) TemplateFunctionRegister(identifer string, function func(TFRequest, *TFResponse), test *TFTest) {
+	templateFunctionRegister(m, identifer, function, test)
 	return
 }
 
-func templateFunctionRegister(m *Module, identifer string, function func(Request, *Response)) {
+func templateFunctionRegister(m *Module, identifer string, function func(TFRequest, *TFResponse), test *TFTest) {
 	if identifer == "" {
 		panic("module: templateFunctionRegister: identifer is not defined")
 	}
@@ -146,7 +179,7 @@ func templateFunctionRegister(m *Module, identifer string, function func(Request
 		panic("module: templateFunctionRegister: initalization of module was not correct")
 	}
 
-	if m.templateFunctions[identifer] != nil {
+	if m.templateFunctions[identifer].Function != nil {
 		panic("module: templateFunctionRegister: templateFunction with this identifier is already registered")
 	}
 
@@ -154,7 +187,22 @@ func templateFunctionRegister(m *Module, identifer string, function func(Request
 		panic("module: templateFunctionRegister: function is not defined")
 	}
 
-	m.templateFunctions[identifer] = function
+	if test == nil {
+		panic("module: templateFunctionRegister: test is not defined")
+	}
+
+	if test.Request.Data == nil {
+		panic("module: templateFunctionRegister: test request data is not defined")
+	}
+
+	if test.Response.Data == nil {
+		panic("module: templateFunctionRegister: test response data is not defined")
+	}
+
+	m.templateFunctions[identifer] = TemplateFunction{
+		Function: function,
+		Test:     test,
+	}
 
 	return
 }
