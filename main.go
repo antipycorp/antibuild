@@ -319,7 +319,7 @@ func (s *site) execute(parent *site, config *config) error {
 			site.language = lang
 			err := site.execute(nil, config)
 			if err != nil {
-				return fmt.Errorf("could not execute %s the for lang %s:", site.Slug, lang, err)
+				return fmt.Errorf("could not execute %s the for lang %s:%s", site.Slug, lang, err)
 			}
 		}
 		return nil
