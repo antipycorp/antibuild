@@ -188,7 +188,6 @@ func startParse(configLocation string) (*config, error) {
 	}
 
 	if loadedModules == false {
-
 		loadModules(config)
 
 		loadedModules = true
@@ -215,15 +214,17 @@ func loadModules(config *config) {
 		if nil != err {
 			log.Fatalf("Error obtaining stdin: %s", err.Error())
 		}
-		stdout, err := module.StdoutPipe()
+
+		/*stdout, err := module.StdoutPipe()
 		if nil != err {
 			log.Fatalf("Error obtaining stdout: %s", err.Error())
-		}
+		}*/
+
 		if err := module.Start(); err != nil {
 			panic(err)
 		}
 
-		err = config.moduleHost.Start(stdout, stdin)
+		err = config.moduleHost.Start(os.Stdout, stdin)
 		if err != nil {
 			panic(err)
 		}
