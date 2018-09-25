@@ -200,7 +200,7 @@ func startParse(configLocation string) (*config, error) {
 	module.Stderr = os.Stderr
 
 	if err := module.Start(); err != nil {
-		fmt.Println("process failles")
+		fmt.Println("process failled")
 		return nil, err
 	}
 

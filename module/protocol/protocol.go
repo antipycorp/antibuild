@@ -6,8 +6,8 @@ package protocol
 
 import (
 	"encoding/gob"
-	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"sync"
@@ -55,8 +55,9 @@ type (
 )
 
 const (
-	GetAll  = "internal_getTemplateFunctions"
-	Execute = "ExecuteMethod"
+	GetAll     = "internal_getTemplateFunctions"
+	Execute    = "ExecuteMethod"
+	GetVersion = "getversion"
 )
 
 var (
@@ -73,7 +74,7 @@ var (
 	readLock = sync.RWMutex{}
 
 	tokenGetVersion           = Token{Command: GetVersion}
-	tokenGetTemplateFunctions = Token{Command: GetTemplateFunctions}
+	tokenGetTemplateFunctions = Token{Command: GetAll}
 
 	//version ID used for verifying versioning
 	verifyVersionID = ID{1}
@@ -83,16 +84,12 @@ var (
 	ErrProtocoolViolation = errors.New("the protocol is violated by the opposite party, either the version is incompatible or the module is not a module")
 )
 
-const (
-	GetVersion           = "getversion"
-	GetTemplateFunctions = "getTemplateFunctions"
-)
-
 func init() {
 	gob.RegisterName("message", message{})
 	gob.RegisterName("getmethods", GetMethods{})
 	gob.RegisterName("version", version)
 	gob.RegisterName("id", verifyVersionID)
+	gob.RegisterName("methds", Methods{})
 }
 
 //Init initiates the protocol with a version exchange, returns 0 as version when a protocol violation happens
@@ -114,7 +111,7 @@ func Init(isHost bool) (int, error) {
 		if v > version {
 			return int(v), errors.New("Guest is using a newer version of the API")
 		}
-
+		fmt.Println("returning")
 		return int(v), nil
 	}
 	message := Receive()
@@ -143,15 +140,14 @@ func Receive() Token {
 	var command message
 
 	getMessage(&command)
-	json.NewEncoder(os.Stderr).Encode(command)
 	return command.excecute()
 }
 
 //GetResponse waits for a response from the client
 func GetResponse() Response {
 	var resp Response
-
 	getMessage(&resp)
+
 	return resp
 }
 
@@ -172,6 +168,7 @@ func Send(command string, payload payload, id ID) {
 func getMessage(m interface{}) {
 	inInit.Do(initIn)
 	readLock.Lock()
+
 	reader.Decode(m)
 	readLock.Unlock()
 }
@@ -183,8 +180,6 @@ func (m message) excecute() Token {
 func (gm GetMethods) excecute(id ID) Token {
 	ret := tokenGetTemplateFunctions
 	ret.ID = id
-	json.NewEncoder(os.Stderr).Encode(ret)
-
 	return ret
 }
 
@@ -210,9 +205,9 @@ func (t *Token) Respond(data interface{}) {
 	var resp Response
 	resp.Data = data
 	resp.ID = t.ID
-	gob.NewEncoder(os.Stderr).Encode(resp)
+	writeLock.Lock()
 	writer.Encode(resp)
-
+	writeLock.Unlock()
 }
 
 func initOut() {
