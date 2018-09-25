@@ -87,6 +87,7 @@ func Init(isHost bool) (int, error) {
 	if isHost {
 		Send("GetVersion", version, verifyVersionID)
 		resp := GetResponse()
+
 		if resp.ID != verifyVersionID {
 			return 0, ErrProtocoolViolation
 		}
