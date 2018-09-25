@@ -1,7 +1,7 @@
 binary = antibuild
 output = public/
-templateargs = --config config.json
-templaterefresh = $(templateargs) --development --host
+templateargs = build
+templaterefresh = develop
 
 $(binary):  ../../main.go
 	go build -o $(binary) ../../main.go 

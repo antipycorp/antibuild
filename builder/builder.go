@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"regexp"
@@ -21,6 +22,7 @@ import (
 	"net/http"
 
 	"github.com/fsnotify/fsnotify"
+	"gitlab.com/antipy/antibuild/module/host"
 )
 
 type (
@@ -34,9 +36,10 @@ type (
 	}
 
 	config struct {
-		Folders configFolder  `json:"folders"`
-		Modules configModules `json:"modules"`
-		Pages   site          `json:"pages"`
+		Folders    configFolder  `json:"folders"`
+		Modules    configModules `json:"modules"`
+		Pages      site          `json:"pages"`
+		moduleHost *host.ModuleHost
 	}
 
 	configFolder struct {
@@ -180,6 +183,20 @@ func startParse(configLocation string) (*config, error) {
 		fmt.Println(configErr.Error())
 		return config, configErr
 	}
+
+	config.moduleHost = host.New()
+	module := exec.Command("abm_arithmetic")
+	err := module.Start()
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	err = config.moduleHost.Start(module.Stdin, module.Stdout)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	fmt.Println(config.moduleHost.AskMethods())
 
 	templateErr := executeTemplate(config)
 	if templateErr != nil {
