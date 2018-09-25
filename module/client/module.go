@@ -109,13 +109,12 @@ func internalHandle(command string, r protocol.Token, m *Module) {
 	//fmt.Fprintf(os.Stderr, "internal handle!")
 	switch command {
 	case "getTemplateFunctions":
-
 		var functions = make([]string, len(m.templateFunctions))
 
 		for key := range m.templateFunctions {
 			functions = append(functions, key)
 		}
-		//fmt.Fprintf(os.Stderr, "sending back now!")
+
 		r.Respond(protocol.Methods{
 			"templateFunctions": functions,
 		})
