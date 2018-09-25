@@ -47,6 +47,7 @@ type (
 		Data      string `json:"data"`
 		Static    string `json:"static"`
 		Output    string `json:"output"`
+		Modules   string `json:"modules"`
 	}
 
 	configModules struct {
@@ -77,6 +78,8 @@ var (
 	errNoTemplate = errors.New("the template folder is not set")
 	errNoData     = errors.New("the data folder is not set")
 	errNoOutput   = errors.New("the output folder is not set")
+
+	loadedModules = false
 )
 
 const version = "v0.2.0"
@@ -184,28 +187,13 @@ func startParse(configLocation string) (*config, error) {
 		return config, configErr
 	}
 
-	config.moduleHost = host.New()
-	module := exec.Command("amb_arithmetic")
+	if loadedModules == false {
 
-	stdin, err := module.StdinPipe()
-	if nil != err {
-		log.Fatalf("Error obtaining stdin: %s", err.Error())
-	}
-	stdout, err := module.StdoutPipe()
-	if nil != err {
-		log.Fatalf("Error obtaining stdout: %s", err.Error())
-	}
-	if err := module.Start(); err != nil {
-		return nil, err
-	}
-	fmt.Println(stdin, stdout)
+		loadModules(config)
 
-	err = config.moduleHost.Start(os.Stdout, stdin)
-	if err != nil {
-		fmt.Println(err.Error())
+		loadedModules = true
 	}
 
-	fmt.Println(config.moduleHost.AskMethods())
 	templateErr := executeTemplate(config)
 	if templateErr != nil {
 		fmt.Println("failed building templates: ", templateErr.Error())
@@ -213,6 +201,35 @@ func startParse(configLocation string) (*config, error) {
 	}
 
 	return config, nil
+}
+
+func loadModules(config *config) {
+	config.moduleHost = host.New()
+
+	for identifier, version := range config.Modules.Dependencies {
+		fmt.Printf("Loading module: %s@%s\n", identifier, version)
+
+		module := exec.Command(filepath.Join(config.Folders.Modules, "abm_"+identifier))
+
+		stdin, err := module.StdinPipe()
+		if nil != err {
+			log.Fatalf("Error obtaining stdin: %s", err.Error())
+		}
+		stdout, err := module.StdoutPipe()
+		if nil != err {
+			log.Fatalf("Error obtaining stdout: %s", err.Error())
+		}
+		if err := module.Start(); err != nil {
+			panic(err)
+		}
+
+		err = config.moduleHost.Start(stdout, stdin)
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Println(config.moduleHost.AskMethods())
+	}
 }
 
 func parseConfig(configLocation string) (*config, error) {
