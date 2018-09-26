@@ -60,7 +60,8 @@ type (
 		outInit sync.Once
 		writer  *gob.Encoder
 
-		rwlock sync.RWMutex
+		rlock sync.Mutex
+		wlock sync.Mutex
 	}
 
 	//ID is the type used for identification of the messages
@@ -101,7 +102,8 @@ func OpenConnection(in io.Reader, out io.Writer) *Connection {
 	con.out = out
 	con.inInit = sync.Once{}
 	con.outInit = sync.Once{}
-	con.rwlock = sync.RWMutex{}
+	con.rlock = sync.Mutex{}
+	con.wlock = sync.Mutex{}
 	return &con
 }
 
@@ -172,25 +174,27 @@ func (c *Connection) Send(command string, payload payload, id ID) {
 	message.Command = command
 	message.Payload = payload
 	message.ID = id
-
-	fmt.Println(c.rwlock)
-	c.rwlock.Lock()
-	c.writer.Encode(message)
-	c.rwlock.Unlock()
+	fmt.Fprintf(os.Stderr, "before lock %v\n", c.wlock)
+	c.wlock.Lock()
+	fmt.Fprintf(os.Stderr, "after lock\n")
+	err := c.writer.Encode(message)
+	fmt.Fprintf(os.Stderr, "before unlock %v\n", err)
+	c.wlock.Unlock()
+	fmt.Fprintf(os.Stderr, "after unlock\n")
 
 }
 
 func (c *Connection) getMessage(m interface{}) {
 	c.inInit.Do(initIn(c))
 
-	c.rwlock.RLock()
+	c.rlock.Lock()
 
 	err := c.reader.Decode(m)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "could not read stuff:", err)
 	}
 
-	c.rwlock.RUnlock()
+	c.rlock.Unlock()
 }
 
 func (m message) excecute() Token {
@@ -226,9 +230,9 @@ func (t *Token) Respond(data interface{}) {
 	var resp Response
 	resp.Data = data
 	resp.ID = t.ID
-	t.con.rwlock.Lock()
+	t.con.wlock.Lock()
 	t.con.writer.Encode(resp)
-	t.con.rwlock.Unlock()
+	t.con.wlock.Unlock()
 }
 
 func initOut(c *Connection) func() {
