@@ -17,9 +17,8 @@ type (
 	//Methods is a map of available commands to list of functions allowed to be called
 	Methods map[string][]string
 
-	//ReceiveMethods is the type used as payload for GetAll
+	//GetMethods is the type used as payload for GetAll
 	ReceiveMethods struct{}
-
 	//Version is the version type used for transmission of the version number
 	Version int
 
@@ -131,10 +130,6 @@ func (c *Connection) Init(isHost bool) (int, error) {
 	if message.ID != verifyVersionID {
 		return 0, ErrProtocoolViolation
 	}
-	if message.Data == nil {
-		return 0, ErrProtocoolViolation
-	}
-
 	v, ok := message.Data.(Version)
 	if !ok {
 		return 0, ErrProtocoolViolation
@@ -154,7 +149,6 @@ func (c *Connection) Receive() Token {
 	var command message
 
 	c.getMessage(&command)
-	fmt.Println(command)
 	token := command.excecute()
 	token.con = c
 	return token
@@ -187,7 +181,7 @@ func (c *Connection) getMessage(m interface{}) {
 	c.rwlock.RLock()
 	err := c.reader.Decode(m)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "could not read stuff: ", err)
+		fmt.Fprintln(os.Stderr, "could not read stuff:", err)
 	}
 	c.rwlock.RUnlock()
 }
@@ -205,6 +199,7 @@ func (gm ReceiveMethods) excecute(id ID) Token {
 func (v Version) excecute(id ID) Token {
 	ret := tokenGetVersion
 	ret.ID = id
+	ret.Data = make([]interface{}, 1)
 	ret.Data = v
 	return ret
 }
