@@ -1,17 +1,21 @@
-binary = antibuild
+binary = $(shell pwd)/antibuild
 output = public/
 templateargs = build
 templaterefresh = develop
 
-$(binary): ../../main.go ../../builder ../../cli ../../module
-	go build -o $(binary) ../../main.go
 
-build: clean $(binary)
-	./$(binary) $(templateargs)
+$(binary): FORCE
+	cd ../../ && \
+		make $(binary) binary=$(binary)
 
-refresh: clean $(binary)
-	./$(binary) $(templaterefresh)
+build: $(binary)
+	$(binary) $(templateargs)
+
+refresh: $(binary)
+	$(binary) $(templaterefresh)
 	
 clean:
 	rm -rf $(output)
 	rm $(binary)
+
+FORCE:
