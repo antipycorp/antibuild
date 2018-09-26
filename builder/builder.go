@@ -218,6 +218,8 @@ func loadModules(config *config) {
 			log.Fatalf("Error obtaining stdout: %s", err.Error())
 		}
 
+		module.Stderr = os.Stderr
+
 		if err := module.Start(); err != nil {
 			panic(err)
 		}
@@ -235,18 +237,24 @@ func loadModules(config *config) {
 		for _, function := range methods["templateFunctions"] {
 			fn[identifier+"_"+function] = moduleTemplateFunctionDefinition(identifier, function, config)
 		}
+
+		/*output, err := config.moduleHost[identifier].ExcecuteMethod("internal_testMethods", nil)
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Println(output)*/
 	}
 }
 
 func moduleTemplateFunctionDefinition(module string, command string, config *config) func(data ...interface{}) interface{} {
 	return func(data ...interface{}) interface{} {
-		output, err := config.moduleHost[module].ExcecuteMethod(command, data)
+		output, err := config.moduleHost[module].ExcecuteMethod("templateFunctions_"+command, data)
 		if err != nil {
 			panic(err)
 		}
 
 		return output
-
 	}
 }
 

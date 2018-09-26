@@ -97,11 +97,9 @@ func start(m *Module) {
 		r := con.Receive()
 
 		commandSplit := strings.SplitN(r.Command, "_", 2)
-		//json.NewEncoder(os.Stderr).Encode(commandSplit)
 
 		switch commandSplit[0] {
 		case "internal":
-			//json.NewEncoder(os.Stderr).Encode(r)
 			internalHandle(commandSplit[1], r, m)
 		case "templateFunctions":
 			templateFunctionsHandle(commandSplit[1], r, m)
@@ -110,7 +108,6 @@ func start(m *Module) {
 }
 
 func internalHandle(command string, r protocol.Token, m *Module) {
-	//fmt.Fprintf(os.Stderr, "internal handle!")
 	switch command {
 	case "getMethods":
 		var functions = make([]string, len(m.templateFunctions))
@@ -123,8 +120,8 @@ func internalHandle(command string, r protocol.Token, m *Module) {
 			"templateFunctions": functions,
 		})
 
-	case "testTemplateFunctions":
-		r.Respond(testTemplateFunctions(m))
+	case "testMethods":
+		r.Respond(testMethods(m))
 	}
 }
 
