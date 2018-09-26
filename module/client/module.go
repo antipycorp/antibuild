@@ -6,6 +6,7 @@ package module
 
 import (
 	"errors"
+	"os"
 	"strings"
 
 	"gitlab.com/antipy/antibuild/module/protocol"
@@ -52,6 +53,8 @@ var (
 
 	//ErrFailed is the error that occurs when the module experiences an internal error.
 	ErrFailed = errors.New("module: internal processing error")
+
+	con *protocol.Connection
 )
 
 /*
@@ -87,10 +90,11 @@ func (m *Module) Start() {
 }
 
 func start(m *Module) {
-	protocol.Init(false)
+	con = protocol.OpenConnection(os.Stdin, os.Stdout)
+	con.Init(false)
 
 	for {
-		r := protocol.Receive()
+		r := con.Receive()
 
 		commandSplit := strings.SplitN(r.Command, "_", 2)
 		//json.NewEncoder(os.Stderr).Encode(commandSplit)
@@ -108,7 +112,7 @@ func start(m *Module) {
 func internalHandle(command string, r protocol.Token, m *Module) {
 	//fmt.Fprintf(os.Stderr, "internal handle!")
 	switch command {
-	case "getTemplateFunctions":
+	case "getMethods":
 		var functions = make([]string, len(m.templateFunctions))
 
 		for key := range m.templateFunctions {
@@ -118,9 +122,8 @@ func internalHandle(command string, r protocol.Token, m *Module) {
 		r.Respond(protocol.Methods{
 			"templateFunctions": functions,
 		})
-
-	case "testTemplateFunctions":
-		r.Respond(testTemplateFunctions(m))
+	case "testMethods":
+		r.Respond(testMethods(m))
 	}
 }
 
@@ -146,7 +149,7 @@ func templateFunctionsHandle(command string, r protocol.Token, m *Module) {
 	r.Respond(r.Data)
 }
 
-func testTemplateFunctions(m *Module) bool {
+func testMethods(m *Module) bool {
 	for _, templateFunction := range m.templateFunctions {
 		var response = &TFResponse{}
 

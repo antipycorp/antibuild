@@ -420,6 +420,7 @@ func parseStar(s *site, config *config, jIndex int) error {
 	}
 	return nil
 }
+
 func (s *site) gatherJSON(jsonImput *jsonDataFile, config *config) error {
 	fmt.Println("gathering JSON files for: ", s.Slug)
 

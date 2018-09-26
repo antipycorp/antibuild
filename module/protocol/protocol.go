@@ -17,15 +17,15 @@ type (
 	//Methods is a map of available commands to list of functions allowed to be called
 	Methods map[string][]string
 
-	//GetMethods is the type used as payload for GetAll
-	GetMethods struct{}
-	
+	//ReceiveMethods is the type used as payload for GetAll
+	ReceiveMethods struct{}
+
 	//Version is the version type used for transmission of the version number
 	Version int
 
 	ExecuteMethod struct {
 		Function string
-		Args     []interface{}
+		Args     interface{}
 	}
 
 	payload interface {
@@ -47,8 +47,21 @@ type (
 	//Token is a token used to receive data and send it back to the host
 	Token struct {
 		Command string
-		Data    []interface{}
+		Data    interface{}
 		ID      ID
+		con     *Connection
+	}
+
+	Connection struct {
+		in     io.Reader
+		inInit sync.Once
+		reader *gob.Decoder
+
+		out     io.Writer
+		outInit sync.Once
+		writer  *gob.Encoder
+
+		rwlock sync.RWMutex
 	}
 
 	//ID is the type used for identification of the messages
@@ -56,26 +69,15 @@ type (
 )
 
 const (
-	GetVersion           = "internal_getVersion"
-	GetTemplateFunctions = "internal_getTemplateFunctions"
-	Execute              = "ExecuteMethod"
+	GetVersion = "internal_getVersion"
+	GetMethods = "internal_getMethods"
+
+	ComExecute = "ExecuteMethod"
 )
 
 var (
-	outInit sync.Once
-	//Out is the variable where the Guest/Host writes to
-	Out       = io.Writer(os.Stdout)
-	writer    *gob.Encoder
-	writeLock = sync.RWMutex{}
-
-	inInit sync.Once
-	//In is the variable where the Guest/Host reads from
-	In       = io.Reader(os.Stdin)
-	reader   *gob.Decoder
-	readLock = sync.RWMutex{}
-
-	tokenGetVersion           = Token{Command: GetVersion}
-	tokenGetTemplateFunctions = Token{Command: GetTemplateFunctions}
+	tokenGetVersion = Token{Command: GetVersion}
+	tokenGetMethods = Token{Command: GetMethods}
 
 	//version ID used for verifying versioning
 	verifyVersionID = ID{1}
@@ -87,17 +89,28 @@ var (
 
 func init() {
 	gob.RegisterName("message", message{})
-	gob.RegisterName("getMethods", GetMethods{})
+	gob.RegisterName("getMethods", ReceiveMethods{})
 	gob.RegisterName("version", version)
 	gob.RegisterName("id", verifyVersionID)
 	gob.RegisterName("methds", Methods{})
+	gob.RegisterName("exec", ExecuteMethod{})
+}
+
+func OpenConnection(in io.Reader, out io.Writer) *Connection {
+	con := Connection{}
+	con.in = in
+	con.out = out
+	con.inInit = sync.Once{}
+	con.outInit = sync.Once{}
+	con.rwlock = sync.RWMutex{}
+	return &con
 }
 
 //Init initiates the protocol with a version exchange, returns 0 as version when a protocol violation happens
-func Init(isHost bool) (int, error) {
+func (c *Connection) Init(isHost bool) (int, error) {
 	if isHost {
-		Send(GetVersion, version, verifyVersionID)
-		resp := GetResponse()
+		c.Send(GetVersion, version, verifyVersionID)
+		resp := c.GetResponse()
 
 		if resp.ID != verifyVersionID {
 			return 0, ErrProtocoolViolation
@@ -112,17 +125,17 @@ func Init(isHost bool) (int, error) {
 		if v > version {
 			return int(v), errors.New("Guest is using a newer version of the API")
 		}
-		fmt.Println("returning")
 		return int(v), nil
 	}
-	message := Receive()
+	message := c.Receive()
 	if message.ID != verifyVersionID {
 		return 0, ErrProtocoolViolation
 	}
-	if len(message.Data) != 1 {
+	if message.Data == nil {
 		return 0, ErrProtocoolViolation
 	}
-	v, ok := message.Data[0].(Version)
+
+	v, ok := message.Data.(Version)
 	if !ok {
 		return 0, ErrProtocoolViolation
 	}
@@ -137,49 +150,54 @@ func Init(isHost bool) (int, error) {
 }
 
 //Receive waits for a command from the host to excecute
-func Receive() Token {
+func (c *Connection) Receive() Token {
 	var command message
 
-	getMessage(&command)
-	return command.excecute()
+	c.getMessage(&command)
+	fmt.Println(command)
+	token := command.excecute()
+	token.con = c
+	return token
 }
 
 //GetResponse waits for a response from the client
-func GetResponse() Response {
+func (c *Connection) GetResponse() Response {
 	var resp Response
-	getMessage(&resp)
+	c.getMessage(&resp)
 
 	return resp
 }
 
 //Send sends a command to the guest
-func Send(command string, payload payload, id ID) {
-	outInit.Do(initOut)
+func (c *Connection) Send(command string, payload payload, id ID) {
+	c.outInit.Do(initOut(c))
 
 	var message message
 
 	message.Command = command
 	message.Payload = payload
 	message.ID = id
-	writeLock.Lock()
-	writer.Encode(message)
-	writeLock.Unlock()
+	c.rwlock.Lock()
+	c.writer.Encode(message)
+	c.rwlock.Unlock()
 }
 
-func getMessage(m interface{}) {
-	inInit.Do(initIn)
-	readLock.Lock()
-
-	reader.Decode(m)
-	readLock.Unlock()
+func (c *Connection) getMessage(m interface{}) {
+	c.inInit.Do(initIn(c))
+	c.rwlock.RLock()
+	err := c.reader.Decode(m)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "could not read stuff:", err)
+	}
+	c.rwlock.RUnlock()
 }
 
 func (m message) excecute() Token {
 	return m.Payload.excecute(m.ID)
 }
 
-func (gm GetMethods) excecute(id ID) Token {
-	ret := tokenGetTemplateFunctions
+func (gm ReceiveMethods) excecute(id ID) Token {
+	ret := tokenGetMethods
 	ret.ID = id
 	return ret
 }
@@ -188,7 +206,7 @@ func (v Version) excecute(id ID) Token {
 	ret := tokenGetVersion
 	ret.ID = id
 	ret.Data = make([]interface{}, 1)
-	ret.Data[0] = v
+	ret.Data = v
 	return ret
 }
 
@@ -201,20 +219,24 @@ func (gm ExecuteMethod) excecute(id ID) Token {
 
 //Respond sends the given data back to the host
 func (t *Token) Respond(data interface{}) {
-	outInit.Do(initOut)
+
+	t.con.outInit.Do(initOut(t.con))
 
 	var resp Response
 	resp.Data = data
 	resp.ID = t.ID
-	writeLock.Lock()
-	writer.Encode(resp)
-	writeLock.Unlock()
+	t.con.rwlock.Lock()
+	t.con.writer.Encode(resp)
+	t.con.rwlock.Unlock()
 }
 
-func initOut() {
-	writer = gob.NewEncoder(Out)
+func initOut(c *Connection) func() {
+	return func() {
+		c.writer = gob.NewEncoder(c.out)
+	}
 }
-
-func initIn() {
-	reader = gob.NewDecoder(In)
+func initIn(c *Connection) func() {
+	return func() {
+		c.reader = gob.NewDecoder(c.in)
+	}
 }
