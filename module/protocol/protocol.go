@@ -17,7 +17,7 @@ type (
 	//Methods is a map of available commands to list of functions allowed to be called
 	Methods map[string][]string
 
-	//GetMethods is the type used as payload for GetAll
+	//ReceiveMethods is the type used as payload for GetAll
 	ReceiveMethods struct{}
 	//Version is the version type used for transmission of the version number
 	Version int
