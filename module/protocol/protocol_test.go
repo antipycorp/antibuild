@@ -21,6 +21,7 @@ func TestProtocol(t *testing.T) {
 	t.Run("Init", testInit)
 	t.Run("round", testRoundTrip)
 }
+
 func testOpen(t *testing.T) {
 	hin, cout := io.Pipe()
 	cin, hout := io.Pipe()
