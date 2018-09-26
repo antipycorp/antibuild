@@ -208,7 +208,6 @@ func startParse(configLocation string) (*config, error) {
 
 func loadModules(config *config) {
 	config.moduleHost = host.New()
-
 	for identifier, version := range config.Modules.Dependencies {
 		fmt.Printf("Loading module: %s@%s\n", identifier, version)
 
@@ -409,6 +408,7 @@ func parseStar(s *site, config *config, jIndex int) error {
 	}
 	return nil
 }
+
 func (s *site) gatherJSON(jsonImput *jsonDataFile, config *config) error {
 	fmt.Println("gathering JSON files for: ", s.Slug)
 
