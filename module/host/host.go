@@ -6,7 +6,6 @@ package host
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"math/rand"
 	"sync"
@@ -69,7 +68,6 @@ func (m *ModuleHost) AskMethods() (protocol.Methods, error) {
 	con.Send(protocol.GetMethods, protocol.ReceiveMethods{}, id)
 	m.addConnection(id)
 	resp := m.awaitResponse(id)
-	fmt.Println(resp)
 	if resp == nil {
 		return nil, errors.New("could not receive error")
 	}
@@ -93,6 +91,7 @@ func (m *ModuleHost) ExcecuteMethod(function string, args interface{}) (interfac
 	var payload protocol.ExecuteMethod
 	payload.Function = function
 	payload.Args = args
+
 	con.Send(protocol.ComExecute, payload, id)
 	m.addConnection(id)
 	resp := m.awaitResponse(id)
