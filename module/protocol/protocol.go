@@ -149,6 +149,7 @@ func (c *Connection) Receive() Token {
 	var command message
 
 	c.getMessage(&command)
+
 	token := command.excecute()
 	token.con = c
 	return token
@@ -171,18 +172,23 @@ func (c *Connection) Send(command string, payload payload, id ID) {
 	message.Command = command
 	message.Payload = payload
 	message.ID = id
+
 	c.rwlock.Lock()
 	c.writer.Encode(message)
 	c.rwlock.Unlock()
+
 }
 
 func (c *Connection) getMessage(m interface{}) {
 	c.inInit.Do(initIn(c))
+
 	c.rwlock.RLock()
+
 	err := c.reader.Decode(m)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "could not read stuff:", err)
 	}
+
 	c.rwlock.RUnlock()
 }
 
