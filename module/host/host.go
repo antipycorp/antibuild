@@ -26,7 +26,7 @@ type (
 
 //Start starts the Initites protocol for a given io.Reader and io.Writer.
 func Start(in io.Reader, out io.Writer) (moduleHost *ModuleHost, err error) {
-	moduleHost = moduleHost{}
+	moduleHost = &ModuleHost{}
 	moduleHost.lock = sync.RWMutex{}
 	moduleHost.commands = make(map[protocol.ID]*command)
 
