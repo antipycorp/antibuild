@@ -203,6 +203,7 @@ func loadModules(config *config) {
 
 	for identifier, version := range config.Modules.Dependencies {
 		config.moduleHost[identifier] = host.New()
+
 		fmt.Printf("Loading module: %s@%s\n", identifier, version)
 
 		module := exec.Command(filepath.Join(config.Folders.Modules, "abm_"+identifier))
@@ -220,6 +221,7 @@ func loadModules(config *config) {
 		if err := module.Start(); err != nil {
 			panic(err)
 		}
+
 		err = config.moduleHost[identifier].Start(stdout, stdin)
 		if err != nil {
 			panic(err)
@@ -238,12 +240,13 @@ func loadModules(config *config) {
 
 func moduleTemplateFunctionDefinition(module string, command string, config *config) func(data ...interface{}) interface{} {
 	return func(data ...interface{}) interface{} {
-		output, err := config.moduleHost[module].ExcecuteFunction(command, data)
+		output, err := config.moduleHost[module].ExcecuteMethod(command, data)
 		if err != nil {
 			panic(err)
 		}
 
 		return output
+
 	}
 }
 
