@@ -24,6 +24,8 @@ type (
 	}
 )
 
+var con *protocol.Connection
+
 func New() *ModuleHost {
 	var moduleHost ModuleHost
 	moduleHost.lock = sync.RWMutex{}
@@ -33,16 +35,15 @@ func New() *ModuleHost {
 
 //Start starts the Initites protocol for a given io.Reader and io.Writer.
 func (m *ModuleHost) Start(in io.Reader, out io.Writer) error {
-	protocol.In = in
-	protocol.Out = out
-	_, err := protocol.Init(true)
+	con = protocol.OpenConnection(in, out)
+	_, err := con.Init(true)
 	if err != nil {
 		return err
 	}
 
 	go func() {
 		for {
-			resp := protocol.GetResponse()
+			resp := con.GetResponse()
 			conn := m.getCon(resp.ID)
 			conn.send <- resp
 		}
@@ -65,7 +66,7 @@ func (m *ModuleHost) AskMethods() (protocol.Methods, error) {
 		return nil, errors.New("could not generate random ID")
 	}
 
-	protocol.Send(protocol.GetTemplateFunctions, protocol.GetMethods{}, id)
+	con.Send(protocol.GetTemplateFunctions, protocol.GetMethods{}, id)
 	m.addConnection(id)
 	resp := m.awaitResponse(id)
 	fmt.Println(resp)
@@ -92,7 +93,7 @@ func (m *ModuleHost) ExcecuteFunction(function string, args []interface{}) (inte
 	var payload protocol.ExecuteMethod
 	payload.Function = function
 	payload.Args = args
-	protocol.Send(protocol.Execute, payload, id)
+	con.Send(protocol.ComExecute, payload, id)
 	m.addConnection(id)
 	resp := m.awaitResponse(id)
 	if resp == nil {
