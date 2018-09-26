@@ -173,6 +173,7 @@ func (c *Connection) Send(command string, payload payload, id ID) {
 	message.Payload = payload
 	message.ID = id
 
+	fmt.Println(c.rwlock)
 	c.rwlock.Lock()
 	c.writer.Encode(message)
 	c.rwlock.Unlock()
