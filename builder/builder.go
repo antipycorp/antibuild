@@ -202,7 +202,6 @@ func loadModules(config *config) {
 	config.moduleHost = make(map[string]*host.ModuleHost, len(config.Modules.Dependencies))
 
 	for identifier, version := range config.Modules.Dependencies {
-		config.moduleHost[identifier] = host.New()
 
 		fmt.Printf("Loading module: %s@%s\n", identifier, version)
 
@@ -224,7 +223,7 @@ func loadModules(config *config) {
 			panic(err)
 		}
 
-		err = config.moduleHost[identifier].Start(stdout, stdin)
+		config.moduleHost[identifier], err = host.Start(stdout, stdin)
 		if err != nil {
 			panic(err)
 		}
