@@ -18,7 +18,8 @@ type (
 	Methods map[string][]string
 
 	//GetMethods is the type used as payload for GetAll
-	ReceiveMethods struct{}
+	GetMethods struct{}
+	
 	//Version is the version type used for transmission of the version number
 	Version int
 
