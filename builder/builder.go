@@ -18,6 +18,7 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"time"
 
 	"net/http"
 
@@ -180,6 +181,8 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 }
 
 func startParse(configLocation string) (*config, error) {
+	start := time.Now()
+
 	config, configErr := parseConfig(configLocation)
 	if configErr != nil {
 		fmt.Println(configErr.Error())
@@ -197,6 +200,8 @@ func startParse(configLocation string) (*config, error) {
 		fmt.Println("failed building templates: ", templateErr.Error())
 		return config, templateErr
 	}
+
+	fmt.Printf("Time: %s\n", time.Since(start).String())
 
 	return config, nil
 }
