@@ -18,7 +18,7 @@ type (
 	Methods map[string][]string
 
 	//GetMethods is the type used as payload for GetAll
-	GetMethods struct{}
+	ReceiveMethods struct{}
 	//Version is the version type used for transmission of the version number
 	Version int
 
@@ -68,15 +68,15 @@ type (
 )
 
 const (
-	GetVersion           = "internal_getVersion"
-	GetTemplateFunctions = "internal_getTemplateFunctions"
+	GetVersion = "internal_getVersion"
+	GetMethods = "internal_getMethods"
 
 	ComExecute = "ExecuteMethod"
 )
 
 var (
-	tokenGetVersion           = Token{Command: GetVersion}
-	tokenGetTemplateFunctions = Token{Command: GetTemplateFunctions}
+	tokenGetVersion = Token{Command: GetVersion}
+	tokenGetMethods = Token{Command: GetMethods}
 
 	//version ID used for verifying versioning
 	verifyVersionID = ID{1}
@@ -88,7 +88,7 @@ var (
 
 func init() {
 	gob.RegisterName("message", message{})
-	gob.RegisterName("getMethods", GetMethods{})
+	gob.RegisterName("getMethods", ReceiveMethods{})
 	gob.RegisterName("version", version)
 	gob.RegisterName("id", verifyVersionID)
 	gob.RegisterName("methds", Methods{})
@@ -194,8 +194,8 @@ func (m message) excecute() Token {
 	return m.Payload.excecute(m.ID)
 }
 
-func (gm GetMethods) excecute(id ID) Token {
-	ret := tokenGetTemplateFunctions
+func (gm ReceiveMethods) excecute(id ID) Token {
+	ret := tokenGetMethods
 	ret.ID = id
 	return ret
 }

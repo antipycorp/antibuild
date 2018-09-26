@@ -66,7 +66,7 @@ func (m *ModuleHost) AskMethods() (protocol.Methods, error) {
 		return nil, errors.New("could not generate random ID")
 	}
 
-	con.Send(protocol.GetTemplateFunctions, protocol.GetMethods{}, id)
+	con.Send(protocol.GetMethods, protocol.ReceiveMethods{}, id)
 	m.addConnection(id)
 	resp := m.awaitResponse(id)
 	fmt.Println(resp)
