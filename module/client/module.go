@@ -6,6 +6,7 @@ package module
 
 import (
 	"errors"
+	"os"
 	"strings"
 
 	"gitlab.com/antipy/antibuild/module/protocol"
@@ -52,6 +53,8 @@ var (
 
 	//ErrFailed is the error that occurs when the module experiences an internal error.
 	ErrFailed = errors.New("module: internal processing error")
+
+	con *protocol.Connection
 )
 
 /*
@@ -87,10 +90,11 @@ func (m *Module) Start() {
 }
 
 func start(m *Module) {
-	protocol.Init(false)
+	con = protocol.OpenConnection(os.Stdin, os.Stdout)
+	con.Init(false)
 
 	for {
-		r := protocol.Receive()
+		r := con.Receive()
 
 		commandSplit := strings.SplitN(r.Command, "_", 2)
 		//json.NewEncoder(os.Stderr).Encode(commandSplit)
