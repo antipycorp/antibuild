@@ -222,7 +222,6 @@ func loadModules(config *config) {
 		if err := module.Start(); err != nil {
 			panic(err)
 		}
-
 		err = config.moduleHost.Start(stdout, stdin)
 		if err != nil {
 			panic(err)
