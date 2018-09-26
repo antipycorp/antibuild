@@ -19,6 +19,7 @@ type (
 
 	//GetMethods is the type used as payload for GetAll
 	GetMethods struct{}
+	
 	//Version is the version type used for transmission of the version number
 	Version int
 
