@@ -178,8 +178,8 @@ func (c *Connection) Send(command string, payload payload, id ID) {
 	c.wlock.Lock()
 	c.writer.Encode(message)
 	//fmt.Fprintf(os.Stderr, "after lock\n")
-	//err := c.writer.Encode(message)
-	//fmt.Fprintf(os.Stderr, "before unlock %v\n", err)
+	err := c.writer.Encode(message)
+	fmt.Fprintf(os.Stderr, "before unlock %v\n", err)
 	c.wlock.Unlock()
 	//fmt.Fprintf(os.Stderr, "after unlock\n")
 
