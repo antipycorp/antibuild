@@ -187,7 +187,7 @@ func (c *Connection) getMessage(m interface{}) {
 	c.rwlock.RLock()
 	err := c.reader.Decode(m)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "could not read stuff:", err)
+		fmt.Fprintln(os.Stderr, "could not read stuff: ", err)
 	}
 	c.rwlock.RUnlock()
 }
@@ -205,7 +205,6 @@ func (gm ReceiveMethods) excecute(id ID) Token {
 func (v Version) excecute(id ID) Token {
 	ret := tokenGetVersion
 	ret.ID = id
-	ret.Data = make([]interface{}, 1)
 	ret.Data = v
 	return ret
 }
