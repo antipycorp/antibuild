@@ -6,10 +6,10 @@ templaterefresh = develop
 $(binary): ../../main.go 
 	go build -o $(binary) ../../main.go 
 
-build: clean $(binary)
+build: $(binary)
 	./$(binary) $(templateargs)
 
-refresh: clean $(binary)
+refresh: $(binary)
 	./$(binary) $(templaterefresh)
 	
 clean:
