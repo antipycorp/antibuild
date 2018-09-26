@@ -5,6 +5,7 @@
 package protocol
 
 import (
+	"fmt"
 	"io"
 	"sync"
 	"testing"
@@ -51,6 +52,7 @@ func testInit(t *testing.T) {
 		t.Error(i)
 	}
 	wait.Wait()
+	fmt.Println("init done!")
 }
 func testRoundTrip(t *testing.T) {
 	wait := sync.WaitGroup{}
