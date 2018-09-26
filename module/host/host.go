@@ -82,8 +82,8 @@ func (m *ModuleHost) AskMethods() (protocol.Methods, error) {
 	return nil, errors.New("return datatype is incorrect")
 }
 
-// ExcecuteFunction asks for the methods a moduleHost can handle, it returns a methods type
-func (m *ModuleHost) ExcecuteFunction(function string, args []interface{}) (interface{}, error) {
+// ExcecuteMethod asks for the methods a moduleHost can handle, it returns a methods type
+func (m *ModuleHost) ExcecuteMethod(function string, args []interface{}) (interface{}, error) {
 	var id [10]byte
 	_, err := rand.Read(id[:])
 	if err != nil {
