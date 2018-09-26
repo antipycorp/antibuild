@@ -122,8 +122,9 @@ func internalHandle(command string, r protocol.Token, m *Module) {
 		r.Respond(protocol.Methods{
 			"templateFunctions": functions,
 		})
-	case "testMethods":
-		r.Respond(testMethods(m))
+
+	case "testTemplateFunctions":
+		r.Respond(testTemplateFunctions(m))
 	}
 }
 

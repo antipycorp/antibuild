@@ -27,11 +27,6 @@ import (
 )
 
 type (
-	combined struct {
-		Layout interface{}
-		Page   interface{}
-	}
-
 	jsonDataFile struct {
 		Data map[string]interface{} `json:"Data"`
 	}
@@ -40,7 +35,7 @@ type (
 		Folders    configFolder  `json:"folders"`
 		Modules    configModules `json:"modules"`
 		Pages      site          `json:"pages"`
-		moduleHost *host.ModuleHost
+		moduleHost map[string]*host.ModuleHost
 	}
 
 	configFolder struct {
@@ -71,11 +66,8 @@ type (
 
 var (
 	server http.Server
-	fn     = template.FuncMap{
-		"noescape":  noescape,
-		"typeof":    typeof,
-		"increment": increment,
-	}
+	fn     = template.FuncMap{}
+
 	errNoTemplate = errors.New("the template folder is not set")
 	errNoData     = errors.New("the data folder is not set")
 	errNoOutput   = errors.New("the output folder is not set")
@@ -207,8 +199,10 @@ func startParse(configLocation string) (*config, error) {
 }
 
 func loadModules(config *config) {
-	config.moduleHost = host.New()
+	config.moduleHost = make(map[string]*host.ModuleHost, len(config.Modules.Dependencies))
+
 	for identifier, version := range config.Modules.Dependencies {
+		config.moduleHost[identifier] = host.New()
 		fmt.Printf("Loading module: %s@%s\n", identifier, version)
 
 		module := exec.Command(filepath.Join(config.Folders.Modules, "abm_"+identifier))
@@ -226,12 +220,30 @@ func loadModules(config *config) {
 		if err := module.Start(); err != nil {
 			panic(err)
 		}
-		err = config.moduleHost.Start(stdout, stdin)
+		err = config.moduleHost[identifier].Start(stdout, stdin)
 		if err != nil {
 			panic(err)
 		}
 
-		fmt.Println(config.moduleHost.AskMethods())
+		methods, err := config.moduleHost[identifier].AskMethods()
+		if err != nil {
+			panic(err)
+		}
+
+		for _, function := range methods["templateFunctions"] {
+			fn[identifier+"_"+function] = moduleTemplateFunctionDefinition(identifier, function, config)
+		}
+	}
+}
+
+func moduleTemplateFunctionDefinition(module string, command string, config *config) func(data ...interface{}) interface{} {
+	return func(data ...interface{}) interface{} {
+		output, err := config.moduleHost[module].ExcecuteFunction(command, data)
+		if err != nil {
+			panic(err)
+		}
+
+		return output
 	}
 }
 
