@@ -73,7 +73,7 @@ var (
 	errNoOutput   = errors.New("the output folder is not set")
 )
 
-const version = "v0.1.1"
+const version = "v0.1.2"
 
 func main() {
 	fmt.Println(version)
@@ -368,15 +368,17 @@ func (s *site) gatherJSON(jsonImput *jsonImput) error {
 
 		dec := json.NewDecoder(JSONFile)
 		err = dec.Decode(&jsonImput)
-		if s.language != "" {
-			if v, ok := jsonImput.Data[s.language].(map[string]interface{}); ok {
-				jsonImput.Data = v
-			} // else: if it cant find the language just use the whole json to allow for languageless jsonfiles
-		}
 		if err != nil {
 			return err
 		}
 	}
+
+	if s.language != "" {
+		if v, ok := jsonImput.Data[s.language].(map[string]interface{}); ok {
+			jsonImput.Data = v
+		} // else: if it cant find the language just use the whole json to allow for languageless jsonfiles
+	}
+
 	return nil
 }
 
