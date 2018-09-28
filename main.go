@@ -368,17 +368,18 @@ func (s *site) gatherJSON(jsonImput *jsonImput) error {
 
 		dec := json.NewDecoder(JSONFile)
 		err = dec.Decode(&jsonImput)
+		if s.language != "" {
+			if data, ok := jsonImput.Data[s.language].(map[string]interface{}); ok {
+				for k, v := range data {
+					jsonImput.Data[k] = v
+				}
+			} // else: if it cant find the language just use the whole json to allow for languageless jsonfiles
+		}
+
 		if err != nil {
 			return err
 		}
 	}
-
-	if s.language != "" {
-		if v, ok := jsonImput.Data[s.language].(map[string]interface{}); ok {
-			jsonImput.Data = v
-		} // else: if it cant find the language just use the whole json to allow for languageless jsonfiles
-	}
-
 	return nil
 }
 
