@@ -1,4 +1,4 @@
-module gitlab.com/antipy/antibuild
+module gitlab.com/antipy/antibuild/cli
 
 require (
 	github.com/Workiva/go-datastructures v1.0.50
