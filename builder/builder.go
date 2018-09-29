@@ -23,7 +23,7 @@ import (
 	"net/http"
 
 	"github.com/fsnotify/fsnotify"
-	"gitlab.com/antipy/antibuild/module/host"
+	"gitlab.com/antipy/antibuild/cli/module/host"
 )
 
 type (

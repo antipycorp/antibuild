@@ -6,7 +6,7 @@ package cli
 
 import (
 	"github.com/spf13/cobra"
-	"gitlab.com/antipy/antibuild/builder"
+	"gitlab.com/antipy/antibuild/cli/builder"
 )
 
 var configFileBuildCmd string
