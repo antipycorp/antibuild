@@ -5,7 +5,7 @@
 package main
 
 import (
-	abm "gitlab.com/antipy/antibuild/module/client"
+	abm "gitlab.com/antipy/antibuild/cli/module/client"
 )
 
 func main() {

@@ -7,7 +7,7 @@ package main
 import (
 	"fmt"
 
-	"gitlab.com/antipy/antibuild/cli"
+	"gitlab.com/antipy/antibuild/cli/cli"
 )
 
 const version = "v0.2.0"
