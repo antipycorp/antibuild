@@ -22,7 +22,7 @@ type (
 
 	//TFRequest is the request with data and meta from the module caller.
 	TFRequest struct {
-		Data interface{}
+		Data []interface{}
 	}
 
 	//TFResponse is the response to the module API that will be used to respond to the client
@@ -144,7 +144,7 @@ func templateFunctionsHandle(command string, r protocol.Token, m *Module) {
 		return
 	}
 
-	r.Respond(r.Data)
+	r.Respond(response.Data)
 }
 
 func testMethods(m *Module) bool {
