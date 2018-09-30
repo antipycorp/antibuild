@@ -132,7 +132,7 @@ func (c *Connection) Init(isHost bool) (int, error) {
 	if message.ID != verifyVersionID {
 		return 0, ErrProtocoolViolation
 	}
-	v, ok := message.Data.(Version)
+	v, ok := message.Data[0].(Version)
 	if !ok {
 		return 0, ErrProtocoolViolation
 	}
@@ -161,6 +161,7 @@ func (c *Connection) Receive() Token {
 func (c *Connection) GetResponse() Response {
 	var resp Response
 	c.getMessage(&resp)
+	fmt.Println(resp)
 
 	return resp
 }
@@ -179,7 +180,11 @@ func (c *Connection) Send(command string, payload payload, id ID) {
 	c.writer.Encode(message)
 	//fmt.Fprintf(os.Stderr, "after lock\n")
 	err := c.writer.Encode(message)
-	fmt.Fprintf(os.Stderr, "before unlock %v\n", err)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "could not send message:", err)
+	}
+
+	//fmt.Fprintf(os.Stderr, "before unlock %v\n", err)
 	c.wlock.Unlock()
 	fmt.Fprintf(os.Stderr, "after unlock\n")
 
@@ -192,8 +197,10 @@ func (c *Connection) getMessage(m interface{}) {
 
 	err := c.reader.Decode(m)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "could not read stuff:", err)
+		fmt.Fprintln(os.Stderr, "could not read message:", err)
 	}
+
+	fmt.Fprintf(os.Stderr, "read message %v\n", m)
 
 	c.rlock.Unlock()
 }
@@ -212,7 +219,7 @@ func (v Version) excecute(id ID) Token {
 	ret := tokenGetVersion
 	ret.ID = id
 	ret.Data = make([]interface{}, 1)
-	ret.Data = v
+	ret.Data[0] = v
 	return ret
 }
 
@@ -232,8 +239,15 @@ func (t *Token) Respond(data interface{}) {
 	resp.Data = data
 	resp.ID = t.ID
 	t.con.wlock.Lock()
-	t.con.writer.Encode(resp)
+
+	err := t.con.writer.Encode(resp)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "encoding response errored %v\n", err)
+	}
+
 	t.con.wlock.Unlock()
+
+	fmt.Fprintf(os.Stderr, "responded with %v\n", resp)
 }
 
 func initOut(c *Connection) func() {
