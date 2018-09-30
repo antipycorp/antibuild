@@ -10,7 +10,7 @@ import (
 	"gitlab.com/antipy/antibuild/cli/cli"
 )
 
-const version = "v0.2.0"
+const version = "v0.3.0"
 
 func main() {
 	fmt.Println(version)
