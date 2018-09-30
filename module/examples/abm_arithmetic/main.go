@@ -12,12 +12,14 @@ func main() {
 	module := abm.Register("arithmetic")
 
 	module.TemplateFunctionRegister("add", func(w abm.TFRequest, r *abm.TFResponse) {
-		var args []int
+		var args = make([]int, len(w.Data))
 		var err bool
 
-		if args, err = w.Data.([]int); err == false {
-			r.Error = abm.ErrInvalidInput
-			return
+		for i, data := range w.Data {
+			if args[i], err = data.(int); err == false {
+				r.Error = abm.ErrInvalidInput
+				return
+			}
 		}
 
 		sum := args[0] + args[1]
@@ -26,7 +28,7 @@ func main() {
 		return
 	}, &abm.TFTest{
 		Request: abm.TFRequest{
-			Data: []int{
+			Data: []interface{}{
 				1,
 				2,
 			},

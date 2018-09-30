@@ -6,6 +6,7 @@ package host
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"math/rand"
 	"sync"
@@ -40,6 +41,7 @@ func Start(in io.Reader, out io.Writer) (moduleHost *ModuleHost, err error) {
 		for {
 			resp := moduleHost.con.GetResponse()
 			conn := moduleHost.getCon(resp.ID)
+			fmt.Println(conn)
 			conn.send <- resp
 		}
 	}()
@@ -77,7 +79,7 @@ func (m *ModuleHost) AskMethods() (protocol.Methods, error) {
 }
 
 // ExcecuteMethod asks for the methods a moduleHost can handle, it returns a methods type
-func (m *ModuleHost) ExcecuteMethod(function string, args interface{}) (interface{}, error) {
+func (m *ModuleHost) ExcecuteMethod(function string, args []interface{}) (interface{}, error) {
 	var id [10]byte
 	_, err := rand.Read(id[:])
 	if err != nil {
@@ -88,11 +90,12 @@ func (m *ModuleHost) ExcecuteMethod(function string, args interface{}) (interfac
 	payload.Function = function
 	payload.Args = args
 
-	m.con.Send(protocol.ComExecute, payload, id)
 	m.addConnection(id)
+	m.con.Send(protocol.ComExecute, payload, id)
+
 	resp := m.awaitResponse(id)
 	if resp == nil {
-		return nil, errors.New("could not receive error")
+		return nil, errors.New("could not receive")
 	}
 	if v, ok := resp.(error); ok {
 		return nil, v
