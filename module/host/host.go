@@ -107,7 +107,6 @@ func (m *ModuleHost) ExcecuteMethod(function string, args []interface{}) (interf
 	if v, ok := resp.(error); ok {
 		return nil, v
 	}
-
 	return resp, nil
 }
 
