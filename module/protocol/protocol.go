@@ -69,14 +69,14 @@ type (
 )
 
 const (
-	GetVersion = "internal_getVersion"
 	GetMethods = "internal_getMethods"
 
 	ComExecute = "ExecuteMethod"
+	ComVersion = "getVersion"
 )
 
 var (
-	tokenGetVersion = Token{Command: GetVersion}
+	tokenGetVersion = Token{Command: ComVersion}
 	tokenGetMethods = Token{Command: GetMethods}
 
 	//version ID used for verifying versioning
@@ -110,7 +110,7 @@ func OpenConnection(in io.Reader, out io.Writer) *Connection {
 //Init initiates the protocol with a version exchange, returns 0 as version when a protocol violation happens
 func (c *Connection) Init(isHost bool) (int, error) {
 	if isHost {
-		c.Send(GetVersion, version, verifyVersionID)
+		c.Send(ComVersion, version, verifyVersionID)
 		resp := c.GetResponse()
 
 		if resp.ID != verifyVersionID {
@@ -175,18 +175,14 @@ func (c *Connection) Send(command string, payload payload, id ID) {
 	message.Command = command
 	message.Payload = payload
 	message.ID = id
-	//fmt.Fprintf(os.Stderr, "before lock %v\n", c.wlock)
+	fmt.Fprintln(os.Stderr, "sending message:", message)
 	c.wlock.Lock()
-	c.writer.Encode(message)
-	//fmt.Fprintf(os.Stderr, "after lock\n")
 	err := c.writer.Encode(message)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "could not send message:", err)
 	}
 
-	//fmt.Fprintf(os.Stderr, "before unlock %v\n", err)
 	c.wlock.Unlock()
-	//fmt.Fprintf(os.Stderr, "after unlock\n")
 
 }
 
@@ -199,9 +195,7 @@ func (c *Connection) getMessage(m interface{}) {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "could not read message:", err)
 	}
-
-	fmt.Fprintf(os.Stderr, "read message %v\n", m)
-
+	fmt.Fprintf(os.Stderr, "read message0 %v %v\n", m, c.out == os.Stdout)
 	c.rlock.Unlock()
 }
 
@@ -252,11 +246,13 @@ func (t *Token) Respond(data interface{}) {
 
 func initOut(c *Connection) func() {
 	return func() {
+		fmt.Fprintf(os.Stderr, "new encoder\n")
 		c.writer = gob.NewEncoder(c.out)
 	}
 }
 func initIn(c *Connection) func() {
 	return func() {
+		fmt.Fprintf(os.Stderr, "new decoder\n")
 		c.reader = gob.NewDecoder(c.in)
 	}
 }
