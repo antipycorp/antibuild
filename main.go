@@ -13,6 +13,6 @@ import (
 const version = "v0.3.0"
 
 func main() {
-	fmt.Println(version)
+	fmt.Println("Antibuild by Antipy  ", version)
 	cli.Execute()
 }

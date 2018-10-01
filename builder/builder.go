@@ -138,7 +138,7 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 						if !ok {
 							return
 						}
-						fmt.Println("copying over files")
+
 						info, err := os.Lstat(config.Folders.Static)
 						if err != nil {
 							fmt.Println("Couldnt move files form static to out: ", err.Error())
@@ -193,7 +193,7 @@ func startParse(configLocation string) (*config, error) {
 		return config, templateErr
 	}
 
-	fmt.Printf("Time: %s\n", time.Since(start).String())
+	fmt.Printf("Completed parse in %s\n", time.Since(start).String())
 
 	return config, nil
 }
@@ -236,13 +236,6 @@ func loadModules(config *config) {
 		for _, function := range methods["templateFunctions"] {
 			fn[identifier+"_"+function] = moduleTemplateFunctionDefinition(identifier, function, config)
 		}
-
-		/*output, err := config.moduleHost[identifier].ExcecuteMethod("internal_testMethods", nil)
-		if err != nil {
-			panic(err)
-		}
-
-		fmt.Println(output)*/
 	}
 }
 
@@ -296,7 +289,7 @@ func executeTemplate(config *config) (err error) {
 		fmt.Println("could not remove files: ", err, ". Old html will be left in place")
 	}
 
-	fmt.Println("------ START ------")
+	fmt.Println("Start parsing...")
 
 	err = config.Pages.execute(nil, config)
 	if err != nil {
@@ -307,7 +300,6 @@ func executeTemplate(config *config) (err error) {
 }
 
 func (s *site) execute(parent *site, config *config) error {
-	fmt.Println("new site")
 	if parent != nil {
 		if s.Data != nil {
 			s.Data = append(parent.Data, s.Data...)
@@ -337,7 +329,6 @@ func (s *site) execute(parent *site, config *config) error {
 	}
 
 	if config.Folders.Static != "" && config.Folders.Output != "" {
-		fmt.Println("copying static files")
 		info, err := os.Lstat(config.Folders.Static)
 		if err != nil {
 			return err
@@ -350,7 +341,6 @@ func (s *site) execute(parent *site, config *config) error {
 			return parseStar(s, config, jIndex)
 		}
 	}
-	fmt.Println(len(s.Sites))
 
 	if len(s.Sites) != 0 {
 		for _, site := range s.Sites {
@@ -361,7 +351,7 @@ func (s *site) execute(parent *site, config *config) error {
 		}
 		return nil
 	}
-	fmt.Println(len(s.Languages))
+
 	if len(s.Languages) != 0 && len(s.Sites) == 0 && s.language == "" {
 		for _, lang := range s.Languages {
 			site := s.copy()
@@ -416,7 +406,7 @@ func parseStar(s *site, config *config, jIndex int) error {
 	if err != nil {
 		return nil
 	}
-	//fmt.Println(matches)
+
 	for _, file := range matches {
 		site := s.copy()
 		for _, match := range file {
@@ -432,8 +422,6 @@ func parseStar(s *site, config *config, jIndex int) error {
 }
 
 func (s *site) gatherJSON(jsonImput *jsonDataFile, config *config) error {
-	fmt.Println("gathering JSON files for: ", s.Slug)
-
 	for _, jsonLocation := range s.Data {
 		jsonPath := filepath.Join(config.Folders.Data, jsonLocation)
 
@@ -481,19 +469,21 @@ func (s *site) executeTemplate(template *template.Template, jsonImput jsonDataFi
 		return errors.New("Couldn't create directory: " + err.Error())
 	}
 
-	//fmt.Println(s.Slug)
 	OUTFile, err := os.Create(OUTPath)
 	if err != nil {
 		return errors.New("Couldn't create file: " + err.Error())
 	}
+
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "    ")
-	//enc.Encode(jsonImput)
 
 	err = template.ExecuteTemplate(OUTFile, "html", jsonImput.Data)
 	if err != nil {
 		return errors.New("Could not parse: " + err.Error())
 	}
+
+	fmt.Println("Executing template for ", s.Slug)
+
 	return nil
 }
 
