@@ -103,10 +103,12 @@ func (m *ModuleHost) ExcecuteMethod(function string, args []interface{}) (interf
 	if resp == nil {
 		return nil, errors.New("could not receive")
 	}
+
 	if v, ok := resp.(error); ok {
 		return nil, v
 	}
-	return nil, errors.New("return datatype is incorrect")
+
+	return resp, nil
 }
 
 func (m *ModuleHost) awaitResponse(id protocol.ID) interface{} {
