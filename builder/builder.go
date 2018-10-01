@@ -250,7 +250,7 @@ func moduleTemplateFunctionDefinition(module string, command string, config *con
 	return func(data ...interface{}) interface{} {
 		output, err := config.moduleHost[module].ExcecuteMethod("templateFunctions_"+command, data)
 		if err != nil {
-			panic(err)
+			panic("execute methods: " + err.Error())
 		}
 
 		return output
