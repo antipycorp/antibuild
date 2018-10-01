@@ -150,7 +150,10 @@ func (c *Connection) Init(isHost bool) (int, error) {
 func (c *Connection) Receive() Token {
 	var command message
 
-	c.getMessage(&command)
+	err := c.getMessage(&command)
+	if err != nil {
+		return Token{}
+	}
 
 	token := command.excecute()
 	token.con = c
@@ -160,7 +163,10 @@ func (c *Connection) Receive() Token {
 //GetResponse waits for a response from the client
 func (c *Connection) GetResponse() Response {
 	var resp Response
-	c.getMessage(&resp)
+	err := c.getMessage(&resp)
+	if err != nil {
+		resp.Data = errors.New("could not get response")
+	}
 	fmt.Println(resp)
 
 	return resp
@@ -186,17 +192,20 @@ func (c *Connection) Send(command string, payload payload, id ID) {
 
 }
 
-func (c *Connection) getMessage(m interface{}) {
+func (c *Connection) getMessage(m interface{}) error {
 	c.inInit.Do(initIn(c))
 
 	c.rlock.Lock()
 
 	err := c.reader.Decode(m)
+	c.rlock.Unlock()
+
 	if err != nil {
+		return err
 		fmt.Fprintln(os.Stderr, "could not read message:", err)
 	}
 	fmt.Fprintf(os.Stderr, "read message0 %v %v\n", m, c.out == os.Stdout)
-	c.rlock.Unlock()
+	return nil
 }
 
 func (m message) excecute() Token {
