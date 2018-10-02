@@ -9,9 +9,9 @@ $(binary): FORCE
 		make $(binary) binary=$(binary)
 
 build: $(binary)
-	cd ../../module/examples/abm_arithmetic && \
-		go build -o abm_arithmetic
-	mv ../../module/examples/abm_arithmetic/abm_arithmetic .modules 
+	cd ../../module/examples/abm_math && \
+		go build -o abm_math
+	mv ../../module/examples/abm_math/abm_math .modules 
 	$(binary) $(templateargs)
 
 refresh: $(binary)
