@@ -17,7 +17,7 @@ var buildCmd = &cobra.Command{
 	Short: "Build a project using the " + configFileBuildCmd + " file",
 	Long:  `Build a Antibuild project and export into the output folder. Will also install any dependencies.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		builder.Start(false, false, configFileBuildCmd, true)
+		builder.Start(false, false, configFileBuildCmd, true, "")
 	},
 }
 

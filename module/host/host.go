@@ -94,6 +94,7 @@ func (m *ModuleHost) ExcecuteMethod(function string, args []interface{}) (interf
 	m.con.Send(protocol.ComExecute, payload, id)
 
 	resp := m.awaitResponse(id)
+
 	if resp == nil {
 		return nil, errors.New("could not receive")
 	}
@@ -101,6 +102,7 @@ func (m *ModuleHost) ExcecuteMethod(function string, args []interface{}) (interf
 	if v, ok := resp.(error); ok {
 		return nil, v
 	}
+
 	return resp, nil
 }
 
