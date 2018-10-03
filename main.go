@@ -7,12 +7,62 @@ package main
 import (
 	"fmt"
 
-	"gitlab.com/antipy/antibuild/cli/cli"
+	"github.com/spf13/cobra"
+	"gitlab.com/antipy/antibuild/cli/builder"
+	"gitlab.com/antipy/antibuild/cli/new"
 )
 
 const version = "v0.3.0"
 
+var (
+	// rootCmd represents the base command when called without any subcommands
+	rootCmd = &cobra.Command{
+		Use:   "antibuild",
+		Short: "A fast and simple static site generator with module support.",
+		Long: `Antibuild is a static site generator that can use dynamic datasets and simple or advanced modules for endless configurability.
+
+To start a new antibuild project run "antibuild new"
+Antibuild is written in Golang and can be extended by modules written in Golang. To get started with modules go to https://antibuild.io/modules.`,
+	}
+
+	configFileDevelopCmd string
+	// newCmd represents the new command
+	developCmd = &cobra.Command{
+		Use:   "develop",
+		Short: "Develop a project using the config file file",
+		Long:  `Develop a Antibuild project and export into the output folder. Will also install any dependencies.`,
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println(version)
+			builder.Start(true, true, configFileDevelopCmd, true)
+		},
+	}
+
+	configFileBuildCmd string
+
+	// newCmd represents the new command
+	buildCmd = &cobra.Command{
+		Use:   "build",
+		Short: "Build a project using the " + configFileBuildCmd + " file",
+		Long:  `Build a Antibuild project and export into the output folder. Will also install any dependencies.`,
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println(version)
+			builder.Start(false, false, configFileBuildCmd, true)
+		},
+	}
+
+	// newCmd represents the new command
+	newCmd = &cobra.Command{
+		Use:   "new",
+		Short: "Make a new antibuild project.",
+		Long:  `Generate a new antibuild project. To get started run "antibuild new" and follow the prompts.`,
+		Run:   new.Create,
+	}
+)
+
 func main() {
-	fmt.Println(version)
-	cli.Execute()
+	developCmd.Flags().StringVarP(&configFileDevelopCmd, "config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
+	buildCmd.Flags().StringVarP(&configFileBuildCmd, "config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
+
+	rootCmd.AddCommand(developCmd, buildCmd, newCmd)
+	rootCmd.Execute()
 }

@@ -202,7 +202,6 @@ func (c *Connection) getMessage(m interface{}) error {
 
 	if err != nil {
 		return err
-		fmt.Fprintln(os.Stderr, "could not read message:", err)
 	}
 	fmt.Fprintf(os.Stderr, "read message0 %v %v\n", m, c.out == os.Stdout)
 	return nil
