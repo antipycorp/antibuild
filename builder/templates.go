@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	UI "gitlab.com/antipy/antibuild/cli/ui"
 )
 
 //start the template execution
@@ -20,10 +22,8 @@ func executeTemplate(config *config) (err error) {
 		err = os.RemoveAll(config.Folders.Output)
 	}
 	if err != nil {
-		panic(errNoOutput)
+		ui.Log(UI.OutputFolder, "/config.json", "?", nil)
 	}
-
-	fmt.Println("Start parsing...")
 
 	//start the first page
 	err = config.Pages.execute(nil, config)
