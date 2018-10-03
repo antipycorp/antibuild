@@ -26,6 +26,8 @@ Antibuild is written in Golang and can be extended by modules written in Golang.
 	}
 
 	configFileDevelopCmd string
+	portDevelopCmd       string
+
 	// newCmd represents the new command
 	developCmd = &cobra.Command{
 		Use:   "develop",
@@ -33,7 +35,7 @@ Antibuild is written in Golang and can be extended by modules written in Golang.
 		Long:  `Develop a Antibuild project and export into the output folder. Will also install any dependencies.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Println(version)
-			builder.Start(true, true, configFileDevelopCmd, true)
+			builder.Start(true, true, configFileDevelopCmd, true, portDevelopCmd)
 		},
 	}
 
@@ -46,7 +48,7 @@ Antibuild is written in Golang and can be extended by modules written in Golang.
 		Long:  `Build a Antibuild project and export into the output folder. Will also install any dependencies.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Println(version)
-			builder.Start(false, false, configFileBuildCmd, true)
+			builder.Start(false, false, configFileBuildCmd, true, "")
 		},
 	}
 
@@ -61,6 +63,7 @@ Antibuild is written in Golang and can be extended by modules written in Golang.
 
 func main() {
 	developCmd.Flags().StringVarP(&configFileDevelopCmd, "config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
+	developCmd.Flags().StringVarP(&portDevelopCmd, "port", "p", "8080", "The port that is used to host the development server.")
 	buildCmd.Flags().StringVarP(&configFileBuildCmd, "config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
 
 	rootCmd.AddCommand(developCmd, buildCmd, newCmd)
