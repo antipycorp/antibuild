@@ -145,8 +145,6 @@ func moduleFileParserDefinition(module string, command string, config *config) f
 			panic("fileParser_" + command + " did not return a map[string]interface{}")
 		}
 
-		fmt.Println(outputFinal)
-
 		//return data
 		return outputFinal
 	}

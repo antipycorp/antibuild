@@ -9,7 +9,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.com/antipy/antibuild/cli/builder"
-	"gitlab.com/antipy/antibuild/cli/new"
 )
 
 const version = "v0.4.0"
@@ -51,14 +50,6 @@ Antibuild is written in Golang and can be extended by modules written in Golang.
 			builder.Start(false, false, configFileBuildCmd, true, "")
 		},
 	}
-
-	// newCmd represents the new command
-	newCmd = &cobra.Command{
-		Use:   "new",
-		Short: "Make a new antibuild project.",
-		Long:  `Generate a new antibuild project. To get started run "antibuild new" and follow the prompts.`,
-		Run:   new.Create,
-	}
 )
 
 func main() {
@@ -66,6 +57,6 @@ func main() {
 	developCmd.Flags().StringVarP(&portDevelopCmd, "port", "p", "8080", "The port that is used to host the development server.")
 	buildCmd.Flags().StringVarP(&configFileBuildCmd, "config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
 
-	rootCmd.AddCommand(developCmd, buildCmd, newCmd)
+	rootCmd.AddCommand(developCmd, buildCmd)
 	rootCmd.Execute()
 }
