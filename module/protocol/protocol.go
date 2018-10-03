@@ -167,7 +167,6 @@ func (c *Connection) GetResponse() Response {
 	if err != nil {
 		resp.Data = errors.New("could not get response")
 	}
-	fmt.Println(resp)
 
 	return resp
 }
@@ -181,7 +180,6 @@ func (c *Connection) Send(command string, payload payload, id ID) {
 	message.Command = command
 	message.Payload = payload
 	message.ID = id
-	fmt.Fprintln(os.Stderr, "sending message:", message)
 	c.wlock.Lock()
 	err := c.writer.Encode(message)
 	if err != nil {
@@ -203,7 +201,6 @@ func (c *Connection) getMessage(m interface{}) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(os.Stderr, "read message0 %v %v\n", m, c.out == os.Stdout)
 	return nil
 }
 
@@ -233,7 +230,7 @@ func (gm ExecuteMethod) excecute(id ID) Token {
 }
 
 //Respond sends the given data back to the host
-func (t *Token) Respond(data interface{}) {
+func (t *Token) Respond(data interface{}) error {
 
 	t.con.outInit.Do(initOut(t.con))
 
@@ -244,23 +241,21 @@ func (t *Token) Respond(data interface{}) {
 
 	err := t.con.writer.Encode(resp)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "encoding response errored %v\n", err)
+		return err
 	}
 
 	t.con.wlock.Unlock()
 
-	fmt.Fprintf(os.Stderr, "responded with %v\n", resp)
+	return nil
 }
 
 func initOut(c *Connection) func() {
 	return func() {
-		fmt.Fprintf(os.Stderr, "new encoder\n")
 		c.writer = gob.NewEncoder(c.out)
 	}
 }
 func initIn(c *Connection) func() {
 	return func() {
-		fmt.Fprintf(os.Stderr, "new decoder\n")
 		c.reader = gob.NewDecoder(c.in)
 	}
 }

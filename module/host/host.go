@@ -6,10 +6,8 @@ package host
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"math/rand"
-	"os"
 	"sync"
 
 	"gitlab.com/antipy/antibuild/cli/module/protocol"
@@ -28,15 +26,12 @@ type (
 
 //Start starts the Initites protocol for a given io.Reader and io.Writer.
 func Start(in io.Reader, out io.Writer) (moduleHost *ModuleHost, err error) {
-	fmt.Fprintf(os.Stderr, "starting host\n")
 	moduleHost = &ModuleHost{}
 	moduleHost.lock = sync.RWMutex{}
 	moduleHost.commands = make(map[protocol.ID]*command)
 
 	moduleHost.con = protocol.OpenConnection(in, out)
-	fmt.Fprintf(os.Stderr, "init host\n")
 	_, err = moduleHost.con.Init(true)
-	fmt.Fprintf(os.Stderr, "inited host\n")
 
 	if err != nil {
 		return
@@ -46,8 +41,6 @@ func Start(in io.Reader, out io.Writer) (moduleHost *ModuleHost, err error) {
 		for {
 			resp := moduleHost.con.GetResponse()
 			conn := moduleHost.getCon(resp.ID)
-			fmt.Println(conn)
-			fmt.Fprintln(os.Stderr, "received message:", resp)
 			conn.send <- resp
 		}
 	}()

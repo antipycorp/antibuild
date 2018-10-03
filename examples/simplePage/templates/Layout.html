@@ -12,8 +12,13 @@
                 {{range .Headers }}
                     <h1>{{.Name}}</h1> <!-- you can use all variables as normal, you can itterateover them etc -->
                 {{end}}
-                
-                {{arithmetic_add 1 1}}
+                                
+                {{math_add 1 2}}
+                {{math_subtract 3 1}}
+                {{math_multiply 2 3}}
+                {{math_divide 6 2}}
+                {{math_modulo 5 2}}
+                {{math_power 3 3}}
             </div>
     </html>
 {{end}}
