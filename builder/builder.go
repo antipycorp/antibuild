@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"gitlab.com/antipy/antibuild/cli/module/host"
+	UI "gitlab.com/antipy/antibuild/cli/ui"
 )
 
 type (
@@ -48,19 +49,17 @@ type (
 	}
 )
 
-var (
-	errNoTemplate = errors.New("the template folder is not set")
-	errNoData     = errors.New("the data folder is not set")
-	errNoOutput   = errors.New("the output folder is not set")
-)
+var ui = &UI.UI{}
 
 //Start the build process
 func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSet bool, port string) {
 	if isConfigSet {
-		config, parseErr := startParse(configLocation)
+		ui.HostingEnabled = isHost
+		ui.Port = port
 
+		config, parseErr := startParse(configLocation)
 		if parseErr != nil {
-			panic(fmt.Sprintf("could not get the output folder from config.json: %s", parseErr))
+			ui.Log(UI.DataFolder, "/config.json", "?", nil)
 		}
 
 		if isHost {
@@ -76,6 +75,9 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 func startParse(configLocation string) (*config, error) {
 	//record start time
 	start := time.Now()
+
+	//show compiling on ui
+	ui.ShowCompiling()
 
 	//reparse the config
 	config, configErr := parseConfig(configLocation)
@@ -99,7 +101,7 @@ func startParse(configLocation string) (*config, error) {
 	}
 
 	//print finish time
-	fmt.Printf("Completed parse in %s\n", time.Since(start).String())
+	ui.ShowBuiltSuccess(time.Since(start).String())
 	return config, nil
 }
 
@@ -121,13 +123,13 @@ func parseConfig(configLocation string) (*config, error) {
 	}
 
 	if config.Folders.Templates == "" {
-		return &config, errNoTemplate
+		return &config, errors.New("template folder not set")
 	}
 	if config.Folders.Data == "" {
-		return &config, errNoData
+		return &config, errors.New("data folder not set")
 	}
 	if config.Folders.Output == "" {
-		return &config, errNoOutput
+		return &config, errors.New("output folder not set")
 	}
 
 	//return config

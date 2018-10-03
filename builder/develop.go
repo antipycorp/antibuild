@@ -28,7 +28,7 @@ func hostLocally(config *config, port string) {
 	server.ErrorLog = log.New(os.Stdout, "", 0)
 
 	//start the server
-	go server.ListenAndServe()
+	go panic(server.ListenAndServe())
 	defer server.Shutdown(nil)
 }
 
