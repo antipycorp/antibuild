@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"sync"
 
+	_ "gitlab.com/antipy/antibuild/cli/module/internal"
 	"gitlab.com/antipy/antibuild/cli/module/protocol"
 )
 

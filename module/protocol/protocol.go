@@ -70,6 +70,7 @@ type (
 
 const (
 	GetMethods = "internal_getMethods"
+	CommandErr = "failled in receiving the command"
 
 	ComExecute = "ExecuteMethod"
 	ComVersion = "getVersion"
@@ -78,6 +79,8 @@ const (
 var (
 	tokenGetVersion = Token{Command: ComVersion}
 	tokenGetMethods = Token{Command: GetMethods}
+
+	EOF = errors.New("could not get response")
 
 	//version ID used for verifying versioning
 	verifyVersionID = ID{1}
@@ -152,7 +155,7 @@ func (c *Connection) Receive() Token {
 
 	err := c.getMessage(&command)
 	if err != nil {
-		return Token{}
+		return Token{Data: []interface{}{EOF}}
 	}
 
 	token := command.excecute()
@@ -165,6 +168,7 @@ func (c *Connection) GetResponse() Response {
 	var resp Response
 	err := c.getMessage(&resp)
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v", err)
 		resp.Data = errors.New("could not get response")
 	}
 
@@ -180,13 +184,14 @@ func (c *Connection) Send(command string, payload payload, id ID) {
 	message.Command = command
 	message.Payload = payload
 	message.ID = id
+	fmt.Println("sending message:", message)
 	c.wlock.Lock()
 	err := c.writer.Encode(message)
+	c.wlock.Unlock()
+	fmt.Println("finished sending")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "could not send message:", err)
 	}
-
-	c.wlock.Unlock()
 
 }
 
@@ -194,11 +199,13 @@ func (c *Connection) getMessage(m interface{}) error {
 	c.inInit.Do(initIn(c))
 
 	c.rlock.Lock()
-
+	fmt.Fprintf(os.Stderr, "started receiving\n")
 	err := c.reader.Decode(m)
 	c.rlock.Unlock()
+	fmt.Fprintf(os.Stderr, "finished %v\n", m)
 
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "could not get message:%v", err)
 		return err
 	}
 	return nil
@@ -232,19 +239,25 @@ func (gm ExecuteMethod) excecute(id ID) Token {
 //Respond sends the given data back to the host
 func (t *Token) Respond(data interface{}) error {
 
+	if t.con == nil {
+		return errors.New("connection is nil")
+	}
 	t.con.outInit.Do(initOut(t.con))
 
 	var resp Response
 	resp.Data = data
 	resp.ID = t.ID
-	t.con.wlock.Lock()
 
+	fmt.Fprintf(os.Stderr, "sending response: %v\n", resp)
+	t.con.wlock.Lock()
 	err := t.con.writer.Encode(resp)
+	t.con.wlock.Unlock()
+	fmt.Fprintf(os.Stderr, "finished responding\n")
+
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "failled sending:%v\n", err)
 		return err
 	}
-
-	t.con.wlock.Unlock()
 
 	return nil
 }
