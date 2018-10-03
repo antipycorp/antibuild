@@ -1,4 +1,18 @@
-package new
+// Copyright © 2018 Antipy V.O.F. info@antipy.com
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package main
 
 import (
 	"archive/zip"
@@ -54,51 +68,61 @@ var newSurvey = []*survey.Question{
 	},
 }
 
-func Create(cmd *cobra.Command, args []string) {
-	answers := struct {
-		Name           string   `survey:"name"`
-		Template       string   `survey:"template"`
-		DefaultModules []string `survey:"default_modules"`
-	}{}
+// newCmd represents the new command
+var newCmd = &cobra.Command{
+	Use:   "new",
+	Short: "Make a new antibuild project.",
+	Long:  `Generate a new antibuild project. To get started run "antibuild new" and follow the prompts.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		answers := struct {
+			Name           string   `survey:"name"`
+			Template       string   `survey:"template"`
+			DefaultModules []string `survey:"default_modules"`
+		}{}
 
-	err := survey.Ask(newSurvey, &answers)
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-
-	if _, err := ioutil.ReadDir(answers.Name); os.IsNotExist(err) {
-		dir, err := ioutil.TempDir("", "antibuild")
+		err := survey.Ask(newSurvey, &answers)
 		if err != nil {
-			log.Fatal(err)
+			fmt.Println(err.Error())
+			return
 		}
 
-		defer os.RemoveAll(dir) // clean up
+		if _, err := ioutil.ReadDir(answers.Name); os.IsNotExist(err) {
+			dir, err := ioutil.TempDir("", "antibuild")
+			if err != nil {
+				log.Fatal(err)
+			}
 
-		downloadFilePath := filepath.Join(dir, "download.zip")
+			defer os.RemoveAll(dir) // clean up
 
-		err = downloadFile(downloadFilePath, "https://build.antipy.com/cli/examples/basic.zip")
-		if err != nil {
-			log.Fatal(err)
+			downloadFilePath := filepath.Join(dir, "download.zip")
+
+			err = downloadFile(downloadFilePath, "https://build.antipy.com/cli/examples/basic.zip")
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			_, err = unzip(downloadFilePath, answers.Name)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			fmt.Println("Success. Run these commands to get started:")
+			fmt.Println("")
+			fmt.Println("cd " + answers.Name)
+			fmt.Println("antibuild develop")
+			fmt.Println("")
+			fmt.Println("Need help? Look at our docs: https://build.antipy.com/documentation")
+			fmt.Println("")
+			fmt.Println("")
+			return
 		}
 
-		_, err = unzip(downloadFilePath, answers.Name)
-		if err != nil {
-			log.Fatal(err)
-		}
+		fmt.Println("Failed.")
+	},
+}
 
-		fmt.Println("Success. Run these commands to get started:")
-		fmt.Println("")
-		fmt.Println("cd " + answers.Name)
-		fmt.Println("antibuild develop")
-		fmt.Println("")
-		fmt.Println("Need help? Look at our docs: https://build.antipy.com/documentation")
-		fmt.Println("")
-		fmt.Println("")
-		return
-	}
-
-	fmt.Println("Failed.")
+func init() {
+	rootCmd.AddCommand(newCmd)
 }
 
 func unzip(src string, dest string) ([]string, error) {

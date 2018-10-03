@@ -184,11 +184,9 @@ func (c *Connection) Send(command string, payload payload, id ID) {
 	message.Command = command
 	message.Payload = payload
 	message.ID = id
-	fmt.Println("sending message:", message)
 	c.wlock.Lock()
 	err := c.writer.Encode(message)
 	c.wlock.Unlock()
-	fmt.Println("finished sending")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "could not send message:", err)
 	}
@@ -199,13 +197,13 @@ func (c *Connection) getMessage(m interface{}) error {
 	c.inInit.Do(initIn(c))
 
 	c.rlock.Lock()
-	fmt.Fprintf(os.Stderr, "started receiving\n")
 	err := c.reader.Decode(m)
 	c.rlock.Unlock()
-	fmt.Fprintf(os.Stderr, "finished %v\n", m)
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "could not get message:%v", err)
+		if err.Error() != "EOF" {
+			fmt.Fprintf(os.Stderr, "could not get message: %v", err)
+		}
 		return err
 	}
 	return nil
@@ -248,11 +246,9 @@ func (t *Token) Respond(data interface{}) error {
 	resp.Data = data
 	resp.ID = t.ID
 
-	fmt.Fprintf(os.Stderr, "sending response: %v\n", resp)
 	t.con.wlock.Lock()
 	err := t.con.writer.Encode(resp)
 	t.con.wlock.Unlock()
-	fmt.Fprintf(os.Stderr, "finished responding\n")
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failled sending:%v\n", err)
