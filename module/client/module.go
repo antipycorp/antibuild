@@ -7,10 +7,7 @@ package module
 import (
 	"errors"
 	"os"
-<<<<<<< HEAD
-=======
 	"reflect"
->>>>>>> 3772f17e3634776f6360e41104e8fb7214e47ba4
 	"strings"
 
 	"gitlab.com/antipy/antibuild/cli/module/protocol"
@@ -21,11 +18,6 @@ type (
 	Module struct {
 		name string
 
-<<<<<<< HEAD
-		templateFunctions map[string]TemplateFunction
-	}
-
-=======
 		templateFunctions  map[string]TemplateFunction
 		fileLoaders        map[string]FileLoader
 		fileParsers        map[string]FileParser
@@ -36,7 +28,6 @@ type (
 		TEMPLATE FUNCTIONS
 	*/
 
->>>>>>> 3772f17e3634776f6360e41104e8fb7214e47ba4
 	//TFRequest is the request with data and meta from the module caller.
 	TFRequest struct {
 		Data []interface{}
@@ -175,12 +166,9 @@ func register(name string) *Module {
 	module.name = name
 
 	module.templateFunctions = make(map[string]TemplateFunction)
-<<<<<<< HEAD
-=======
 	module.fileLoaders = make(map[string]FileLoader)
 	module.fileParsers = make(map[string]FileParser)
 	module.filePostProcessors = make(map[string]FilePostProcessor)
->>>>>>> 3772f17e3634776f6360e41104e8fb7214e47ba4
 
 	return module
 }
@@ -208,9 +196,6 @@ func start(m *Module) {
 			internalHandle(commandSplit[1], r, m)
 		case "templateFunctions":
 			templateFunctionsHandle(commandSplit[1], r, m)
-<<<<<<< HEAD
-		}
-=======
 		case "fileLoaders":
 			fileLoadersHandle(commandSplit[1], r, m)
 		case "fileParsers":
@@ -219,23 +204,12 @@ func start(m *Module) {
 			filePostProcessorsHandle(commandSplit[1], r, m)
 		}
 
->>>>>>> 3772f17e3634776f6360e41104e8fb7214e47ba4
 	}
 }
 
 func internalHandle(command string, r protocol.Token, m *Module) {
 	switch command {
 	case "getMethods":
-<<<<<<< HEAD
-		var functions = make([]string, len(m.templateFunctions))
-
-		for key := range m.templateFunctions {
-			functions = append(functions, key)
-		}
-
-		r.Respond(protocol.Methods{
-			"templateFunctions": functions,
-=======
 		var templateFunctions = make([]string, len(m.templateFunctions))
 		var fileLoaders = make([]string, len(m.fileLoaders))
 		var fileParsers = make([]string, len(m.fileParsers))
@@ -262,7 +236,6 @@ func internalHandle(command string, r protocol.Token, m *Module) {
 			"fileLoaders":        fileLoaders,
 			"fileParsers":        fileParsers,
 			"filePostProcessors": filePostProcessors,
->>>>>>> 3772f17e3634776f6360e41104e8fb7214e47ba4
 		})
 
 	case "testMethods":
@@ -292,8 +265,6 @@ func templateFunctionsHandle(command string, r protocol.Token, m *Module) {
 	r.Respond(response.Data)
 }
 
-<<<<<<< HEAD
-=======
 func fileLoadersHandle(command string, r protocol.Token, m *Module) {
 	if m.fileLoaders[command].Function == nil {
 		r.Respond(ErrInvalidCommand)
@@ -398,7 +369,6 @@ func filePostProcessorsHandle(command string, r protocol.Token, m *Module) {
 	r.Respond(response.Data)
 }
 
->>>>>>> 3772f17e3634776f6360e41104e8fb7214e47ba4
 func testMethods(m *Module) bool {
 	for _, templateFunction := range m.templateFunctions {
 		var response = &TFResponse{}
@@ -414,8 +384,6 @@ func testMethods(m *Module) bool {
 		}
 	}
 
-<<<<<<< HEAD
-=======
 	for _, fileParser := range m.fileParsers {
 		var response = &FPResponse{}
 
@@ -444,7 +412,6 @@ func testMethods(m *Module) bool {
 		}
 	}
 
->>>>>>> 3772f17e3634776f6360e41104e8fb7214e47ba4
 	return true
 }
 
@@ -494,8 +461,6 @@ func templateFunctionRegister(m *Module, identifer string, function func(TFReque
 
 	return
 }
-<<<<<<< HEAD
-=======
 
 //FileLoaderRegister registers a new file loader with identifier "identifier" to the module.
 func (m *Module) FileLoaderRegister(identifer string, function func(FLRequest, *FLResponse)) {
@@ -612,4 +577,3 @@ func filePostProcessor(m *Module, identifer string, function func(FPPRequest, *F
 
 	return
 }
->>>>>>> 3772f17e3634776f6360e41104e8fb7214e47ba4
