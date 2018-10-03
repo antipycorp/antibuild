@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"strings"
 
+	_ "gitlab.com/antipy/antibuild/cli/module/internal"
 	"gitlab.com/antipy/antibuild/cli/module/protocol"
 )
 
@@ -188,7 +189,11 @@ func start(m *Module) {
 
 	for {
 		r := con.Receive()
-
+		if len(r.Data) == 1 {
+			if r.Data[0] == protocol.EOF {
+				os.Exit(1)
+			}
+		}
 		commandSplit := strings.SplitN(r.Command, "_", 2)
 
 		switch commandSplit[0] {

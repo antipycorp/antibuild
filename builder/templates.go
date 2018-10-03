@@ -140,6 +140,11 @@ func parseStar(s *site, config *config, index int) error {
 
 func (s *site) gatherDataFiles(dataInput *dataFile, config *config) error {
 	for _, dataFileString := range s.Data {
+
+		if dataInput.Data == nil {
+			dataInput.Data = make(map[string]interface{})
+		}
+
 		expression, err := regexp.Compile("\\[(.*?)\\]")
 		if err != nil {
 			return err
@@ -158,8 +163,9 @@ func (s *site) gatherDataFiles(dataInput *dataFile, config *config) error {
 			parser = append(parser, "")
 		}
 		parsed := fileParsers[parser[0]](file, parser[1])
-
-		dataInput.Data = combine(dataInput.Data, parsed)
+		for k, v := range parsed {
+			dataInput.Data[k] = v
+		}
 	}
 
 	return nil
@@ -287,12 +293,4 @@ func dirCopy(srcdir, destdir string, info os.FileInfo) error {
 		}
 	}
 	return nil
-}
-
-func combine(a map[string]interface{}, b map[string]interface{}) map[string]interface{} {
-	for k, v := range b {
-		a[k] = v
-	}
-
-	return a
 }
