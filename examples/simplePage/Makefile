@@ -12,6 +12,12 @@ build: $(binary)
 	cd ../../module/examples/abm_math && \
 		go build -o abm_math
 	mv ../../module/examples/abm_math/abm_math .modules 
+	cd ../../module/examples/abm_file && \
+		go build -o abm_file
+	mv ../../module/examples/abm_file/abm_file .modules 
+	cd ../../module/examples/abm_json && \
+		go build -o abm_json
+	mv ../../module/examples/abm_json/abm_json .modules 
 	$(binary) $(templateargs)
 
 refresh: $(binary)

@@ -210,14 +210,32 @@ func start(m *Module) {
 func internalHandle(command string, r protocol.Token, m *Module) {
 	switch command {
 	case "getMethods":
-		var functions = make([]string, len(m.templateFunctions))
+		var templateFunctions = make([]string, len(m.templateFunctions))
+		var fileLoaders = make([]string, len(m.fileLoaders))
+		var fileParsers = make([]string, len(m.fileParsers))
+		var filePostProcessors = make([]string, len(m.filePostProcessors))
 
 		for key := range m.templateFunctions {
-			functions = append(functions, key)
+			templateFunctions = append(templateFunctions, key)
+		}
+
+		for key := range m.fileLoaders {
+			fileLoaders = append(fileLoaders, key)
+		}
+
+		for key := range m.fileParsers {
+			fileParsers = append(fileParsers, key)
+		}
+
+		for key := range m.filePostProcessors {
+			filePostProcessors = append(filePostProcessors, key)
 		}
 
 		r.Respond(protocol.Methods{
-			"templateFunctions": functions,
+			"templateFunctions":  templateFunctions,
+			"fileLoaders":        fileLoaders,
+			"fileParsers":        fileParsers,
+			"filePostProcessors": filePostProcessors,
 		})
 
 	case "testMethods":
