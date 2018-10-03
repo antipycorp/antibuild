@@ -12,7 +12,7 @@ import (
 	"gitlab.com/antipy/antibuild/cli/new"
 )
 
-const version = "v0.3.0"
+const version = "v0.4.0"
 
 var (
 	// rootCmd represents the base command when called without any subcommands
