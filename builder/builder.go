@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"time"
 
@@ -52,7 +53,7 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 
 		config, parseErr := startParse(configLocation)
 		if parseErr != nil {
-			ui.LogImportant(UI.DataFolder, "/config.json", "?", nil)
+			log.Fatal(parseErr.Error())
 		}
 
 		if isHost {

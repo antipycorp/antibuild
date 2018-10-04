@@ -18,6 +18,9 @@ build: $(binary)
 	cd ../../module/examples/abm_json && \
 		go build -o abm_json
 	mv ../../module/examples/abm_json/abm_json .modules 
+	cd ../../module/examples/abm_yaml && \
+		go build -o abm_yaml
+	mv ../../module/examples/abm_yaml/abm_yaml .modules 
 	$(binary) $(templateargs)
 
 refresh: $(binary)

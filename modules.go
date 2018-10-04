@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"runtime"
 
@@ -34,6 +35,7 @@ var modulesInstallCmd = &cobra.Command{
 			log.Fatal("Your OS or ARCH isnt supported for auto module install.")
 		}
 
+		fmt.Println("Getting https://build.antipy.com/cli/modules/" + os + "/" + arch + "/" + module)
 		err := downloadFile(".modules/"+module, "https://build.antipy.com/cli/modules/"+os+"/"+arch+"/"+module)
 		if err != nil {
 			if err == errFileNotExist {

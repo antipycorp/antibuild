@@ -197,6 +197,7 @@ func downloadFile(filepath string, url string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
+		os.Remove(filepath)
 		return errFileNotExist
 	}
 
