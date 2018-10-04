@@ -141,7 +141,6 @@ func parseStar(s *site, config *config, index int) error {
 
 func (s *site) gatherDataFiles(dataInput *dataFile, config *config) error {
 	for _, dataFileString := range s.Data {
-
 		if dataInput.Data == nil {
 			dataInput.Data = make(map[string]interface{})
 		}
@@ -151,7 +150,11 @@ func (s *site) gatherDataFiles(dataInput *dataFile, config *config) error {
 			return err
 		}
 
+		fmt.Println(dataFileString)
+
 		matches := expression.FindAllStringSubmatch(dataFileString, -1)
+
+		fmt.Println(matches)
 
 		loader := strings.SplitN(matches[0][1], ":", 2)
 		if len(loader) == 1 {
