@@ -12,14 +12,15 @@
         ],
         "data": [
             "[file_file:data/Layout.json][json_json]",
-            "[file_file:data/pages/Home.json][json_json]"
+            "[file_file:data/pages/Home.yml][yaml_yaml]"
         ]
     },
     "modules":{
         "dependencies": {
             "math": "0.0.1",
             "file": "0.0.1",
-            "json": "0.0.1"
+            "json": "0.0.1",
+            "yaml": "0.0.1"
         }
     }
 }

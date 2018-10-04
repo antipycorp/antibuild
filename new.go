@@ -179,6 +179,8 @@ func unzip(src string, dest string) ([]string, error) {
 	return filenames, nil
 }
 
+var errFileNotExist = errors.New("file does not exist")
+
 func downloadFile(filepath string, url string) error {
 	// Create the file
 	out, err := os.Create(filepath)
@@ -193,6 +195,10 @@ func downloadFile(filepath string, url string) error {
 		return err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return errFileNotExist
+	}
 
 	// Write the body to file
 	_, err = io.Copy(out, resp.Body)

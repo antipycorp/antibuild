@@ -36,6 +36,10 @@ var modulesInstallCmd = &cobra.Command{
 
 		err := downloadFile(".modules/"+module, "https://build.antipy.com/cli/modules/"+os+"/"+arch+"/"+module)
 		if err != nil {
+			if err == errFileNotExist {
+				log.Fatal("That module doesnt exist.")
+			}
+
 			log.Fatal(err)
 		}
 	},
