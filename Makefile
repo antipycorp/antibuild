@@ -4,4 +4,4 @@ binary := antibuild
 outbinary := $(binary)
 
 $(binary): $(shell find . -name '*.go' -type f)
-	go build -o $(outbinary) main.go 
+	go build -o $(outbinary) *.go 

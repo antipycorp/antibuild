@@ -57,6 +57,7 @@ func main() {
 	developCmd.Flags().StringVarP(&portDevelopCmd, "port", "p", "8080", "The port that is used to host the development server.")
 	buildCmd.Flags().StringVarP(&configFileBuildCmd, "config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
 
-	rootCmd.AddCommand(developCmd, buildCmd)
+	modulesCmd.AddCommand(modulesInstallCmd)
+	rootCmd.AddCommand(developCmd, buildCmd, newCmd, modulesCmd)
 	rootCmd.Execute()
 }
