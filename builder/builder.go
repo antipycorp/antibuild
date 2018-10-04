@@ -11,6 +11,7 @@ import (
 	"os"
 	"time"
 
+	"gitlab.com/antipy/antibuild/cli/builder/site"
 	"gitlab.com/antipy/antibuild/cli/module/host"
 	UI "gitlab.com/antipy/antibuild/cli/ui"
 )
@@ -23,7 +24,7 @@ type (
 	config struct {
 		Folders    configFolder  `json:"folders"`
 		Modules    configModules `json:"modules"`
-		Pages      site          `json:"pages"`
+		Pages      site.Site     `json:"pages"`
 		moduleHost map[string]*host.ModuleHost
 	}
 
@@ -38,14 +39,6 @@ type (
 	configModules struct {
 		Dependencies map[string]string                 `json:"dependencies"`
 		Config       map[string]map[string]interface{} `json:"config"`
-	}
-
-	site struct {
-		Slug      string   `json:"slug"`
-		Templates []string `json:"templates"`
-		Data      []string `json:"data"`
-
-		Sites []site `json:"sites"`
 	}
 )
 
