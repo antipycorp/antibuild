@@ -2,6 +2,7 @@ module gitlab.com/antipy/antibuild/cli
 
 require (
 	github.com/Workiva/go-datastructures v1.0.50
+	github.com/buger/goterm v0.0.0-20180423150900-6d19e6a8df12
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/mattn/go-colorable v0.0.9 // indirect
