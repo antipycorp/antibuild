@@ -11,10 +11,10 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"regexp"
-	"strings"
 
 	"net/http"
+
+	"gitlab.com/antipy/antibuild/cli/site"
 
 	"github.com/fsnotify/fsnotify"
 	blackfriday "gopkg.in/russross/blackfriday.v2"
@@ -27,20 +27,6 @@ type (
 	}
 	jsonImput struct {
 		Data map[string]interface{} `json:"Data"`
-	}
-
-	site struct {
-		Slug            string   `json:"Slug"`
-		Templates       []string `json:"Templates"`
-		JSONFiles       []string `json:"JSONfiles"`
-		Languages       []string `json:"languages"`
-		Sites           []site   `json:"sites"`
-		TemplateFolder  string   `json:"templateroot"`
-		JSONFolder      string   `json:"jsonroot"`
-		OUTFolder       string   `json:"outroot"`
-		Static          string   `json:"staticroot"`
-		DefaultLanguage string   `json:"defaultlanguage"`
-		language        string
 	}
 )
 
@@ -73,7 +59,7 @@ var (
 	errNoOutput   = errors.New("the output folder is not set")
 )
 
-const version = "v0.1.2"
+const version = "v0.2.1"
 
 func main() {
 	fmt.Println(version)
@@ -183,8 +169,8 @@ func main() {
 	}
 }
 
-func executeTemplate() (*site, error) {
-	var config site
+func executeTemplate() (*site.Site, error) {
+	var config site.Site
 	JSONFile, err := os.Open(configLocation)
 	defer JSONFile.Close()
 	if err != nil {
@@ -192,7 +178,8 @@ func executeTemplate() (*site, error) {
 	}
 
 	dec := json.NewDecoder(JSONFile)
-	err = dec.Decode(&config)
+	config.Sites = make([]*site.Site, 1)
+	err = dec.Decode(&config.Sites[0])
 	if err != nil {
 		return &config, err
 	}
@@ -206,251 +193,33 @@ func executeTemplate() (*site, error) {
 	}
 
 	fmt.Println("------ START ------")
-	err = config.execute(nil)
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "    ")
+	enc.Encode(config)
+
+	sitemap := site.SiteMap{}
+	config.SiteMap = &sitemap
+	err = config.Unfold(nil)
 	if err != nil {
 		fmt.Println("failled parsing config file")
 	}
-
-	if config.TemplateFolder == "" {
-		return &config, errNoTemplate
-	}
-	if config.JSONFolder == "" {
-		return &config, errNoJSON
-	}
-	if config.OUTFolder == "" {
-		return &config, errNoOutput
-	}
-	return &config, err
-}
-
-func (s *site) execute(parent *site) error {
-	if parent != nil {
-		if s.JSONFiles != nil {
-			s.JSONFiles = append(parent.JSONFiles, s.JSONFiles...)
-		} else {
-			s.JSONFiles = make([]string, len(parent.JSONFiles))
-			copy(s.JSONFiles, parent.JSONFiles)
-		}
-		if s.Templates != nil {
-			s.Templates = append(parent.Templates, s.Templates...)
-		} else {
-			s.Templates = make([]string, len(parent.Templates))
-			copy(s.Templates, parent.Templates)
-		}
-		if s.Languages != nil {
-			s.Languages = append(parent.Languages, s.Languages...)
-		} else {
-			s.Languages = make([]string, len(parent.Languages))
-			copy(s.Languages, parent.Languages)
-		}
-		s.Slug = parent.Slug + s.Slug
-		if parent.OUTFolder != "" {
-			s.OUTFolder = parent.OUTFolder
-		}
-		if parent.TemplateFolder != "" {
-			s.TemplateFolder = parent.TemplateFolder
-		}
-		if parent.JSONFolder != "" {
-			s.JSONFolder = parent.JSONFolder
-		}
-		if parent.DefaultLanguage != "" {
-			s.DefaultLanguage = parent.DefaultLanguage
-		}
-	}
-	enc := json.NewEncoder(os.Stdout)
-	enc.SetIndent("", "    ")
-	enc.Encode(s)
-	if s.Static != "" && s.OUTFolder != "" {
-		fmt.Println("copying static files")
-		info, err := os.Lstat(s.Static)
-		if err != nil {
-			return err
-		}
-		genCopy(s.Static, s.OUTFolder, info)
-	}
-
-	for jIndex, jsonfile := range s.JSONFiles {
-		if strings.Contains(jsonfile, "*") {
-			return parseStar(s, jIndex)
-		}
-	}
-	fmt.Println(len(s.Sites))
-
-	if len(s.Sites) != 0 {
-		for _, site := range s.Sites {
-			err := site.execute(s)
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-	fmt.Println(len(s.Languages))
-	if len(s.Languages) != 0 && len(s.Sites) == 0 && s.language == "" {
-		for _, lang := range s.Languages {
-			site := s.copy()
-			site.language = lang
-			err := site.execute(nil)
-			if err != nil {
-				return fmt.Errorf("could not execute %s the for lang %s:", site.Slug, lang, err)
-			}
-		}
-		return nil
-	}
-
-	var jsonImput jsonImput
-
-	err := s.gatherJSON(&jsonImput)
+	enc.Encode(config)
+	site.TemplateFunctions = &fn
+	err = config.Execute()
 	if err != nil {
-		return err
-	}
-	template, err := s.gatherTemplates()
-	if err != nil {
-		return err
-	}
-	err = s.executeTemplate(template, jsonImput)
-	if err != nil {
-		return err
+		fmt.Println("failled executing")
 	}
 
-	return nil
-}
-
-func parseStar(s *site, jIndex int) error {
-	jsonPath := filepath.Dir(filepath.Join(s.JSONFolder, s.JSONFiles[jIndex]))
-	jsonfile := strings.Replace(filepath.Base(s.JSONFiles[jIndex]), "*", "([^/]*)", -1)
-	re := regexp.MustCompile(jsonfile)
-	var matches [][][]string
-	//fmt.Println(jsonfile)
-	//fmt.Println(jsonPath)
-	err := filepath.Walk(jsonPath, func(path string, file os.FileInfo, err error) error {
-		if path == jsonPath {
-			return nil
-		}
-		//fmt.Println(file.Name())
-		//fmt.Println(jsonfile)
-		if file.IsDir() {
-			return filepath.SkipDir
-		}
-		if ok, _ := regexp.MatchString(jsonfile, file.Name()); ok {
-			matches = append(matches, re.FindAllStringSubmatch(file.Name(), -1))
-		}
-		return nil
-	})
-	if err != nil {
-		return nil
+	if config.Sites[0].TemplateFolder == "" {
+		return config.Sites[0], errNoTemplate
 	}
-	//fmt.Println(matches)
-	for _, file := range matches {
-		site := s.copy()
-		for _, match := range file {
-			site.Slug = strings.Replace(site.Slug, "*", match[1], 1)
-			site.JSONFiles[jIndex] = strings.Replace(site.JSONFiles[jIndex], "*", match[1], 1)
-		}
-		err := site.execute(nil)
-		if err != nil {
-			return err
-		}
+	if config.Sites[0].JSONFolder == "" {
+		return config.Sites[0], errNoJSON
 	}
-	return nil
-}
-func (s *site) gatherJSON(jsonImput *jsonImput) error {
-	fmt.Println("gathering JSON files for: ", s.Slug)
-
-	for _, jsonLocation := range s.JSONFiles {
-		jsonPath := filepath.Join(s.JSONFolder, jsonLocation)
-
-		JSONFile, err := os.Open(jsonPath)
-		defer JSONFile.Close()
-		if err != nil {
-			return err
-		}
-
-		dec := json.NewDecoder(JSONFile)
-		err = dec.Decode(&jsonImput)
-		if s.language != "" {
-			if data, ok := jsonImput.Data[s.language].(map[string]interface{}); ok {
-				for k, v := range data {
-					jsonImput.Data[k] = v
-				}
-			} // else: if it cant find the language just use the whole json to allow for languageless jsonfiles
-		}
-
-		if err != nil {
-			return err
-		}
+	if config.Sites[0].OUTFolder == "" {
+		return config.Sites[0], errNoOutput
 	}
-	return nil
-}
-
-func (s *site) gatherTemplates() (*template.Template, error) {
-
-	for i := range s.Templates {
-		s.Templates[i] = filepath.Join(s.TemplateFolder, s.Templates[i])
-	}
-
-	template, err := template.New("").Funcs(fn).ParseFiles(s.Templates...)
-	if err != nil {
-		return nil, fmt.Errorf("could not parse the template files: %v", err.Error())
-	}
-	return template, nil
-}
-
-func (s *site) executeTemplate(template *template.Template, jsonImput jsonImput) error {
-	OUTPath := filepath.Join(s.OUTFolder, s.Slug)
-	if s.language != "" && s.DefaultLanguage != s.language {
-		OUTPath = filepath.Join(s.OUTFolder, s.language, s.Slug)
-	}
-
-	err := os.MkdirAll(filepath.Dir(OUTPath), 0766)
-	if err != nil {
-		return errors.New("Couldn't create directory: " + err.Error())
-	}
-
-	//fmt.Println(s.Slug)
-	OUTFile, err := os.Create(OUTPath)
-	if err != nil {
-		return errors.New("Couldn't create file: " + err.Error())
-	}
-	enc := json.NewEncoder(os.Stdout)
-	enc.SetIndent("", "    ")
-	//enc.Encode(jsonImput)
-
-	err = template.ExecuteTemplate(OUTFile, "html", jsonImput.Data)
-	if err != nil {
-		return errors.New("Could not parse: " + err.Error())
-	}
-	return nil
-}
-
-func (s *site) copy() site {
-	newSite := *s
-	for i, site := range s.Sites {
-		newSite.Sites[i] = site.copy()
-	}
-	newSite.JSONFiles = make([]string, len(s.JSONFiles))
-	copy(newSite.JSONFiles, s.JSONFiles)
-
-	newSite.Templates = make([]string, len(s.Templates))
-	copy(newSite.Templates, s.Templates)
-
-	return newSite
-}
-func (ji *jsonImput) UnmarshalJSON(data []byte) error {
-	var input map[string]interface{}
-	err := json.Unmarshal(data, &input)
-	if err != nil {
-		return err
-	}
-
-	if ji.Data == nil {
-		ji.Data = make(map[string]interface{})
-	}
-
-	for name, in := range input {
-		ji.Data[name] = in
-	}
-	return nil
+	return config.Sites[0], err
 }
 
 func setConfig(config string) {

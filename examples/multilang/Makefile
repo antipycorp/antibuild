@@ -3,8 +3,8 @@ output = public/
 templateargs = --config config.json
 templaterefresh = $(templateargs) --development --host
 
-$(binary):  ../../main.go
-	go build -o $(binary) ../../main.go 
+$(binary):  ../../main.go ../../site/site.go
+	go build -o $(binary) ../../main.go
 
 build: $(binary)
 	./$(binary) $(templateargs)
