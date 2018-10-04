@@ -1,7 +1,9 @@
 package ui
 
 import (
+	"fmt"
 	"os"
+	"time"
 )
 
 var (
@@ -11,19 +13,19 @@ var (
 var (
 	//DataFolder is an error
 	DataFolder = Error{
-		extensive: "The data folder is not set",
+		extensive: "The data folder is not set or valid",
 		short:     "config/data",
 	}
 
 	//TemplateFolder is an error
 	TemplateFolder = Error{
-		extensive: "The template folder is not set",
+		extensive: "The template folder is not set or valid",
 		short:     "config/template",
 	}
 
 	//OutputFolder is an error
 	OutputFolder = Error{
-		extensive: "The output folder is not set",
+		extensive: "The output folder is not set or valid",
 		short:     "config/output",
 	}
 )
@@ -36,7 +38,13 @@ func init() {
 	}
 }
 
-//Log logs an error
-func (ui *UI) Log(err Error, page string, line string, data []interface{}) {
+//LogImportant an important an error and shows it on screen
+func (ui *UI) LogImportant(err Error, page string, line string, data []interface{}) {
+	fmt.Fprintf(logfile, "[%v] %v: %v [page: %v; line %v]", time.Now().String(), err.short, fmt.Sprintf(err.extensive, data), page, line)
+	ui.showError(err, page, line, data)
+}
 
+//LogInfo an information that only gets logged to the log file
+func (ui *UI) LogInfo(info string) {
+	fmt.Fprintf(logfile, "[%v] %v", time.Now().String(), info)
 }
