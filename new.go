@@ -121,10 +121,6 @@ var newCmd = &cobra.Command{
 	},
 }
 
-func init() {
-	rootCmd.AddCommand(newCmd)
-}
-
 func unzip(src string, dest string) ([]string, error) {
 	var filenames []string
 
