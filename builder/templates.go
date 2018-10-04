@@ -18,8 +18,9 @@ func executeTemplate(config *config) (err error) {
 	if config.Folders.Output == "" {
 		err = os.RemoveAll(config.Folders.Output)
 	}
+
 	if err != nil {
-		ui.Log(UI.OutputFolder, "/config.json", "?", nil)
+		ui.LogImportant(UI.OutputFolder, "/config.json", "?", nil)
 	}
 	sites := config.Pages
 	sitemap := site.SiteMap{}
