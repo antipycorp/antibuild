@@ -52,7 +52,7 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 
 		config, parseErr := startParse(configLocation)
 		if parseErr != nil {
-			ui.Log(UI.DataFolder, "/config.json", "?", nil)
+			ui.LogImportant(UI.DataFolder, "/config.json", "?", nil)
 		}
 
 		if isHost {
@@ -75,7 +75,6 @@ func startParse(configLocation string) (*config, error) {
 	//reparse the config
 	config, configErr := parseConfig(configLocation)
 	if configErr != nil {
-		fmt.Println(configErr.Error())
 		return config, configErr
 	}
 

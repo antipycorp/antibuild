@@ -81,8 +81,8 @@ func (ui *UI) ShowBuiltWarning(warn Warning, page string, line string, data []in
 
 }
 
-//ShowError should be shown when something errors out
-func (ui *UI) ShowError(err Error, page string, line string, data []interface{}) {
+//showError should be shown when something errors out
+func (ui *UI) showError(err Error, page string, line string, data []interface{}) {
 	tm.Clear()
 	tm.MoveCursor(1, 1)
 
