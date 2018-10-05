@@ -6,6 +6,8 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
+	"os"
 
 	abm "gitlab.com/antipy/antibuild/cli/module/client"
 )
@@ -30,6 +32,7 @@ func main() {
 func parseJSON(w abm.FPRequest, r *abm.FPResponse) {
 	if w.Data == nil {
 		r.Error = abm.ErrInvalidInput
+		fmt.Fprintln(os.Stderr, abm.ErrInvalidInput)
 		return
 	}
 
@@ -38,6 +41,7 @@ func parseJSON(w abm.FPRequest, r *abm.FPResponse) {
 	err := json.Unmarshal(w.Data, &jsonData)
 	if err != nil {
 		r.Error = err
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 

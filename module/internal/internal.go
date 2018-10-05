@@ -9,4 +9,5 @@ var ()
 func init() {
 	gob.Register(map[string]interface{}{})
 	gob.Register([]interface{}{})
+	//gob.Register(errors.errorString{})
 }
