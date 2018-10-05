@@ -2,6 +2,8 @@ package builder
 
 import (
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -74,16 +76,13 @@ func buildOnRefresh(config *Config, configLocation string) {
 					return
 				}
 
-				//check for folder
 				info, err := os.Lstat(config.Folders.Static)
 				if err != nil {
 					fmt.Println("couldn't move files form static to out: ", err.Error())
 				}
 
-				//copy static folder
 				genCopy(config.Folders.Static, config.Folders.Output, info)
 			case err, ok := <-watcher.Errors:
-				//handle staticWatcher errors
 				if !ok {
 					return
 				}
@@ -91,8 +90,6 @@ func buildOnRefresh(config *Config, configLocation string) {
 			}
 		}
 	}()
-
-	//listen for watcher events
 	for {
 		select {
 		case _, ok := <-watcher.Events:
@@ -100,15 +97,65 @@ func buildOnRefresh(config *Config, configLocation string) {
 				return
 			}
 
-			//start the parse
 			startParse(configLocation)
 		case err, ok := <-watcher.Errors:
 			if !ok {
 				return
 			}
-
-			//handle static watch errors
 			log.Println("error:", err)
 		}
 	}
+}
+
+func genCopy(src, dest string, info os.FileInfo) error {
+	if info.IsDir() {
+		return dirCopy(src, dest, info)
+	}
+	return fileCopy(src, dest, info)
+}
+
+func fileCopy(src, dest string, info os.FileInfo) error {
+
+	if err := os.MkdirAll(filepath.Dir(dest), os.ModePerm); err != nil {
+		return err
+	}
+
+	f, err := os.Create(dest)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	if err = os.Chmod(f.Name(), info.Mode()); err != nil {
+		return err
+	}
+
+	s, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer s.Close()
+
+	_, err = io.Copy(f, s)
+	return err
+}
+
+func dirCopy(srcdir, destdir string, info os.FileInfo) error {
+
+	if err := os.MkdirAll(destdir, info.Mode()); err != nil {
+		return err
+	}
+
+	contents, err := ioutil.ReadDir(srcdir)
+	if err != nil {
+		return err
+	}
+
+	for _, content := range contents {
+		cs, cd := filepath.Join(srcdir, content.Name()), filepath.Join(destdir, content.Name())
+		if err := genCopy(cs, cd, content); err != nil {
+			return err
+		}
+	}
+	return nil
 }
