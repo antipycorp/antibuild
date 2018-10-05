@@ -14,4 +14,5 @@ require (
 	github.com/spf13/pflag v1.0.3 // indirect
 	golang.org/x/sys v0.0.0-20180921163948-d47a0f339242 // indirect
 	gopkg.in/AlecAivazis/survey.v1 v1.6.2
+	gopkg.in/yaml.v2 v2.2.1
 )

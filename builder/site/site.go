@@ -27,22 +27,34 @@ type (
 		Sites           []*Site  `json:"sites"`
 		TemplateFolder  string   `json:"templateroot"`
 		DefaultLanguage string   `json:"defaultlanguage"`
-		JSONFolder      string
+		DataFolder      string
 		OUTFolder       string
 		Static          string
 		language        string
 		SiteMap         *SiteMap
 	}
-	DataInput struct {
-		Data map[string]interface{} `json:"Data"`
+	//dataInput contains all the data
+	dataInput struct {
+		Data map[string]interface{}
+	}
+	FileLoader interface {
+		Load(string) []byte
+	}
+	FileParser interface {
+		Parse([]byte, string) map[string]interface{}
+	}
+	//FileProcessor is a function thats able to post-process
+	FileProcessor interface {
+		Proces(map[string]interface{}, string) map[string]interface{}
 	}
 )
 
 var (
-	TemplateFunctions  *template.FuncMap
-	FileLoaders        *map[string]func(variable string) []byte
-	FileParsers        *map[string]func(data []byte, variable string) map[string]interface{}
-	FilePostProcessors *map[string]func(data map[string]interface{}, variable string) map[string]interface{}
+	TemplateFunctions *template.FuncMap
+
+	FileLoaders    = make(map[string]FileLoader)
+	FileParsers    = make(map[string]FileParser)
+	FileProcessors = make(map[string]FileProcessor)
 )
 
 func (s *Site) Unfold(parent *Site) error {
@@ -54,18 +66,18 @@ func (s *Site) Execute() error {
 }
 
 func unfoldStar(site, parent *Site, jIndex int, completeUnfoldChild bool) error {
-	jsonPath := filepath.Dir(filepath.Join(site.JSONFolder, site.Data[jIndex]))
-	jsonfile := strings.Replace(filepath.Base(site.Data[jIndex]), "*", "([^/]*)", -1)
-	re := regexp.MustCompile(jsonfile)
+	dataPath := filepath.Dir(filepath.Join(site.DataFolder, site.Data[jIndex]))
+	datafile := strings.Replace(filepath.Base(site.Data[jIndex]), "*", "([^/]*)", -1)
+	re := regexp.MustCompile(datafile)
 	var matches [][][]string
-	err := filepath.Walk(jsonPath, func(path string, file os.FileInfo, err error) error {
-		if path == jsonPath {
+	err := filepath.Walk(dataPath, func(path string, file os.FileInfo, err error) error {
+		if path == dataPath {
 			return nil
 		}
 		if file.IsDir() {
 			return filepath.SkipDir
 		}
-		if ok, _ := regexp.MatchString(jsonfile, file.Name()); ok {
+		if ok, _ := regexp.MatchString(datafile, file.Name()); ok {
 			matches = append(matches, re.FindAllStringSubmatch(file.Name(), -1))
 		}
 		return nil
@@ -121,8 +133,8 @@ func unfold(site, parent *Site) error {
 		if parent.TemplateFolder != "" {
 			site.TemplateFolder = parent.TemplateFolder
 		}
-		if parent.JSONFolder != "" {
-			site.JSONFolder = parent.JSONFolder
+		if parent.DataFolder != "" {
+			site.DataFolder = parent.DataFolder
 		}
 		if parent.DefaultLanguage != "" {
 			site.DefaultLanguage = parent.DefaultLanguage
@@ -132,8 +144,8 @@ func unfold(site, parent *Site) error {
 	return partialUnfold(site, parent, true)
 }
 func partialUnfold(site, parent *Site, completeUnfoldChild bool) error {
-	for jIndex, jsonfile := range site.Data {
-		if strings.Contains(jsonfile, "*") {
+	for jIndex, datafile := range site.Data {
+		if strings.Contains(datafile, "*") {
 			fmt.Println("a star!")
 			return unfoldStar(site, parent, jIndex, completeUnfoldChild)
 		}
@@ -195,7 +207,7 @@ func execute(site *Site) error {
 	var (
 		err       error
 		template  *template.Template
-		jsonImput DataInput
+		dataInput dataInput
 	)
 
 	if site.Static != "" && site.OUTFolder != "" {
@@ -207,10 +219,10 @@ func execute(site *Site) error {
 		genCopy(site.Static, site.OUTFolder, info)
 	}
 
-	if site.TemplateFolder == "" || site.JSONFolder == "" || site.OUTFolder == "" || len(site.Sites) != 0 {
+	if site.TemplateFolder == "" || site.DataFolder == "" || site.OUTFolder == "" || len(site.Sites) != 0 {
 		goto skip
 	}
-	err = gatherJSON(site, &jsonImput)
+	err = gatherData(site, &dataInput)
 	if err != nil {
 		return err
 	}
@@ -218,8 +230,8 @@ func execute(site *Site) error {
 	if err != nil {
 		return err
 	}
-	jsonImput.Data["sitemap"] = site.SiteMap.sitemap
-	err = executeTemplate(site, template, jsonImput)
+	dataInput.Data["sitemap"] = site.SiteMap.sitemap
+	err = executeTemplate(site, template, dataInput)
 	if err != nil {
 		return err
 	}
@@ -236,7 +248,7 @@ skip:
 	return nil
 }
 
-func gatherJSON(s *Site, dataInput *DataInput) error {
+func gatherData(s *Site, dataInput *dataInput) error {
 	for _, dataFileString := range s.Data {
 
 		if dataInput.Data == nil {
@@ -254,12 +266,12 @@ func gatherJSON(s *Site, dataInput *DataInput) error {
 		if len(loader) == 1 {
 			loader[1] = ""
 		}
-		file := (*FileLoaders)[loader[0]](loader[1])
+		file := FileLoaders[loader[0]].Load(loader[1])
 		parser := strings.SplitN(matches[1][1], ":", 1)
 		if len(parser) == 1 {
 			parser = append(parser, "")
 		}
-		parsed := (*FileParsers)[parser[0]](file, parser[1])
+		parsed := FileParsers[parser[0]].Parse(file, parser[1])
 		for k, v := range parsed {
 			dataInput.Data[k] = v
 		}
@@ -281,7 +293,7 @@ func gatherTemplates(s *Site) (*template.Template, error) {
 	return template, nil
 }
 
-func executeTemplate(s *Site, template *template.Template, jsonImput DataInput) error {
+func executeTemplate(s *Site, template *template.Template, dataInput dataInput) error {
 	OUTPath := filepath.Join(s.OUTFolder, s.Slug)
 	if s.language != "" && s.DefaultLanguage != s.language {
 		OUTPath = filepath.Join(s.OUTFolder, s.language, s.Slug)
@@ -297,7 +309,7 @@ func executeTemplate(s *Site, template *template.Template, jsonImput DataInput) 
 		return errors.New("Couldn't create file: " + err.Error())
 	}
 
-	err = template.ExecuteTemplate(OUTFile, "html", jsonImput.Data)
+	err = template.ExecuteTemplate(OUTFile, "html", dataInput.Data)
 	if err != nil {
 		return errors.New("Could not parse: " + err.Error())
 	}
@@ -359,7 +371,7 @@ func dirCopy(srcdir, destdir string, info os.FileInfo) error {
 	return nil
 }
 
-func (ji *DataInput) UnmarshalJSON(data []byte) error {
+func (ji *dataInput) UnmarshalJSON(data []byte) error {
 	var input map[string]interface{}
 	err := json.Unmarshal(data, &input)
 	if err != nil {
