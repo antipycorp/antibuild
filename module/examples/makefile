@@ -23,3 +23,8 @@ build:
 	cd $(PACKAGE) && \
 		GOOS=linux GOARCH=arm64 $(GOBUILD) ../output/linux/arm64/$(PACKAGE)
 	@echo "\033[92mFinshed building.\033[0m"
+
+build_all:
+	for abm in abm_file abm_json abm_math abm_noescape abm_yaml ; do \
+		env PACKAGE=$$abm make build; \
+	done

@@ -1,48 +1,46 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
-	"log"
-	"runtime"
+	"os"
 
-	"github.com/spf13/cobra"
+	"gitlab.com/antipy/antibuild/cli/builder"
 )
 
-// configCmd represents the config command
-var configCmd = &cobra.Command{
-	Use: "config",
-	Aliases: []string{
-		"c",
-	},
-	Short: "Manage your antibuild config",
-	Long:  `Used to manage your config for antibuild. Run a subcommand to get more info.`,
+var configPath = "config.json"
+
+func getConfig() (config *builder.Config) {
+	config = new(builder.Config)
+	file, err := os.Open(configPath)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	err = json.NewDecoder(file).Decode(config)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	return
 }
 
-// configInstallCmd represents the config install command
-var configFoldersCmd = &cobra.Command{
-	Use: "folders",
-	Aliases: []string{
-		"f",
-	},
-	Short: "Manage the folders of a module",
-	Long:  `Generate a new antibuild project. To get started run "antibuild new" and follow the prompts.`,
-	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		os := runtime.GOOS
-		arch := runtime.GOARCH
-		module := "abm_" + args[0]
-		if !((os == "linux" && (arch == "amd64" || arch == "arm" || arch == "arm64")) || (os == "darwin" && (arch == "amd64")) || (os == "windows" && (arch == "amd64"))) {
-			log.Fatal("Your OS or ARCH isnt supported for auto module install.")
-		}
+func saveConfig(config *builder.Config) {
+	file, err := os.Create(configPath)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
-		fmt.Println("Getting https://build.antipy.com/cli/config/" + os + "/" + arch + "/" + module)
-		err := downloadFile(".config/"+module, "https://build.antipy.com/cli/config/"+os+"/"+arch+"/"+module)
-		if err != nil {
-			if err == errFileNotExist {
-				log.Fatal("That module doesnt exist.")
-			}
+	encoder := json.NewEncoder(file)
+	encoder.SetIndent("", "    ")
+	err = encoder.Encode(config)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
-			log.Fatal(err)
-		}
-	},
+	return
 }

@@ -2,8 +2,18 @@
     "folders": {
         "templates": "templates/",
         "data": "data/",
+        "static": "",
         "output": "public/",
         "modules": ".modules/"
+    },
+    "modules": {
+        "dependencies": {
+            "file": "0.0.1",
+            "json": "0.0.1",
+            "math": "0.0.1",
+            "yaml": "0.0.1"
+        },
+        "config": null
     },
     "pages": {
         "slug": "/index.html",
@@ -12,14 +22,15 @@
         ],
         "data": [
             "[file_file:data/Layout.json][json_json]",
-            "[file_file:data/pages/Home.json][json_json]"
-        ]
-    },
-    "modules":{
-        "dependencies": {
-            "math": "0.0.1",
-            "file": "0.0.1",
-            "json": "0.0.1"
-        }
+            "[file_file:data/pages/Home.yml][yaml_yaml]"
+        ],
+        "languages": null,
+        "sites": null,
+        "templateroot": "",
+        "defaultlanguage": "",
+        "DataFolder": "",
+        "OUTFolder": "",
+        "Static": "",
+        "SiteMap": null
     }
 }

@@ -17,10 +17,12 @@ type (
 		host    *host.ModuleHost
 		command string
 	}
+
 	fileParser struct {
 		host    *host.ModuleHost
 		command string
 	}
+	
 	fileProcessor struct {
 		host    *host.ModuleHost
 		command string
