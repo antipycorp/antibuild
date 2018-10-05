@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"time"
 
 	"gitlab.com/antipy/antibuild/cli/builder/site"
 	"gitlab.com/antipy/antibuild/cli/module/host"
@@ -22,14 +21,16 @@ type (
 		Data map[string]interface{} `json:"Data"`
 	}
 
-	config struct {
-		Folders    configFolder  `json:"folders"`
-		Modules    configModules `json:"modules"`
+	//Config is the whole config file
+	Config struct {
+		Folders    ConfigFolder  `json:"folders"`
+		Modules    ConfigModules `json:"modules"`
 		Pages      site.Site     `json:"pages"`
 		moduleHost map[string]*host.ModuleHost
 	}
 
-	configFolder struct {
+	//ConfigFolder is the part of the config file that handles folders
+	ConfigFolder struct {
 		Templates string `json:"templates"`
 		Data      string `json:"data"`
 		Static    string `json:"static"`
@@ -37,7 +38,8 @@ type (
 		Modules   string `json:"modules"`
 	}
 
-	configModules struct {
+	//ConfigModules is the part of the config file that handles modules
+	ConfigModules struct {
 		Dependencies map[string]string                 `json:"dependencies"`
 		Config       map[string]map[string]interface{} `json:"config"`
 	}
@@ -66,10 +68,7 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 	}
 }
 
-func startParse(configLocation string) (*config, error) {
-	//record start time
-	start := time.Now()
-
+func startParse(configLocation string) (*Config, error) {
 	//show compiling on ui
 	ui.ShowCompiling()
 
@@ -94,13 +93,13 @@ func startParse(configLocation string) (*config, error) {
 	}
 
 	//print finish time
-	ui.ShowBuiltSuccess(time.Since(start).String())
+	ui.ShowBuiltSuccess()
 	return config, nil
 }
 
 //parses the config file
-func parseConfig(configLocation string) (*config, error) {
-	var config config
+func parseConfig(configLocation string) (*Config, error) {
+	var config Config
 
 	//open the file
 	configFile, err := os.Open(configLocation)

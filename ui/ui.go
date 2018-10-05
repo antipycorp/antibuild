@@ -38,7 +38,7 @@ func (ui *UI) ShowCompiling() {
 }
 
 //ShowBuiltSuccess should be shown when something builds successfully
-func (ui *UI) ShowBuiltSuccess(messsage string) {
+func (ui *UI) ShowBuiltSuccess() {
 	tm.Clear()
 	tm.MoveCursor(1, 1)
 
