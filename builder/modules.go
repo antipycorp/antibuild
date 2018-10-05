@@ -21,7 +21,7 @@ var (
 )
 
 //communicates with modules to load them
-func loadModules(config *config) {
+func loadModules(config *Config) {
 	//make a refrence to keep all module (data) in
 	config.moduleHost = make(map[string]*host.ModuleHost, len(config.Modules.Dependencies))
 
@@ -84,7 +84,7 @@ func loadModules(config *config) {
 }
 
 //generates the function that is called when a template function in executed.
-func moduleTemplateFunctionDefinition(module string, command string, config *config) func(data ...interface{}) interface{} {
+func moduleTemplateFunctionDefinition(module string, command string, config *Config) func(data ...interface{}) interface{} {
 	return func(data ...interface{}) interface{} {
 		//send the data to the module and wait for response
 		output, err := config.moduleHost[module].ExcecuteMethod("templateFunctions_"+command, data)
@@ -98,7 +98,7 @@ func moduleTemplateFunctionDefinition(module string, command string, config *con
 }
 
 //generates the function that is called when a file loader in executed.
-func moduleFileLoaderDefinition(module string, command string, config *config) func(variable string) []byte {
+func moduleFileLoaderDefinition(module string, command string, config *Config) func(variable string) []byte {
 	return func(variable string) []byte {
 		//make an array to send to the client
 		data := []interface{}{
@@ -124,7 +124,7 @@ func moduleFileLoaderDefinition(module string, command string, config *config) f
 }
 
 //generates the function that is called when a file parser in executed.
-func moduleFileParserDefinition(module string, command string, config *config) func(data []byte, variable string) map[string]interface{} {
+func moduleFileParserDefinition(module string, command string, config *Config) func(data []byte, variable string) map[string]interface{} {
 	return func(data []byte, variable string) map[string]interface{} {
 		//make an array to send to the client
 		sendData := []interface{}{
@@ -151,7 +151,7 @@ func moduleFileParserDefinition(module string, command string, config *config) f
 }
 
 //generates the function that is called when a file post processor in executed.
-func moduleFilePostProcessorDefinition(module string, command string, config *config) func(data map[string]interface{}, variable string) map[string]interface{} {
+func moduleFilePostProcessorDefinition(module string, command string, config *Config) func(data map[string]interface{}, variable string) map[string]interface{} {
 	return func(data map[string]interface{}, variable string) map[string]interface{} {
 		//make an array to send to the client
 		sendData := []interface{}{

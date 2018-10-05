@@ -15,7 +15,7 @@ var (
 )
 
 //locally hosts output folder
-func hostLocally(config *config, port string) {
+func hostLocally(config *Config, port string) {
 	//make sure there is a port set
 	addr := ":" + port
 	if addr == ":" {
@@ -33,7 +33,7 @@ func hostLocally(config *config, port string) {
 }
 
 //watches files and folders and rebuilds when things change
-func buildOnRefresh(config *config, configLocation string) {
+func buildOnRefresh(config *Config, configLocation string) {
 	//initalze watchers
 	watcher, err := fsnotify.NewWatcher()
 	staticWatcher, err := fsnotify.NewWatcher()

@@ -9,18 +9,17 @@ import (
 	"path/filepath"
 
 	"gitlab.com/antipy/antibuild/cli/builder/site"
-	UI "gitlab.com/antipy/antibuild/cli/ui"
 )
 
 //start the template execution
-func executeTemplate(config *config) (err error) {
+func executeTemplate(config *Config) (err error) {
 	//check if the output folder is there and delete its contents
 	if config.Folders.Output == "" {
 		err = os.RemoveAll(config.Folders.Output)
 	}
 
 	if err != nil {
-		ui.LogImportant(UI.OutputFolder, "/config.json", "?", nil)
+		fmt.Println("output not specified")
 	}
 	sites := config.Pages
 	sitemap := site.SiteMap{}
