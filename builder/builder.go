@@ -17,11 +17,6 @@ import (
 )
 
 type (
-	dataFile struct {
-		Data map[string]interface{} `json:"Data"`
-	}
-
-	//Config is the whole config file
 	Config struct {
 		Folders    ConfigFolder  `json:"folders"`
 		Modules    ConfigModules `json:"modules"`
