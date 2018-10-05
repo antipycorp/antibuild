@@ -58,6 +58,8 @@ func main() {
 	buildCmd.Flags().StringVarP(&configFileBuildCmd, "config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
 
 	modulesCmd.AddCommand(modulesInstallCmd)
+	modulesCmd.AddCommand(modulesAddCmd)
+	modulesCmd.AddCommand(modulesRemoveCmd)
 	rootCmd.AddCommand(developCmd, buildCmd, newCmd, modulesCmd)
 	rootCmd.Execute()
 }
