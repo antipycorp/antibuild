@@ -150,6 +150,9 @@ func executeTemplate(config *Config) (err error) {
 	if err != nil {
 		fmt.Println("failed to parse:", err)
 	}
+
+	
+
 	err = config.Pages.Execute()
 	if err != nil {
 		fmt.Println("failed to Execute function:", err)

@@ -10,6 +10,8 @@ import (
 	"reflect"
 	"strings"
 
+	"gitlab.com/antipy/antibuild/cli/builder/site"
+
 	_ "gitlab.com/antipy/antibuild/cli/module/internal"
 	"gitlab.com/antipy/antibuild/cli/module/protocol"
 )
@@ -23,6 +25,7 @@ type (
 		fileLoaders        map[string]FileLoader
 		fileParsers        map[string]FileParser
 		filePostProcessors map[string]FilePostProcessor
+		sitePostProcessors map[string]SitePostProcessor
 	}
 
 	/*
@@ -133,6 +136,27 @@ type (
 		Function func(FPPRequest, *FPPResponse)
 		Test     *FPPTest
 	}
+
+	/*
+		SITE POST PROCESSORS
+	*/
+
+	//SPPRequest is the request with data and meta from the module caller.
+	SPPRequest struct {
+		Data     site.Site
+		Variable string
+	}
+
+	//SPPResponse is the response to the module API that will be used to respond to the client
+	SPPResponse struct {
+		Error error
+		Data  site.Site
+	}
+
+	//SitePostProcessor is a object that stores the site post processor function and its tests.
+	SitePostProcessor struct {
+		Function func(SPPRequest, *SPPResponse)
+	}
 )
 
 var (
@@ -207,6 +231,8 @@ func start(m *Module) {
 			fileParsersHandle(commandSplit[1], r, m)
 		case "filePostProcessors":
 			filePostProcessorsHandle(commandSplit[1], r, m)
+		case "sitePostProcessors":
+			sitePostProcessorsHandle(commandSplit[1], r, m)
 		}
 
 	}
@@ -365,6 +391,43 @@ func filePostProcessorsHandle(command string, r protocol.Token, m *Module) {
 	var response = &FPPResponse{}
 
 	m.filePostProcessors[command].Function(request, response)
+
+	if response.Error != nil {
+		r.Respond(response.Error)
+		return
+	}
+
+	r.Respond(response.Data)
+}
+
+func sitePostProcessorsHandle(command string, r protocol.Token, m *Module) {
+	if m.sitePostProcessors[command].Function == nil {
+		r.Respond(ErrInvalidCommand)
+		return
+	}
+
+	var ok bool
+
+	var objectInput site.Site
+	if objectInput, ok = r.Data[0].(site.Site); ok != true {
+		r.Respond(ErrInvalidInput)
+		return
+	}
+
+	var variable string
+	if variable, ok = r.Data[1].(string); ok != true {
+		r.Respond(ErrInvalidInput)
+		return
+	}
+
+	var request = SPPRequest{
+		Data:     objectInput,
+		Variable: variable,
+	}
+
+	var response = &SPPResponse{}
+
+	m.sitePostProcessors[command].Function(request, response)
 
 	if response.Error != nil {
 		r.Respond(response.Error)
@@ -578,6 +641,36 @@ func filePostProcessor(m *Module, identifer string, function func(FPPRequest, *F
 	m.filePostProcessors[identifer] = FilePostProcessor{
 		Function: function,
 		Test:     test,
+	}
+
+	return
+}
+
+//SitePostProcessor registers a new site post processor with identifier "identifier" to the module.
+func (m *Module) SitePostProcessor(identifer string, function func(SPPRequest, *SPPResponse)) {
+	sitePostProcessor(m, identifer, function)
+	return
+}
+
+func sitePostProcessor(m *Module, identifer string, function func(SPPRequest, *SPPResponse)) {
+	if identifer == "" {
+		panic("module: sitePostProcessor: identifer is not defined")
+	}
+
+	if m.sitePostProcessors == nil {
+		panic("module: sitePostProcessor: initalization of module was not correct")
+	}
+
+	if m.sitePostProcessors[identifer].Function != nil {
+		panic("module: sitePostProcessor: sitePostProcessor with this identifier is already registered")
+	}
+
+	if function == nil {
+		panic("module: sitePostProcessor: function is not defined")
+	}
+
+	m.sitePostProcessors[identifer] = SitePostProcessor{
+		Function: function,
 	}
 
 	return

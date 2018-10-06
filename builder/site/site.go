@@ -20,18 +20,15 @@ type (
 
 	//Site contains info about a specific site
 	Site struct {
-		Slug            string   `json:"slug"`
-		Templates       []string `json:"templates"`
-		Data            []string `json:"data"`
-		Languages       []string `json:"languages"`
-		Sites           []*Site  `json:"sites"`
-		TemplateFolder  string   `json:"templateroot"`
-		DefaultLanguage string   `json:"defaultlanguage"`
-		DataFolder      string
-		OUTFolder       string
-		Static          string
-		language        string
-		SiteMap         *SiteMap
+		Slug           string   `json:"slug"`
+		Templates      []string `json:"templates"`
+		Data           []string `json:"data"`
+		Sites          []*Site  `json:"sites"`
+		TemplateFolder string   `json:"templateroot"`
+		DataFolder     string
+		OUTFolder      string
+		Static         string
+		SiteMap        *SiteMap
 	}
 	//dataInput contains all the data
 	dataInput struct {
@@ -120,12 +117,7 @@ func unfold(site, parent *Site) error {
 			site.Templates = make([]string, len(parent.Templates))
 			copy(site.Templates, parent.Templates)
 		}
-		if site.Languages != nil {
-			site.Languages = append(parent.Languages, site.Languages...)
-		} else {
-			site.Languages = make([]string, len(parent.Languages))
-			copy(site.Languages, parent.Languages)
-		}
+
 		site.Slug = parent.Slug + site.Slug
 		if parent.OUTFolder != "" {
 			site.OUTFolder = parent.OUTFolder
@@ -135,9 +127,6 @@ func unfold(site, parent *Site) error {
 		}
 		if parent.DataFolder != "" {
 			site.DataFolder = parent.DataFolder
-		}
-		if parent.DefaultLanguage != "" {
-			site.DefaultLanguage = parent.DefaultLanguage
 		}
 		site.SiteMap = parent.SiteMap
 	}
@@ -167,23 +156,7 @@ func partialUnfold(site, parent *Site, completeUnfoldChild bool) error {
 	if len(site.Sites) != 0 {
 		return nil
 	}
-	if len(site.Languages) != 0 && len(site.Sites) == 0 && site.language == "" {
-		for i, s := range parent.Sites {
-			if s == site {
-				parent.Sites = append(parent.Sites[:i], parent.Sites[i+1:]...)
-			}
-		}
-		for _, lang := range site.Languages {
-			s := site.copy()
-			s.language = lang
-			parent.Sites = append(parent.Sites, s)
-			err := partialUnfold(s, parent, false)
-			if err != nil {
-				return fmt.Errorf("could not execute %s the for lang %s:%s", site.Slug, lang, err)
-			}
-		}
-		return nil
-	}
+
 	site.SiteMap.sitemap = append(site.SiteMap.sitemap, site.Slug)
 	return nil
 }
@@ -295,10 +268,6 @@ func gatherTemplates(s *Site) (*template.Template, error) {
 
 func executeTemplate(s *Site, template *template.Template, dataInput dataInput) error {
 	OUTPath := filepath.Join(s.OUTFolder, s.Slug)
-	if s.language != "" && s.DefaultLanguage != s.language {
-		OUTPath = filepath.Join(s.OUTFolder, s.language, s.Slug)
-	}
-
 	err := os.MkdirAll(filepath.Dir(OUTPath), 0766)
 	if err != nil {
 		return errors.New("Couldn't create directory: " + err.Error())
