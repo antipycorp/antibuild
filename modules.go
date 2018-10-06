@@ -126,7 +126,7 @@ func installModule(moduleName string) error {
 		return errArchOrOsNotSupported
 	}
 
-	err := downloadFile(".modules/"+module, "https://build.antipy.com/cli/modules/"+os+"/"+arch+"/"+module)
+	err := downloadFile(".modules/"+module, "https://build.antipy.com/cli/modules/"+os+"/"+arch+"/"+module, true)
 	if err != nil {
 		return err
 	}

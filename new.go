@@ -63,7 +63,7 @@ var newSurvey = []*survey.Question{
 		Name: "default_modules",
 		Prompt: &survey.MultiSelect{
 			Message: "Select any modules you want to pre install now (can also not choose any):",
-			Options: []string{"arithmetic", "languages", "escaper", "markdown", "firebase"},
+			Options: []string{"file", "json", "yaml"},
 		},
 	},
 }
@@ -96,7 +96,7 @@ var newCmd = &cobra.Command{
 
 			downloadFilePath := filepath.Join(dir, "download.zip")
 
-			err = downloadFile(downloadFilePath, "https://build.antipy.com/cli/examples/basic.zip")
+			err = downloadFile(downloadFilePath, "https://build.antipy.com/cli/examples/basic.zip", false)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -181,7 +181,7 @@ func unzip(src string, dest string) ([]string, error) {
 
 var errFileNotExist = errors.New("file does not exist")
 
-func downloadFile(filepath string, url string) error {
+func downloadFile(filepath string, url string, executable bool) error {
 	// Create the file
 	out, err := os.Create(filepath)
 	if err != nil {
@@ -205,6 +205,10 @@ func downloadFile(filepath string, url string) error {
 	_, err = io.Copy(out, resp.Body)
 	if err != nil {
 		return err
+	}
+
+	if executable == true {
+		out.Chmod(0777)
 	}
 
 	return nil
