@@ -22,8 +22,13 @@ type (
 		host    *host.ModuleHost
 		command string
 	}
-	
-	fileProcessor struct {
+
+	filePostProcessor struct {
+		host    *host.ModuleHost
+		command string
+	}
+
+	sitePostProcessor struct {
 		host    *host.ModuleHost
 		command string
 	}
@@ -163,14 +168,14 @@ func (f *fileParser) Parse(data []byte, variable string) map[string]interface{} 
 
 	return outputFinal
 }
-func getFileProcessor(command string, host *host.ModuleHost) *fileProcessor {
-	return &fileProcessor{
+func getFileProcessor(command string, host *host.ModuleHost) *filePostProcessor {
+	return &filePostProcessor{
 		host:    host,
 		command: command,
 	}
 }
 
-func (f *fileProcessor) Proces(data map[string]interface{}, variable string) map[string]interface{} {
+func (f *filePostProcessor) Proces(data map[string]interface{}, variable string) map[string]interface{} {
 	sendData := []interface{}{
 		data,
 		variable,
@@ -191,29 +196,30 @@ func (f *fileProcessor) Proces(data map[string]interface{}, variable string) map
 	return outputFinal
 }
 
-//generates the function that is called when a file post processor in executed.
-func moduleFilePostProcessorDefinition(module string, command string, config *Config) func(data map[string]interface{}, variable string) map[string]interface{} {
-	return func(data map[string]interface{}, variable string) map[string]interface{} {
-		//make an array to send to the client
-		sendData := []interface{}{
-			data,
-			variable,
-		}
-
-		//send the data to the module and wait for response
-		output, err := config.moduleHost[module].ExcecuteMethod("filePostProcessors_"+command, sendData)
-		if err != nil {
-			panic("execute methods: " + err.Error())
-		}
-
-		//check if return type is correct
-		var outputFinal map[string]interface{}
-		var ok bool
-		if outputFinal, ok = output.(map[string]interface{}); ok != true {
-			panic("filePostProcessors_" + command + " did not return a map[string]interface{}")
-		}
-
-		//return data
-		return outputFinal
+func getSitePostProcessor(command string, host *host.ModuleHost) *filePostProcessor {
+	return &filePostProcessor{
+		host:    host,
+		command: command,
 	}
+}
+
+func (s *sitePostProcessor) Proces(data site.Site, variable string) site.Site {
+	sendData := []interface{}{
+		data,
+		variable,
+	}
+
+	output, err := s.host.ExcecuteMethod("sitePostProcessors_"+s.command, sendData)
+	if err != nil {
+		panic("execute methods: " + err.Error())
+	}
+
+	//check if return type is correct
+	var outputFinal site.Site
+	var ok bool
+	if outputFinal, ok = output.(site.Site); ok != true {
+		panic("sitePostProcessors_" + s.command + " did not return a site.Site")
+	}
+
+	return outputFinal
 }
