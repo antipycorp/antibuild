@@ -1,7 +1,6 @@
 package site
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
@@ -229,11 +228,13 @@ func gatherData(s *Site, dataInput *dataInput) error {
 		if len(loader) == 1 {
 			loader[1] = ""
 		}
+
 		file := FileLoaders[loader[0]].Load(loader[1])
-		parser := strings.SplitN(matches[1][1], ":", 1)
+		parser := strings.SplitN(matches[1][1], ":", 2)
 		if len(parser) == 1 {
 			parser = append(parser, "")
 		}
+
 		parsed := FileParsers[parser[0]].Parse(file, parser[1])
 		for k, v := range parsed {
 			dataInput.Data[k] = v
@@ -326,23 +327,6 @@ func dirCopy(srcdir, destdir string, info os.FileInfo) error {
 			// If any error, exit immediately
 			return err
 		}
-	}
-	return nil
-}
-
-func (ji *dataInput) UnmarshalJSON(data []byte) error {
-	var input map[string]interface{}
-	err := json.Unmarshal(data, &input)
-	if err != nil {
-		return err
-	}
-
-	if ji.Data == nil {
-		ji.Data = make(map[string]interface{})
-	}
-
-	for name, in := range input {
-		ji.Data[name] = in
 	}
 	return nil
 }

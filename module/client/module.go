@@ -7,7 +7,6 @@ package module
 import (
 	"errors"
 	"os"
-	"reflect"
 	"strings"
 
 	"gitlab.com/antipy/antibuild/cli/builder/site"
@@ -106,7 +105,6 @@ type (
 	//FileParser is a object that stores the file parser function and its tests.
 	FileParser struct {
 		Function func(FPRequest, *FPResponse)
-		Test     *FPTest
 	}
 
 	/*
@@ -134,7 +132,6 @@ type (
 	//FilePostProcessor is a object that stores the file post processor function and its tests.
 	FilePostProcessor struct {
 		Function func(FPPRequest, *FPPResponse)
-		Test     *FPPTest
 	}
 
 	/*
@@ -452,34 +449,6 @@ func testMethods(m *Module) bool {
 		}
 	}
 
-	for _, fileParser := range m.fileParsers {
-		var response = &FPResponse{}
-
-		fileParser.Function(fileParser.Test.Request, response)
-
-		if response.Error != nil {
-			return false
-		}
-
-		if !reflect.DeepEqual(response.Data, fileParser.Test.Response.Data) {
-			return false
-		}
-	}
-
-	for _, filePostProcessor := range m.filePostProcessors {
-		var response = &FPPResponse{}
-
-		filePostProcessor.Function(filePostProcessor.Test.Request, response)
-
-		if response.Error != nil {
-			return false
-		}
-
-		if !reflect.DeepEqual(response.Data, filePostProcessor.Test.Response.Data) {
-			return false
-		}
-	}
-
 	return true
 }
 
@@ -561,12 +530,12 @@ func fileLoaderRegister(m *Module, identifer string, function func(FLRequest, *F
 }
 
 //FileParserRegister registers a new file parser with identifier "identifier" to the module.
-func (m *Module) FileParserRegister(identifer string, function func(FPRequest, *FPResponse), test *FPTest) {
-	fileParserRegister(m, identifer, function, test)
+func (m *Module) FileParserRegister(identifer string, function func(FPRequest, *FPResponse)) {
+	fileParserRegister(m, identifer, function)
 	return
 }
 
-func fileParserRegister(m *Module, identifer string, function func(FPRequest, *FPResponse), test *FPTest) {
+func fileParserRegister(m *Module, identifer string, function func(FPRequest, *FPResponse)) {
 	if identifer == "" {
 		panic("module: fileParserRegister: identifer is not defined")
 	}
@@ -583,33 +552,20 @@ func fileParserRegister(m *Module, identifer string, function func(FPRequest, *F
 		panic("module: fileParserRegister: function is not defined")
 	}
 
-	if test == nil {
-		panic("module: fileParserRegister: test is not defined")
-	}
-
-	if test.Request.Data == nil {
-		panic("module: fileParserRegister: test request data is not defined")
-	}
-
-	if test.Response.Data == nil {
-		panic("module: fileParserRegister: test response data is not defined")
-	}
-
 	m.fileParsers[identifer] = FileParser{
 		Function: function,
-		Test:     test,
 	}
 
 	return
 }
 
 //FilePostProcessor registers a new file post processor with identifier "identifier" to the module.
-func (m *Module) FilePostProcessor(identifer string, function func(FPPRequest, *FPPResponse), test *FPPTest) {
-	filePostProcessor(m, identifer, function, test)
+func (m *Module) FilePostProcessor(identifer string, function func(FPPRequest, *FPPResponse)) {
+	filePostProcessor(m, identifer, function)
 	return
 }
 
-func filePostProcessor(m *Module, identifer string, function func(FPPRequest, *FPPResponse), test *FPPTest) {
+func filePostProcessor(m *Module, identifer string, function func(FPPRequest, *FPPResponse)) {
 	if identifer == "" {
 		panic("module: filePostProcessor: identifer is not defined")
 	}
@@ -626,21 +582,8 @@ func filePostProcessor(m *Module, identifer string, function func(FPPRequest, *F
 		panic("module: filePostProcessor: function is not defined")
 	}
 
-	if test == nil {
-		panic("module: filePostProcessor: test is not defined")
-	}
-
-	if test.Request.Data == nil {
-		panic("module: filePostProcessor: test request data is not defined")
-	}
-
-	if test.Response.Data == nil {
-		panic("module: filePostProcessor: test response data is not defined")
-	}
-
 	m.filePostProcessors[identifer] = FilePostProcessor{
 		Function: function,
-		Test:     test,
 	}
 
 	return
