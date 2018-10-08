@@ -15,16 +15,7 @@ import (
 func main() {
 	module := abm.Register("json")
 
-	module.FileParserRegister("json", parseJSON, &abm.FPTest{
-		Request: abm.FPRequest{
-			Data: []byte("{\"test\": \"test\"}"),
-		},
-		Response: &abm.FPResponse{
-			Data: map[string]interface{}{
-				"test": "test",
-			},
-		},
-	})
+	module.FileParserRegister("json", parseJSON)
 
 	module.Start()
 }

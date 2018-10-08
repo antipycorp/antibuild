@@ -15,19 +15,7 @@ import (
 func main() {
 	module := abm.Register("yaml")
 
-	module.FileParserRegister("yaml", parseYAML, &abm.FPTest{
-		Request: abm.FPRequest{
-			Data: []byte(`
-			a: b
-			`),
-		},
-		Response: &abm.FPResponse{
-			Data: map[string]interface{}{
-				"a": "b",
-			},
-		},
-	})
-
+	module.FileParserRegister("yaml", parseYAML)
 	module.Start()
 }
 
