@@ -45,6 +45,7 @@ func (s *Site) Unfold(parent *Site) error {
 }
 
 func (s *Site) Execute() error {
+	fmt.Println("-----------------executing-----------------------")
 	return execute(s)
 }
 
@@ -86,10 +87,10 @@ func unfoldStar(site, parent *Site, jIndex int, completeUnfoldChild bool) error 
 		partialUnfold(s, parent, completeUnfoldChild)
 	}
 	return nil
-
 }
 
 func unfold(site, parent *Site) error {
+	fmt.Println("CONPLETE UNFOLD:", site.Slug)
 	if parent != nil {
 		if site.JSONFiles != nil {
 			site.JSONFiles = append(parent.JSONFiles, site.JSONFiles...)
@@ -126,14 +127,24 @@ func unfold(site, parent *Site) error {
 	}
 	return partialUnfold(site, parent, true)
 }
+
 func partialUnfold(site, parent *Site, completeUnfoldChild bool) error {
+	fmt.Println("PARTIAL UNFOLD:", site.Slug)
+	fmt.Println(len(site.Sites))
+
 	for jIndex, jsonfile := range site.JSONFiles {
 		if strings.Contains(jsonfile, "*") {
 			return unfoldStar(site, parent, jIndex, completeUnfoldChild)
 		}
 	}
+	sites := make([]*Site, len(site.Sites))
+	for i, s := range site.Sites {
+		sites[i] = s
+		//fmt.Println("supposed to be DOING NEXT:", s.Slug)
+	}
 
-	for _, s := range site.Sites {
+	for i, s := range sites {
+		fmt.Println("DOING NEXT:", s.Slug, "FROM:", i, "/", len(sites))
 		if completeUnfoldChild {
 			err := unfold(s, site)
 			if err != nil {
@@ -146,10 +157,12 @@ func partialUnfold(site, parent *Site, completeUnfoldChild bool) error {
 			}
 		}
 	}
-	if len(site.Sites) != 0 {
+
+	if len(site.Sites) != 0 { //dont want to add any non-finished sites to the sitemap, neither can they be parsed for languages
 		return nil
 	}
-	if len(site.Languages) != 0 && len(site.Sites) == 0 && site.language == "" {
+
+	if len(site.Languages) > 1 && site.language == "" { // && len(site.Sites) == 0, but this is already assumed from the id statement above.
 		for i, s := range parent.Sites {
 			if s == site {
 				parent.Sites = append(parent.Sites[:i], parent.Sites[i+1:]...)
@@ -159,7 +172,7 @@ func partialUnfold(site, parent *Site, completeUnfoldChild bool) error {
 			s := site.copy()
 			s.language = lang
 			parent.Sites = append(parent.Sites, s)
-			err := partialUnfold(s, parent, false)
+			err := partialUnfold(s, site, false)
 			if err != nil {
 				return fmt.Errorf("could not execute %s the for lang %s:%s", site.Slug, lang, err)
 			}
@@ -185,6 +198,9 @@ func (s *Site) copy() *Site {
 }
 
 func execute(site *Site) error {
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "    ")
+	enc.Encode(*site)
 	fmt.Println(*site)
 	var (
 		err       error
