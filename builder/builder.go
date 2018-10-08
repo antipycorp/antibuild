@@ -133,16 +133,14 @@ func executeTemplate(config *Config) (err error) {
 		fmt.Println("output not specified")
 	}
 	sites := config.Pages
-	sitemap := site.SiteMap{}
 
 	config.Pages = site.Site{}
 	config.Pages.Sites = make([]*site.Site, 1)
 	config.Pages.Sites[0] = &sites
-	config.Pages.OUTFolder = config.Folders.Output
-	config.Pages.TemplateFolder = config.Folders.Templates
-	config.Pages.DataFolder = config.Folders.Data
-	config.Pages.Static = config.Folders.Static
-	config.Pages.SiteMap = &sitemap
+
+	site.OutputFolder = config.Folders.Output
+	site.TemplateFolder = config.Folders.Templates
+	site.StaticFolder = config.Folders.Static
 
 	err = config.Pages.Unfold(nil)
 	if err != nil {
@@ -153,5 +151,6 @@ func executeTemplate(config *Config) (err error) {
 	if err != nil {
 		fmt.Println("failed to Execute function:", err)
 	}
+
 	return
 }

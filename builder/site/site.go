@@ -14,21 +14,12 @@ import (
 )
 
 type (
-	SiteMap struct {
-		sitemap []string
-	}
-
 	//Site contains info about a specific site
 	Site struct {
-		Slug           string   `json:"slug"`
-		Templates      []string `json:"templates"`
-		Data           []string `json:"data"`
-		Sites          []*Site  `json:"sites"`
-		TemplateFolder string   `json:"templateroot"`
-		DataFolder     string
-		OUTFolder      string
-		Static         string
-		SiteMap        *SiteMap
+		Slug      string   `json:"slug"`
+		Templates []string `json:"templates"`
+		Data      []string `json:"data"`
+		Sites     []*Site  `json:"sites"`
 	}
 	//dataInput contains all the data
 	dataInput struct {
@@ -55,6 +46,10 @@ var (
 	FileLoaders        = make(map[string]FileLoader)
 	FileParsers        = make(map[string]FileParser)
 	FilePostProcessors = make(map[string]FilePostProcessor)
+
+	TemplateFolder string
+	StaticFolder   string
+	OutputFolder   string
 )
 
 func (s *Site) Unfold(parent *Site) error {
@@ -65,6 +60,7 @@ func (s *Site) Execute() error {
 	return execute(s)
 }
 
+/*
 func unfoldStar(site, parent *Site, jIndex int, completeUnfoldChild bool) error {
 	dataPath := filepath.Dir(filepath.Join(site.DataFolder, site.Data[jIndex]))
 	datafile := strings.Replace(filepath.Base(site.Data[jIndex]), "*", "([^/]*)", -1)
@@ -103,8 +99,8 @@ func unfoldStar(site, parent *Site, jIndex int, completeUnfoldChild bool) error 
 		partialUnfold(s, parent, completeUnfoldChild)
 	}
 	return nil
-
 }
+*/
 
 func unfold(site, parent *Site) error {
 	if parent != nil {
@@ -122,26 +118,19 @@ func unfold(site, parent *Site) error {
 		}
 
 		site.Slug = parent.Slug + site.Slug
-		if parent.OUTFolder != "" {
-			site.OUTFolder = parent.OUTFolder
-		}
-		if parent.TemplateFolder != "" {
-			site.TemplateFolder = parent.TemplateFolder
-		}
-		if parent.DataFolder != "" {
-			site.DataFolder = parent.DataFolder
-		}
-		site.SiteMap = parent.SiteMap
 	}
 	return partialUnfold(site, parent, true)
 }
 func partialUnfold(site, parent *Site, completeUnfoldChild bool) error {
-	for jIndex, datafile := range site.Data {
-		if strings.Contains(datafile, "*") {
-			fmt.Println("a star!")
-			return unfoldStar(site, parent, jIndex, completeUnfoldChild)
+	/*
+		for jIndex, datafile := range site.Data {
+			if strings.Contains(datafile, "*") {
+				fmt.Println("a star!")
+				return unfoldStar(site, parent, jIndex, completeUnfoldChild)
+			}
 		}
-	}
+	*/
+
 	fmt.Println(site.Sites)
 	for _, s := range site.Sites {
 		if completeUnfoldChild {
@@ -159,8 +148,6 @@ func partialUnfold(site, parent *Site, completeUnfoldChild bool) error {
 	if len(site.Sites) != 0 {
 		return nil
 	}
-
-	site.SiteMap.sitemap = append(site.SiteMap.sitemap, site.Slug)
 	return nil
 }
 
@@ -186,16 +173,16 @@ func execute(site *Site) error {
 		dataInput dataInput
 	)
 
-	if site.Static != "" && site.OUTFolder != "" {
+	if StaticFolder != "" && OutputFolder != "" {
 		fmt.Println("copying static files")
-		info, err := os.Lstat(site.Static)
+		info, err := os.Lstat(StaticFolder)
 		if err != nil {
 			return err
 		}
-		genCopy(site.Static, site.OUTFolder, info)
+		genCopy(StaticFolder, OutputFolder, info)
 	}
 
-	if site.TemplateFolder == "" || site.DataFolder == "" || site.OUTFolder == "" || len(site.Sites) != 0 {
+	if TemplateFolder == "" || OutputFolder == "" || len(site.Sites) != 0 {
 		goto skip
 	}
 	err = gatherData(site, &dataInput)
@@ -206,7 +193,7 @@ func execute(site *Site) error {
 	if err != nil {
 		return err
 	}
-	dataInput.Data["sitemap"] = site.SiteMap.sitemap
+
 	err = executeTemplate(site, template, dataInput)
 	if err != nil {
 		return err
@@ -259,7 +246,7 @@ func gatherData(s *Site, dataInput *dataInput) error {
 func gatherTemplates(s *Site) (*template.Template, error) {
 
 	for i := range s.Templates {
-		s.Templates[i] = filepath.Join(s.TemplateFolder, s.Templates[i])
+		s.Templates[i] = filepath.Join(TemplateFolder, s.Templates[i])
 	}
 
 	template, err := template.New("").Funcs(TemplateFunctions).ParseFiles(s.Templates...)
@@ -270,7 +257,7 @@ func gatherTemplates(s *Site) (*template.Template, error) {
 }
 
 func executeTemplate(s *Site, template *template.Template, dataInput dataInput) error {
-	OUTPath := filepath.Join(s.OUTFolder, s.Slug)
+	OUTPath := filepath.Join(OutputFolder, s.Slug)
 	err := os.MkdirAll(filepath.Dir(OUTPath), 0766)
 	if err != nil {
 		return errors.New("Couldn't create directory: " + err.Error())
