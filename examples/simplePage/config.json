@@ -1,7 +1,6 @@
 {
     "folders": {
         "templates": "templates/",
-        "data": "data/",
         "static": "",
         "output": "public/",
         "modules": ".modules/"

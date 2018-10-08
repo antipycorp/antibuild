@@ -27,7 +27,6 @@ type (
 	//ConfigFolder is the part of the config file that handles folders
 	ConfigFolder struct {
 		Templates string `json:"templates"`
-		Data      string `json:"data"`
 		Static    string `json:"static"`
 		Output    string `json:"output"`
 		Modules   string `json:"modules"`
@@ -112,9 +111,7 @@ func parseConfig(configLocation string) (*Config, error) {
 	if config.Folders.Templates == "" {
 		return &config, errors.New("template folder not set")
 	}
-	if config.Folders.Data == "" {
-		return &config, errors.New("data folder not set")
-	}
+
 	if config.Folders.Output == "" {
 		return &config, errors.New("output folder not set")
 	}

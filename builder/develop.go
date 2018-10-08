@@ -43,14 +43,6 @@ func buildOnRefresh(config *Config, configLocation string) {
 		fmt.Println("could not open a file watcher: ", err)
 	}
 
-	//add data folder to watcher
-	err = filepath.Walk(config.Folders.Data, func(path string, file os.FileInfo, err error) error {
-		return watcher.Add(path)
-	})
-	if err != nil {
-		fmt.Println("failled walking over data folder: ", err)
-	}
-
 	//add template folder to watcher
 	err = filepath.Walk(config.Folders.Templates, func(path string, file os.FileInfo, err error) error {
 		return watcher.Add(path)
