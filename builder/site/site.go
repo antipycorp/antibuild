@@ -130,6 +130,11 @@ func partialUnfold(site, parent *Site, completeUnfoldChild bool) error {
 			}
 		}
 	*/
+	sites := make([]*Site, len(site.Sites))
+	for i, s := range site.Sites {
+		sites[i] = s
+		//fmt.Println("supposed to be DOING NEXT:", s.Slug)
+	}
 
 	fmt.Println(site.Sites)
 	for _, s := range site.Sites {
