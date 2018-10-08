@@ -135,8 +135,6 @@ func executeTemplate(config *Config) (err error) {
 	sites := config.Pages
 	sitemap := site.SiteMap{}
 
-	site.TemplateFunctions = &templateFunctions
-
 	config.Pages = site.Site{}
 	config.Pages.Sites = make([]*site.Site, 1)
 	config.Pages.Sites[0] = &sites
@@ -150,8 +148,6 @@ func executeTemplate(config *Config) (err error) {
 	if err != nil {
 		fmt.Println("failed to parse:", err)
 	}
-
-	
 
 	err = config.Pages.Execute()
 	if err != nil {
