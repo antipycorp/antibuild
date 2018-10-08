@@ -23,9 +23,6 @@
             "[file_file:data/Layout.json][json_json]",
             "[file_file:data/pages/Home.yml][yaml_yaml]"
         ],
-        "languages": null,
-        "sites": null,
-        "templateroot": "",
-        "siteMap": null
+        "sites": null
     }
 }
