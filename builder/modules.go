@@ -2,7 +2,6 @@ package builder
 
 import (
 	"fmt"
-	"html/template"
 	"log"
 	"os"
 	"os/exec"
@@ -37,10 +36,11 @@ type (
 var (
 	loadedModules = false
 
-	templateFunctions = template.FuncMap{}
-	fileLoaders       = &site.FileLoaders
-	fileParsers       = &site.FileParsers
-	fileProcessors    = &site.FileProcessors
+	templateFunctions = site.TemplateFunctions
+
+	fileLoaders        = &site.FileLoaders
+	fileParsers        = &site.FileParsers
+	filePostProcessors = &site.FilePostProcessors
 )
 
 //communicates with modules to load them
@@ -95,7 +95,7 @@ func loadModules(config *Config) {
 		}
 
 		for _, function := range methods["filePostProcessors"] {
-			(*fileProcessors)[identifier+"_"+function] = getFileProcessor(function, config.moduleHost[identifier])
+			(*filePostProcessors)[identifier+"_"+function] = getFilePostProcessor(function, config.moduleHost[identifier])
 		}
 	}
 }
@@ -168,14 +168,14 @@ func (f *fileParser) Parse(data []byte, variable string) map[string]interface{} 
 
 	return outputFinal
 }
-func getFileProcessor(command string, host *host.ModuleHost) *filePostProcessor {
+func getFilePostProcessor(command string, host *host.ModuleHost) *filePostProcessor {
 	return &filePostProcessor{
 		host:    host,
 		command: command,
 	}
 }
 
-func (f *filePostProcessor) Proces(data map[string]interface{}, variable string) map[string]interface{} {
+func (f *filePostProcessor) Process(data map[string]interface{}, variable string) map[string]interface{} {
 	sendData := []interface{}{
 		data,
 		variable,

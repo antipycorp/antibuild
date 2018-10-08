@@ -34,24 +34,27 @@ type (
 	dataInput struct {
 		Data map[string]interface{}
 	}
+
 	FileLoader interface {
 		Load(string) []byte
 	}
+
 	FileParser interface {
 		Parse([]byte, string) map[string]interface{}
 	}
-	//FileProcessor is a function thats able to post-process
-	FileProcessor interface {
-		Proces(map[string]interface{}, string) map[string]interface{}
+
+	//FilePostProcessor is a function thats able to post-process
+	FilePostProcessor interface {
+		Process(map[string]interface{}, string) map[string]interface{}
 	}
 )
 
 var (
-	TemplateFunctions *template.FuncMap
+	TemplateFunctions = template.FuncMap{}
 
-	FileLoaders    = make(map[string]FileLoader)
-	FileParsers    = make(map[string]FileParser)
-	FileProcessors = make(map[string]FileProcessor)
+	FileLoaders        = make(map[string]FileLoader)
+	FileParsers        = make(map[string]FileParser)
+	FilePostProcessors = make(map[string]FilePostProcessor)
 )
 
 func (s *Site) Unfold(parent *Site) error {
@@ -259,7 +262,7 @@ func gatherTemplates(s *Site) (*template.Template, error) {
 		s.Templates[i] = filepath.Join(s.TemplateFolder, s.Templates[i])
 	}
 
-	template, err := template.New("").Funcs(*TemplateFunctions).ParseFiles(s.Templates...)
+	template, err := template.New("").Funcs(TemplateFunctions).ParseFiles(s.Templates...)
 	if err != nil {
 		return nil, fmt.Errorf("could not parse the template files: %v", err.Error())
 	}
