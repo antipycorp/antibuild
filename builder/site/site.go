@@ -63,19 +63,18 @@ var (
 	OutputFolder string
 )
 
+/*
+	UNFOLD
+
+	Parse the tree into the individual sites by iterating over the children of parents
+	and combining their data until only sites with no more the children remain. Add
+	these sites to an array, so there is no more nesting. The “Sites” tag of ConfigSite
+	should now be disregarded.
+*/
+
 //Unfold the ConfigSite into a []ConfigSite
-func (s *Site) Unfold(parent *Site) error {
-	return unfold(s, parent)
-}
-
-//Convert the []ConfigSite into a []Site by collecting all data and templates
-func Convert(configSites []*ConfigSite) ([]*Site, error) {
-	return convert(configSites)
-}
-
-//Execute the templates of a []Site into the final files
-func (s *Site) Execute() error {
-	return execute(s)
+func (site *Site) Unfold(parent *Site) error {
+	return unfold(site, parent)
 }
 
 func unfold(site, parent *Site) error {
@@ -133,18 +132,31 @@ func partialUnfold(site, parent *Site, completeUnfoldChild bool) error {
 	return nil
 }
 
-func (s *Site) copy() *Site {
-	newSite := *s
-	for i, site := range s.Sites {
+func (site *Site) copy() *Site {
+	newSite := *site
+	for i, site := range site.Sites {
 		newSite.Sites[i] = site.copy()
 	}
-	newSite.Data = make([]string, len(s.Data))
-	copy(newSite.Data, s.Data)
+	newSite.Data = make([]string, len(site.Data))
+	copy(newSite.Data, site.Data)
 
-	newSite.Templates = make([]string, len(s.Templates))
-	copy(newSite.Templates, s.Templates)
+	newSite.Templates = make([]string, len(site.Templates))
+	copy(newSite.Templates, site.Templates)
 
 	return &newSite
+}
+
+/*
+	CONVERT
+
+	Iterate over the []ConfigSite and use modules/file loaders and template
+	parsers to collect all of the templates and data points. Put these into
+	an array of Site to be executed later.
+*/
+
+//Convert the []ConfigSite into a []Site by collecting all data and templates
+func Convert(configSites []*ConfigSite) ([]*Site, error) {
+	return convert(configSites)
 }
 
 func convert(configSites []*ConfigSite) ([]*Site, error) {
@@ -168,54 +180,6 @@ func convert(configSites []*ConfigSite) ([]*Site, error) {
 	}
 
 	return sites, nil
-}
-
-func execute(site *Site) error {
-	fmt.Println(*site)
-	var (
-		err       error
-		template  *template.Template
-		dataInput dataInput
-	)
-
-	if StaticFolder != "" && OutputFolder != "" {
-		fmt.Println("copying static files")
-		info, err := os.Lstat(StaticFolder)
-		if err != nil {
-			return err
-		}
-		genCopy(StaticFolder, OutputFolder, info)
-	}
-
-	if TemplateFolder == "" || OutputFolder == "" || len(site.Sites) != 0 {
-		goto skip
-	}
-
-	err = gatherData(site, &dataInput)
-	if err != nil {
-		return err
-	}
-
-	template, err = gatherTemplates(site)
-	if err != nil {
-		return err
-	}
-
-	err = executeTemplate(site, template, dataInput)
-	if err != nil {
-		return err
-	}
-	return nil
-skip:
-	for _, s := range site.Sites {
-		fmt.Println(s.Slug)
-		err := execute(s)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func gatherData(site *Site, files []string) error {
@@ -265,26 +229,64 @@ func gatherTemplates(site *Site, templates []string) error {
 	return nil
 }
 
-func executeTemplate(s *Site, template *template.Template) error {
-	OUTPath := filepath.Join(OutputFolder, s.Slug)
-	err := os.MkdirAll(filepath.Dir(OUTPath), 0766)
-	if err != nil {
-		return errors.New("Couldn't create directory: " + err.Error())
+/*
+	EXECUTE
+
+	Iterate over the []Site and use the data to execute the template and export the result to the output file.
+*/
+
+//Execute the templates of a []Site into the final files
+func Execute(sites []*Site) error {
+	return execute(sites)
+}
+
+func execute(sites []*Site) error {
+	if StaticFolder != "" && OutputFolder != "" {
+		info, err := os.Lstat(StaticFolder)
+		if err != nil {
+			return err
+		}
+
+		genCopy(StaticFolder, OutputFolder, info)
 	}
 
-	OUTFile, err := os.Create(OUTPath)
-	if err != nil {
-		return errors.New("Couldn't create file: " + err.Error())
+	for _, site := range sites {
+		err = site.executeTemplate()
+		if err != nil {
+			return err
+		}
 	}
 
-	err = template.ExecuteTemplate(OUTFile, "html", dataInput.Data)
-	if err != nil {
-		return errors.New("Could not parse: " + err.Error())
-	}
 	return nil
 }
 
-//!this should go into a diferent file, but no suitable place has been found
+func (site *Site) executeTemplate() error {
+	fileLocation := filepath.Join(OutputFolder, site.Slug)
+
+	err := os.MkdirAll(filepath.Dir(fileLocation), 0766)
+	if err != nil {
+		return errors.New("couldn't create directory: " + err.Error())
+	}
+
+	file, err := os.Create(fileLocation)
+	if err != nil {
+		return errors.New("couldn't create file: " + err.Error())
+	}
+
+	err = site.Template.ExecuteTemplate(file, "html", site.Data)
+	if err != nil {
+		return errors.New("could not execute template: " + err.Error())
+	}
+
+	return nil
+}
+
+/*
+	HELPERS
+
+	This should go into a diferent file, but no suitable place has been found
+*/
+
 func genCopy(src, dest string, info os.FileInfo) error {
 	if info.IsDir() {
 		return dirCopy(src, dest, info)
@@ -332,7 +334,6 @@ func dirCopy(srcdir, destdir string, info os.FileInfo) error {
 	for _, content := range contents {
 		cs, cd := filepath.Join(srcdir, content.Name()), filepath.Join(destdir, content.Name())
 		if err := genCopy(cs, cd, content); err != nil {
-			// If any error, exit immediately
 			return err
 		}
 	}
