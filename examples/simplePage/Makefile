@@ -24,9 +24,9 @@ build: $(binary)
 	cd ../../module/examples/abm_firebase && \
 		go build -o abm_firebase
 	mv ../../module/examples/abm_firebase/abm_firebase .modules 
-	cd ../../module/examples/abm_testspp && \
-		go build -o abm_testspp
-	mv ../../module/examples/abm_testspp/abm_testspp .modules 
+	cd ../../module/examples/abm_language && \
+		go build -o abm_language
+	mv ../../module/examples/abm_language/abm_language .modules 
 	$(binary) $(templateargs)
 
 refresh: $(binary)
