@@ -15,14 +15,21 @@
         "config": null
     },
     "pages": {
-        "slug": "/index.html",
+        "slug": "",
         "templates": [
             "Layout.html"
         ],
         "data": [
-            "[file_file:data/Layout.json][json_json]",
-            "[file_file:data/pages/Home.yml][yaml_yaml]"
+            "[file_file:data/Layout.json][json_json]"
         ],
-        "sites": null
+        "sites": [
+            {
+                "slug": "/index.html",
+                "templates": [],
+                "data": [
+                    "[file_file:data/pages/Home.yml][yaml_yaml]"
+                ]
+            }
+        ]
     }
 }

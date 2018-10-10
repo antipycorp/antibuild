@@ -18,9 +18,9 @@ import (
 
 type (
 	Config struct {
-		Folders    ConfigFolder  `json:"folders"`
-		Modules    ConfigModules `json:"modules"`
-		Pages      site.Site     `json:"pages"`
+		Folders    ConfigFolder     `json:"folders"`
+		Modules    ConfigModules    `json:"modules"`
+		Pages      *site.ConfigSite `json:"pages"`
 		moduleHost map[string]*host.ModuleHost
 	}
 
@@ -129,24 +129,30 @@ func executeTemplate(config *Config) (err error) {
 	if err != nil {
 		fmt.Println("output not specified")
 	}
+
 	sites := config.Pages
 
-	config.Pages = site.Site{}
-	config.Pages.Sites = make([]*site.Site, 1)
-	config.Pages.Sites[0] = &sites
+	config.Pages = &site.ConfigSite{}
+	config.Pages.Sites = make([]*site.ConfigSite, 1)
+	config.Pages.Sites[0] = sites
 
 	site.OutputFolder = config.Folders.Output
 	site.TemplateFolder = config.Folders.Templates
 	site.StaticFolder = config.Folders.Static
 
-	err = config.Pages.Unfold(nil)
+	configPages, err := site.Unfold(config.Pages)
 	if err != nil {
-		fmt.Println("failed to parse:", err)
+		fmt.Println("failed to unfold:", err)
 	}
 
-	err = config.Pages.Execute()
+	pages, err := site.Convert(configPages)
 	if err != nil {
-		fmt.Println("failed to Execute function:", err)
+		fmt.Println("failed to convert:", err)
+	}
+
+	err = site.Execute(pages)
+	if err != nil {
+		fmt.Println("failed to execute function:", err)
 	}
 
 	return

@@ -84,77 +84,45 @@ func init() {
 */
 
 //Unfold the ConfigSite into a []ConfigSite
-func (site *Site) Unfold(parent *Site) error {
-	return unfold(site, parent)
+func Unfold(configSite *ConfigSite) ([]*ConfigSite, error) {
+	return unfold(configSite, nil)
 }
 
-func unfold(site, parent *Site) error {
+func unfold(site *ConfigSite, parent *ConfigSite) (configSites []*ConfigSite, err error) {
 	if parent != nil {
 		if site.Data != nil {
 			site.Data = append(parent.Data, site.Data...)
 		} else {
 			site.Data = make([]string, len(parent.Data))
-			copy(site.Data, parent.Data)
+			for i, s := range parent.Data {
+				site.Data[i] = s
+			}
 		}
 		if site.Templates != nil {
 			site.Templates = append(parent.Templates, site.Templates...)
 		} else {
 			site.Templates = make([]string, len(parent.Templates))
-			copy(site.Templates, parent.Templates)
+			for i, s := range parent.Data {
+				site.Templates[i] = s
+			}
 		}
 
 		site.Slug = parent.Slug + site.Slug
 	}
 
-	return partialUnfold(site, parent, true)
-}
-func partialUnfold(site, parent *Site, completeUnfoldChild bool) error {
-	/*
-		for jIndex, datafile := range site.Data {
-			if strings.Contains(datafile, "*") {
-				fmt.Println("a star!")
-				return unfoldStar(site, parent, jIndex, completeUnfoldChild)
-			}
-		}
-	*/
-	sites := make([]*Site, len(site.Sites))
-	for i, s := range site.Sites {
-		sites[i] = s
-		//fmt.Println("supposed to be DOING NEXT:", s.Slug)
+	if site.Sites == nil {
+		configSites = append(configSites, site)
+		return
 	}
 
-	fmt.Println(site.Sites)
-	for _, s := range site.Sites {
-		if completeUnfoldChild {
-			err := unfold(s, site)
-			if err != nil {
-				return err
-			}
-		} else {
-			err := partialUnfold(s, site, false)
-			if err != nil {
-				return err
-			}
-		}
+	for _, childSite := range site.Sites {
+		var appendConfigSites []*ConfigSite
+		appendConfigSites, err = unfold(childSite, site)
+		configSites = append(configSites, appendConfigSites...)
 	}
-	if len(site.Sites) != 0 {
-		return nil
-	}
-	return nil
-}
 
-func (site *Site) copy() *Site {
-	newSite := *site
-	for i, site := range site.Sites {
-		newSite.Sites[i] = site.copy()
-	}
-	newSite.Data = make([]string, len(site.Data))
-	copy(newSite.Data, site.Data)
+	return
 
-	newSite.Templates = make([]string, len(site.Templates))
-	copy(newSite.Templates, site.Templates)
-
-	return &newSite
 }
 
 /*
@@ -172,7 +140,7 @@ func Convert(configSites []*ConfigSite) ([]*Site, error) {
 
 func convert(configSites []*ConfigSite) ([]*Site, error) {
 	//Make the array that will store the converted sites
-	sites := make([]*Site, len(configSites))
+	sites := []*Site{}
 
 	for _, configSite := range configSites {
 		//initalize a new Site with the correct slug
@@ -187,7 +155,7 @@ func convert(configSites []*ConfigSite) ([]*Site, error) {
 		}
 
 		//collect template
-		err = gatherTemplates(site, configSite.Data)
+		err = gatherTemplates(site, configSite.Templates)
 		if err != nil {
 			return nil, err
 		}
@@ -239,14 +207,15 @@ func gatherData(site *Site, files []string) error {
 }
 
 func gatherTemplates(site *Site, templates []string) error {
+	var newTemplates = make([]string, len(templates))
 	for i, template := range templates {
 		//prefix the templates with the TemplateFolder
-		templates[i] = filepath.Join(TemplateFolder, template)
+		newTemplates[i] = filepath.Join(TemplateFolder, template)
 	}
 
 	var err error
 	//get the template with the TemplateFunctions initalized
-	site.Template, err = template.New("").Funcs(TemplateFunctions).ParseFiles(templates...)
+	site.Template, err = template.New("").Funcs(TemplateFunctions).ParseFiles(newTemplates...)
 	if err != nil {
 		return fmt.Errorf("could not parse the template files: %v", err.Error())
 	}
@@ -278,7 +247,7 @@ func execute(sites []*Site) error {
 
 	//export every template
 	for _, site := range sites {
-		err = site.executeTemplate()
+		err := site.executeTemplate()
 		if err != nil {
 			return err
 		}
