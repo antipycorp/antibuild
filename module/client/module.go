@@ -20,6 +20,8 @@ type (
 	Module struct {
 		name string
 
+		configFunction func(map[string]interface{}) error
+
 		templateFunctions  map[string]TemplateFunction
 		fileLoaders        map[string]FileLoader
 		fileParsers        map[string]FileParser
@@ -166,6 +168,12 @@ var (
 	//ErrFailed is the error that occurs when the module experiences an internal error.
 	ErrFailed = errors.New("module: internal processing error")
 
+	//ErrNoConfig is the error that occurs when the module has not recieved its configuration when needed.
+	ErrNoConfig = errors.New("module: config has not been recieved yet")
+
+	//ModuleReady tells the host that the config worked
+	ModuleReady = "module: ready"
+
 	con *protocol.Connection
 )
 
@@ -273,6 +281,27 @@ func internalHandle(command string, r protocol.Token, m *Module) {
 			"sitePostProcessors": sitePostProcessors,
 		})
 
+	case "config":
+		if m.configFunction == nil {
+			r.Respond(ModuleReady)
+			return
+		}
+
+		var ok bool
+
+		var objectInput map[string]interface{}
+		if objectInput, ok = r.Data[0].(map[string]interface{}); ok != true {
+			r.Respond(ErrInvalidInput)
+			return
+		}
+
+		err := m.configFunction(objectInput)
+		if err != nil {
+			r.Respond(err)
+			return
+		}
+
+		r.Respond(ModuleReady)
 	case "testMethods":
 		r.Respond(testMethods(m))
 	}
@@ -502,6 +531,22 @@ func templateFunctionRegister(m *Module, identifer string, function func(TFReque
 		Function: function,
 		Test:     test,
 	}
+
+	return
+}
+
+//ConfigFunctionRegister is the function that will be called that handles the config of the client.
+func (m *Module) ConfigFunctionRegister(function func(map[string]interface{}) error) {
+	configFunctionRegister(m, function)
+	return
+}
+
+func configFunctionRegister(m *Module, function func(map[string]interface{}) error) {
+	if function == nil {
+		panic("module: configFunctionRegister: function is not defined")
+	}
+
+	m.configFunction = function
 
 	return
 }
