@@ -34,8 +34,9 @@ type (
 
 	//ConfigModules is the part of the config file that handles modules
 	ConfigModules struct {
-		Dependencies map[string]string                 `json:"dependencies"`
-		Config       map[string]map[string]interface{} `json:"config"`
+		Dependencies       map[string]string                 `json:"dependencies"`
+		Config             map[string]map[string]interface{} `json:"config"`
+		SitePostProcessors []string                          `json:"site_post_processors"`
 	}
 )
 
@@ -148,6 +149,10 @@ func executeTemplate(config *Config) (err error) {
 	pages, err := site.Convert(configPages)
 	if err != nil {
 		fmt.Println("failed to convert:", err)
+	}
+
+	for _, spp := range config.Modules.SitePostProcessors {
+		pages = sitePostProcessors[spp].Process(pages, "")
 	}
 
 	err = site.Execute(pages)

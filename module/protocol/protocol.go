@@ -250,8 +250,10 @@ func (t *Token) Respond(data interface{}) error {
 	err := t.con.writer.Encode(resp)
 	t.con.wlock.Unlock()
 
+	fmt.Fprintf(os.Stderr, "response:%v\n", resp)
+
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failled sending:%v\n", err)
+		fmt.Fprintf(os.Stderr, "failed sending:%v\n", err)
 		return err
 	}
 
