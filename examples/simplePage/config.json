@@ -11,15 +11,19 @@
             "json": "0.0.1",
             "math": "0.0.1",
             "yaml": "0.0.1",
-            "testspp": "0.0.1"
+            "language": "0.0.1"
         },
         "config": {
-            "testspp": {
-                "file_name": "/catsarecool.html"
+            "language": {
+                "languages": [
+                    "en",
+                    "nl"
+                ],
+                "default": "en"
             }
         },
         "site_post_processors": [
-            "testspp_testspp"
+            "language_language"
         ]
     },
     "pages": {
