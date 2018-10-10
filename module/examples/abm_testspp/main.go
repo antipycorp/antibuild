@@ -5,7 +5,9 @@
 package main
 
 import (
-	"gitlab.com/antipy/antibuild/cli/builder/site"
+	"fmt"
+	"os"
+
 	abm "gitlab.com/antipy/antibuild/cli/module/client"
 )
 
@@ -20,6 +22,14 @@ func main() {
 func testApp(w abm.SPPRequest, r *abm.SPPResponse) {
 	var siteData = w.Data
 
-	siteData.Sites = append(siteData.Sites, &site.Site{})
+	newSite := *siteData[0]
+	newSite.Slug = "/ilikecats.html"
+
+	siteData = append(siteData, &newSite)
+
+	for _, data := range siteData {
+		fmt.Fprint(os.Stderr, data, "\n")
+	}
+
 	r.Data = siteData
 }

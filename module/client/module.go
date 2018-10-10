@@ -140,14 +140,14 @@ type (
 
 	//SPPRequest is the request with data and meta from the module caller.
 	SPPRequest struct {
-		Data     site.Site
+		Data     []*site.Site
 		Variable string
 	}
 
 	//SPPResponse is the response to the module API that will be used to respond to the client
 	SPPResponse struct {
 		Error error
-		Data  site.Site
+		Data  []*site.Site
 	}
 
 	//SitePostProcessor is a object that stores the site post processor function and its tests.
@@ -191,6 +191,7 @@ func register(name string) *Module {
 	module.fileLoaders = make(map[string]FileLoader)
 	module.fileParsers = make(map[string]FileParser)
 	module.filePostProcessors = make(map[string]FilePostProcessor)
+	module.sitePostProcessors = make(map[string]SitePostProcessor)
 
 	return module
 }
@@ -238,10 +239,11 @@ func start(m *Module) {
 func internalHandle(command string, r protocol.Token, m *Module) {
 	switch command {
 	case "getMethods":
-		var templateFunctions = make([]string, len(m.templateFunctions))
-		var fileLoaders = make([]string, len(m.fileLoaders))
-		var fileParsers = make([]string, len(m.fileParsers))
-		var filePostProcessors = make([]string, len(m.filePostProcessors))
+		var templateFunctions []string
+		var fileLoaders []string
+		var fileParsers []string
+		var filePostProcessors []string
+		var sitePostProcessors []string
 
 		for key := range m.templateFunctions {
 			templateFunctions = append(templateFunctions, key)
@@ -259,11 +261,16 @@ func internalHandle(command string, r protocol.Token, m *Module) {
 			filePostProcessors = append(filePostProcessors, key)
 		}
 
+		for key := range m.sitePostProcessors {
+			sitePostProcessors = append(sitePostProcessors, key)
+		}
+
 		r.Respond(protocol.Methods{
 			"templateFunctions":  templateFunctions,
 			"fileLoaders":        fileLoaders,
 			"fileParsers":        fileParsers,
 			"filePostProcessors": filePostProcessors,
+			"sitePostProcessors": sitePostProcessors,
 		})
 
 	case "testMethods":
@@ -405,8 +412,8 @@ func sitePostProcessorsHandle(command string, r protocol.Token, m *Module) {
 
 	var ok bool
 
-	var objectInput site.Site
-	if objectInput, ok = r.Data[0].(site.Site); ok != true {
+	var objectInput []*site.Site
+	if objectInput, ok = r.Data[0].([]*site.Site); ok != true {
 		r.Respond(ErrInvalidInput)
 		return
 	}

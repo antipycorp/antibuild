@@ -6,10 +6,12 @@ import (
 	"html/template"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 )
 
 type (
@@ -24,7 +26,7 @@ type (
 	//Site is the way a site is defined after all of its data and templates have been collected
 	Site struct {
 		Slug     string
-		Template *template.Template
+		Template string
 		Data     map[string]interface{}
 	}
 
@@ -64,6 +66,8 @@ var (
 
 	//the splitter that is used to look what files should be parsed.
 	dataFileStringSplitter *regexp.Regexp
+
+	globalTemplates = make(map[string]*template.Template)
 )
 
 func init() {
@@ -215,7 +219,9 @@ func gatherTemplates(site *Site, templates []string) error {
 
 	var err error
 	//get the template with the TemplateFunctions initalized
-	site.Template, err = template.New("").Funcs(TemplateFunctions).ParseFiles(newTemplates...)
+	id := randString(32)
+	globalTemplates[id], err = template.New("").Funcs(TemplateFunctions).ParseFiles(newTemplates...)
+	site.Template = id
 	if err != nil {
 		return fmt.Errorf("could not parse the template files: %v", err.Error())
 	}
@@ -273,7 +279,7 @@ func (site *Site) executeTemplate() error {
 	}
 
 	//fill the file by executing the template
-	err = site.Template.ExecuteTemplate(file, "html", site.Data)
+	err = globalTemplates[site.Template].ExecuteTemplate(file, "html", site.Data)
 	if err != nil {
 		return errors.New("could not execute template: " + err.Error())
 	}
@@ -338,4 +344,31 @@ func dirCopy(srcdir, destdir string, info os.FileInfo) error {
 		}
 	}
 	return nil
+}
+
+var srcRand = rand.NewSource(time.Now().UnixNano())
+
+const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+const (
+	letterIdxBits = 6                    // 6 bits to represent a letter index
+	letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
+	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
+)
+
+func randString(n int) string {
+	b := make([]byte, n)
+	// A src.Int63() generates 63 random bits, enough for letterIdxMax characters!
+	for i, cache, remain := n-1, srcRand.Int63(), letterIdxMax; i >= 0; {
+		if remain == 0 {
+			cache, remain = srcRand.Int63(), letterIdxMax
+		}
+		if idx := int(cache & letterIdxMask); idx < len(letterBytes) {
+			b[i] = letterBytes[idx]
+			i--
+		}
+		cache >>= letterIdxBits
+		remain--
+	}
+
+	return string(b)
 }

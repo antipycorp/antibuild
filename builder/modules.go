@@ -41,6 +41,8 @@ var (
 	fileLoaders        = &site.FileLoaders
 	fileParsers        = &site.FileParsers
 	filePostProcessors = &site.FilePostProcessors
+
+	sitePostProcessors = make(map[string]sitePostProcessor)
 )
 
 //communicates with modules to load them
@@ -96,6 +98,10 @@ func loadModules(config *Config) {
 
 		for _, function := range methods["filePostProcessors"] {
 			(*filePostProcessors)[identifier+"_"+function] = getFilePostProcessor(function, config.moduleHost[identifier])
+		}
+
+		for _, function := range methods["sitePostProcessors"] {
+			sitePostProcessors[identifier+"_"+function] = getSitePostProcessor(function, config.moduleHost[identifier])
 		}
 	}
 }
@@ -168,6 +174,7 @@ func (f *fileParser) Parse(data []byte, variable string) map[string]interface{} 
 
 	return outputFinal
 }
+
 func getFilePostProcessor(command string, host *host.ModuleHost) *filePostProcessor {
 	return &filePostProcessor{
 		host:    host,
@@ -196,14 +203,14 @@ func (f *filePostProcessor) Process(data map[string]interface{}, variable string
 	return outputFinal
 }
 
-func getSitePostProcessor(command string, host *host.ModuleHost) *filePostProcessor {
-	return &filePostProcessor{
+func getSitePostProcessor(command string, host *host.ModuleHost) sitePostProcessor {
+	return sitePostProcessor{
 		host:    host,
 		command: command,
 	}
 }
 
-func (s *sitePostProcessor) Proces(data site.Site, variable string) site.Site {
+func (s sitePostProcessor) Process(data []*site.Site, variable string) []*site.Site {
 	sendData := []interface{}{
 		data,
 		variable,
@@ -215,10 +222,10 @@ func (s *sitePostProcessor) Proces(data site.Site, variable string) site.Site {
 	}
 
 	//check if return type is correct
-	var outputFinal site.Site
+	var outputFinal []*site.Site
 	var ok bool
-	if outputFinal, ok = output.(site.Site); ok != true {
-		panic("sitePostProcessors_" + s.command + " did not return a site.Site")
+	if outputFinal, ok = output.([]*site.Site); ok != true {
+		panic("sitePostProcessors_" + s.command + " did not return a []*site.Site")
 	}
 
 	return outputFinal
