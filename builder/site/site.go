@@ -13,93 +13,70 @@ import (
 )
 
 type (
-	//Site contains info about a specific site
-	Site struct {
-		Slug      string   `json:"slug"`
-		Templates []string `json:"templates"`
-		Data      []string `json:"data"`
-		Sites     []*Site  `json:"sites"`
-	}
-	//dataInput contains all the data
-	dataInput struct {
-		Data map[string]interface{}
+	//ConfigSite is the way a site is defined in the config file
+	ConfigSite struct {
+		Slug      string        `json:"slug"`
+		Templates []string      `json:"templates"`
+		Data      []string      `json:"data"`
+		Sites     []*ConfigSite `json:"sites"`
 	}
 
+	//Site is the way a site is defined after all of its data and templates have been collected
+	Site struct {
+		Slug     string
+		Template *template.Template
+		Data     map[string]interface{}
+	}
+
+	//FileLoader is a module that loads data
 	FileLoader interface {
 		Load(string) []byte
 	}
 
+	//FileParser is a module that parses loaded data
 	FileParser interface {
 		Parse([]byte, string) map[string]interface{}
 	}
 
-	//FilePostProcessor is a function thats able to post-process
+	//FilePostProcessor is a function thats able to post-process data
 	FilePostProcessor interface {
 		Process(map[string]interface{}, string) map[string]interface{}
 	}
 )
 
 var (
+	//TemplateFunctions are all the template functions defined by modules
 	TemplateFunctions = template.FuncMap{}
 
-	FileLoaders        = make(map[string]FileLoader)
-	FileParsers        = make(map[string]FileParser)
+	//FileLoaders are all the module file loaders
+	FileLoaders = make(map[string]FileLoader)
+	//FileParsers are all the module file parsers
+	FileParsers = make(map[string]FileParser)
+	//FilePostProcessors are all the module data post processors
 	FilePostProcessors = make(map[string]FilePostProcessor)
 
+	//TemplateFolder is the folder all templates are stored
 	TemplateFolder string
-	StaticFolder   string
-	OutputFolder   string
+	//StaticFolder is the folder all static files are stored
+	StaticFolder string
+	//OutputFolder is the folder that should be exported to
+	OutputFolder string
 )
 
+//Unfold the ConfigSite into a []ConfigSite
 func (s *Site) Unfold(parent *Site) error {
 	return unfold(s, parent)
 }
 
+//Execute the templates of a []Site into the final files
+func Convert(configSites []*ConfigSite) ([]*Site, error) {
+	return convert(configSites)
+}
+
+//Execute the templates of a []Site into the final files
 func (s *Site) Execute() error {
 	return execute(s)
 }
-
-/*
-func unfoldStar(site, parent *Site, jIndex int, completeUnfoldChild bool) error {
-	dataPath := filepath.Dir(filepath.Join(site.DataFolder, site.Data[jIndex]))
-	datafile := strings.Replace(filepath.Base(site.Data[jIndex]), "*", "([^/]*)", -1)
-	re := regexp.MustCompile(datafile)
-	var matches [][][]string
-	err := filepath.Walk(dataPath, func(path string, file os.FileInfo, err error) error {
-		if path == dataPath {
-			return nil
-		}
-		if file.IsDir() {
-			return filepath.SkipDir
-		}
-		if ok, _ := regexp.MatchString(datafile, file.Name()); ok {
-			matches = append(matches, re.FindAllStringSubmatch(file.Name(), -1))
-		}
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	if parent == nil {
-		return nil
-	}
-	for i, s := range parent.Sites {
-		if s == site {
-			parent.Sites = append(parent.Sites[:i], parent.Sites[i+1:]...)
-		}
-	}
-	for _, file := range matches {
-		s := site.copy()
-		for _, match := range file {
-			s.Slug = strings.Replace(s.Slug, "*", match[1], 1)
-			s.Data[jIndex] = strings.Replace(s.Data[jIndex], "*", match[1], 1)
-		}
-		parent.Sites = append(parent.Sites, s)
-		partialUnfold(s, parent, completeUnfoldChild)
-	}
-	return nil
-}
-*/
 
 func unfold(site, parent *Site) error {
 	if parent != nil {
@@ -118,6 +95,7 @@ func unfold(site, parent *Site) error {
 
 		site.Slug = parent.Slug + site.Slug
 	}
+
 	return partialUnfold(site, parent, true)
 }
 func partialUnfold(site, parent *Site, completeUnfoldChild bool) error {
@@ -169,6 +147,10 @@ func (s *Site) copy() *Site {
 	return &newSite
 }
 
+func convert(configSites []*ConfigSite) ([]*Site, error) {
+
+}
+
 func execute(site *Site) error {
 	fmt.Println(*site)
 	var (
@@ -189,10 +171,12 @@ func execute(site *Site) error {
 	if TemplateFolder == "" || OutputFolder == "" || len(site.Sites) != 0 {
 		goto skip
 	}
+
 	err = gatherData(site, &dataInput)
 	if err != nil {
 		return err
 	}
+
 	template, err = gatherTemplates(site)
 	if err != nil {
 		return err

@@ -10,8 +10,7 @@
             "file": "0.0.1",
             "json": "0.0.1",
             "math": "0.0.1",
-            "yaml": "0.0.1",
-            "firebase": "0.0.1"
+            "yaml": "0.0.1"
         },
         "config": null
     },
@@ -22,8 +21,7 @@
         ],
         "data": [
             "[file_file:data/Layout.json][json_json]",
-            "[file_file:data/pages/Home.yml][yaml_yaml]",
-            "[firebase_path:test/test][firebase_get:firebase.json]"
+            "[file_file:data/pages/Home.yml][yaml_yaml]"
         ],
         "sites": null
     }
