@@ -61,7 +61,18 @@ var (
 	StaticFolder string
 	//OutputFolder is the folder that should be exported to
 	OutputFolder string
+
+	//the splitter that is used to look what files should be parsed.
+	dataFileStringSplitter *regexp.Regexp
 )
+
+func init() {
+	var err error
+	dataFileStringSplitter, err = regexp.Compile("\\[(.*?)\\]")
+	if err != nil {
+		panic(err)
+	}
+}
 
 /*
 	UNFOLD
@@ -160,53 +171,65 @@ func Convert(configSites []*ConfigSite) ([]*Site, error) {
 }
 
 func convert(configSites []*ConfigSite) ([]*Site, error) {
+	//Make the array that will store the converted sites
 	sites := make([]*Site, len(configSites))
+
 	for _, configSite := range configSites {
+		//initalize a new Site with the correct slug
 		site := &Site{
 			Slug: configSite.Slug,
 		}
 
+		//collect data
 		err := gatherData(site, configSite.Data)
 		if err != nil {
 			return nil, err
 		}
 
+		//collect template
 		err = gatherTemplates(site, configSite.Data)
 		if err != nil {
 			return nil, err
 		}
 
+		//add to finished sites
 		sites = append(sites, site)
 	}
 
 	return sites, nil
 }
 
+//collect data objects from modules
+//!!! need to implement post processors !!!
 func gatherData(site *Site, files []string) error {
 	for _, dataFileString := range files {
+		//init data if it is empty
 		if site.Data == nil {
 			site.Data = make(map[string]interface{})
 		}
 
-		expression, err := regexp.Compile("\\[(.*?)\\]")
-		if err != nil {
-			return err
-		}
+		//Split the dataFileString into its components using regexp
+		matches := dataFileStringSplitter.FindAllStringSubmatch(dataFileString, -1)
 
-		matches := expression.FindAllStringSubmatch(dataFileString, -1)
-
+		//split the loader by : and if there is no variable, define an empty one
 		loader := strings.SplitN(matches[0][1], ":", 2)
 		if len(loader) == 1 {
 			loader[1] = ""
 		}
 
+		//get the file using the defined module
 		file := FileLoaders[loader[0]].Load(loader[1])
+
+		//split the parser by : and if there is no variable, define an empty one
 		parser := strings.SplitN(matches[1][1], ":", 2)
 		if len(parser) == 1 {
 			parser = append(parser, "")
 		}
 
+		//parse the file using the defined module
 		parsed := FileParsers[parser[0]].Parse(file, parser[1])
+
+		//add the parsed data to the site data
 		for k, v := range parsed {
 			site.Data[k] = v
 		}
@@ -217,10 +240,12 @@ func gatherData(site *Site, files []string) error {
 
 func gatherTemplates(site *Site, templates []string) error {
 	for i, template := range templates {
+		//prefix the templates with the TemplateFolder
 		templates[i] = filepath.Join(TemplateFolder, template)
 	}
 
 	var err error
+	//get the template with the TemplateFunctions initalized
 	site.Template, err = template.New("").Funcs(TemplateFunctions).ParseFiles(templates...)
 	if err != nil {
 		return fmt.Errorf("could not parse the template files: %v", err.Error())
@@ -241,6 +266,7 @@ func Execute(sites []*Site) error {
 }
 
 func execute(sites []*Site) error {
+	//move static folder
 	if StaticFolder != "" && OutputFolder != "" {
 		info, err := os.Lstat(StaticFolder)
 		if err != nil {
@@ -250,6 +276,7 @@ func execute(sites []*Site) error {
 		genCopy(StaticFolder, OutputFolder, info)
 	}
 
+	//export every template
 	for _, site := range sites {
 		err = site.executeTemplate()
 		if err != nil {
@@ -261,18 +288,22 @@ func execute(sites []*Site) error {
 }
 
 func (site *Site) executeTemplate() error {
+	//prefix the slug with the output folder
 	fileLocation := filepath.Join(OutputFolder, site.Slug)
 
+	//check all folders in the path of the output file
 	err := os.MkdirAll(filepath.Dir(fileLocation), 0766)
 	if err != nil {
 		return errors.New("couldn't create directory: " + err.Error())
 	}
 
+	//create the file
 	file, err := os.Create(fileLocation)
 	if err != nil {
 		return errors.New("couldn't create file: " + err.Error())
 	}
 
+	//fill the file by executing the template
 	err = site.Template.ExecuteTemplate(file, "html", site.Data)
 	if err != nil {
 		return errors.New("could not execute template: " + err.Error())
