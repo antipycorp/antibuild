@@ -103,6 +103,15 @@ func loadModules(config *Config) {
 		for _, function := range methods["sitePostProcessors"] {
 			sitePostProcessors[identifier+"_"+function] = getSitePostProcessor(function, config.moduleHost[identifier])
 		}
+
+		if config.Modules.Config[identifier] != nil {
+			output, err := config.moduleHost[identifier].ExcecuteMethod("internal_config", []interface{}{
+				config.Modules.Config[identifier],
+			})
+			if err != nil || output != "module: ready" {
+				panic("couldnt send config: " + err.Error())
+			}
+		}
 	}
 }
 

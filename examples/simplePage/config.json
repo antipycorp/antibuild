@@ -13,7 +13,11 @@
             "yaml": "0.0.1",
             "testspp": "0.0.1"
         },
-        "config": null,
+        "config": {
+            "testspp": {
+                "file_name": "/catsarecool.html"
+            }
+        },
         "site_post_processors": [
             "testspp_testspp"
         ]
