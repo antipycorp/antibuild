@@ -5,9 +5,6 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
 	abm "gitlab.com/antipy/antibuild/cli/module/client"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -41,8 +38,6 @@ func parseYAML(w abm.FPRequest, r *abm.FPResponse) {
 			yamlOutData[strIndex] = data
 		}
 	}
-
-	fmt.Fprintln(os.Stderr, yamlOutData)
 
 	r.Data = yamlOutData
 }
