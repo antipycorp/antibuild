@@ -68,7 +68,7 @@ func (s *Site) Unfold(parent *Site) error {
 	return unfold(s, parent)
 }
 
-//Execute the templates of a []Site into the final files
+//Convert the []ConfigSite into a []Site by collecting all data and templates
 func Convert(configSites []*ConfigSite) ([]*Site, error) {
 	return convert(configSites)
 }
@@ -148,7 +148,26 @@ func (s *Site) copy() *Site {
 }
 
 func convert(configSites []*ConfigSite) ([]*Site, error) {
+	sites := make([]*Site, len(configSites))
+	for _, configSite := range configSites {
+		site := &Site{
+			Slug: configSite.Slug,
+		}
 
+		err := gatherData(site, configSite.Data)
+		if err != nil {
+			return nil, err
+		}
+
+		err = gatherTemplates(site, configSite.Data)
+		if err != nil {
+			return nil, err
+		}
+
+		sites = append(sites, site)
+	}
+
+	return sites, nil
 }
 
 func execute(site *Site) error {
@@ -199,11 +218,10 @@ skip:
 	return nil
 }
 
-func gatherData(s *Site, dataInput *dataInput) error {
-	for _, dataFileString := range s.Data {
-
-		if dataInput.Data == nil {
-			dataInput.Data = make(map[string]interface{})
+func gatherData(site *Site, files []string) error {
+	for _, dataFileString := range files {
+		if site.Data == nil {
+			site.Data = make(map[string]interface{})
 		}
 
 		expression, err := regexp.Compile("\\[(.*?)\\]")
@@ -226,27 +244,28 @@ func gatherData(s *Site, dataInput *dataInput) error {
 
 		parsed := FileParsers[parser[0]].Parse(file, parser[1])
 		for k, v := range parsed {
-			dataInput.Data[k] = v
+			site.Data[k] = v
 		}
 	}
 
 	return nil
 }
 
-func gatherTemplates(s *Site) (*template.Template, error) {
-
-	for i := range s.Templates {
-		s.Templates[i] = filepath.Join(TemplateFolder, s.Templates[i])
+func gatherTemplates(site *Site, templates []string) error {
+	for i, template := range templates {
+		templates[i] = filepath.Join(TemplateFolder, template)
 	}
 
-	template, err := template.New("").Funcs(TemplateFunctions).ParseFiles(s.Templates...)
+	var err error
+	site.Template, err = template.New("").Funcs(TemplateFunctions).ParseFiles(templates...)
 	if err != nil {
-		return nil, fmt.Errorf("could not parse the template files: %v", err.Error())
+		return fmt.Errorf("could not parse the template files: %v", err.Error())
 	}
-	return template, nil
+
+	return nil
 }
 
-func executeTemplate(s *Site, template *template.Template, dataInput dataInput) error {
+func executeTemplate(s *Site, template *template.Template) error {
 	OUTPath := filepath.Join(OutputFolder, s.Slug)
 	err := os.MkdirAll(filepath.Dir(OUTPath), 0766)
 	if err != nil {
