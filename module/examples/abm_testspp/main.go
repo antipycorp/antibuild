@@ -5,13 +5,14 @@
 package main
 
 import (
+	"gitlab.com/antipy/antibuild/cli/builder/site"
 	abm "gitlab.com/antipy/antibuild/cli/module/client"
 )
 
 func main() {
 	module := abm.Register("testspp")
 
-	module.SitePostProcessor("testspp", parseYAML)
+	module.SitePostProcessor("testspp", testApp)
 
 	module.Start()
 }
@@ -19,6 +20,6 @@ func main() {
 func testApp(w abm.SPPRequest, r *abm.SPPResponse) {
 	var siteData = w.Data
 
-	siteData
-		r.Data = siteData
+	siteData.Sites = append(siteData.Sites, &site.Site{})
+	r.Data = siteData
 }
