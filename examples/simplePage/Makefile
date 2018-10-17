@@ -8,7 +8,8 @@ $(binary): FORCE
 	cd ../../ && \
 		make $(binary) binary=$(binary)
 
-build: $(binary)
+setup: 
+	mkdir .modules
 	cd ../../module/examples/abm_math && \
 		go build -o abm_math
 	mv ../../module/examples/abm_math/abm_math .modules 
@@ -27,9 +28,11 @@ build: $(binary)
 	cd ../../module/examples/abm_language && \
 		go build -o abm_language
 	mv ../../module/examples/abm_language/abm_language .modules 
+
+build: $(binary) setup
 	$(binary) $(templateargs)
 
-refresh: $(binary)
+refresh: $(binary) setup
 	$(binary) $(templaterefresh)
 	
 clean:
