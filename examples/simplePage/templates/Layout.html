@@ -5,22 +5,28 @@
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <meta http-equiv="X-UA-Compatible" content="ie=edge">
-            <title>{{.Page.Name}} | {{.Name}}</title> <!-- you can acces all variables in both JSON files, .Page.Name is from the Home.json and .Name is from Layout.json -->
+            <!-- you can acces all variables in both JSON files,
+            .Page.Name is from the pages/Home.yaml and .Name is from Layout.json
+            .Page.Name is loaded per language, so the /nl/ version would use Thuis  
+            -->
+
+            <title>{{.Page.Name}} | {{.Name}}</title>
         </head>
         <body>
             <div>
+                <!--you can use all variables as normal, you can itterateover them etc-->
                 {{range .Headers }}
-                    <h1>{{.Name}}</h1> <!-- you can use all variables as normal, you can itterateover them etc -->
+                    <h1>{{.Name}}</h1>
                 {{end}}
-                                
-                {{math_add 1 2}}
+
+                <!-- these are all the functions provided by the math_ -->
+                {{math_add 1 2}} 
                 {{math_subtract 3 1}}
                 {{math_multiply 2 3}}
                 {{math_divide 6 2}}
                 {{math_modulo 5 2}}
                 {{math_power 3 3}}
-
-                {{.test}}
             </div>
+        </body>
     </html>
 {{end}}
