@@ -83,50 +83,64 @@ func init() {
 
 	Parse the tree into the individual sites by iterating over the children of parents
 	and combining their data until only sites with no more the children remain. Add
-	these sites to an array, so there is no more nesting. The “Sites” tag of ConfigSite
-	should now be disregarded.
+	these sites to an array, so there is no more nesting.
+	Parse the sites tree from the config file, any final site (no child sites) will
+	be parsed into the final list of sites.
 */
 
 //Unfold the ConfigSite into a []ConfigSite
-func Unfold(configSite *ConfigSite) ([]*ConfigSite, error) {
+func Unfold(configSite *ConfigSite) ([]*Site, error) {
 	return unfold(configSite, nil)
 }
 
-func unfold(site *ConfigSite, parent *ConfigSite) (configSites []*ConfigSite, err error) {
+func unfold(cSite *ConfigSite, parent *ConfigSite) (sites []*Site, err error) {
 	if parent != nil {
-		if site.Data != nil {
-			site.Data = append(parent.Data, site.Data...)
+		if cSite.Data != nil {
+			cSite.Data = append(parent.Data, cSite.Data...)
 		} else {
-			site.Data = make([]string, len(parent.Data))
+			cSite.Data = make([]string, len(parent.Data))
 			for i, s := range parent.Data {
-				site.Data[i] = s
+				cSite.Data[i] = s
 			}
 		}
-		if site.Templates != nil {
-			site.Templates = append(parent.Templates, site.Templates...)
+		if cSite.Templates != nil {
+			cSite.Templates = append(parent.Templates, cSite.Templates...)
 		} else {
-			site.Templates = make([]string, len(parent.Templates))
+			cSite.Templates = make([]string, len(parent.Templates))
 			for i, s := range parent.Data {
-				site.Templates[i] = s
+				cSite.Templates[i] = s
 			}
 		}
 
-		site.Slug = parent.Slug + site.Slug
+		cSite.Slug = parent.Slug + cSite.Slug
+	}
+	//If this is the last in the chain, add it to the list of return values
+	if cSite.Sites == nil {
+		site := &Site{
+			Slug: cSite.Slug,
+		}
+
+		err := gatherData(site, cSite.Data)
+		if err != nil {
+			return nil, err
+		}
+
+		err = gatherTemplates(site, cSite.Templates)
+		if err != nil {
+			return nil, err
+		}
+
+		sites = append(sites, site)
+		return nil, err
 	}
 
-	if site.Sites == nil {
-		configSites = append(configSites, site)
-		return
-	}
-
-	for _, childSite := range site.Sites {
-		var appendConfigSites []*ConfigSite
-		appendConfigSites, err = unfold(childSite, site)
-		configSites = append(configSites, appendConfigSites...)
+	for _, childSite := range cSite.Sites {
+		var appendSites []*Site
+		appendSites, err = unfold(childSite, cSite)
+		sites = append(sites, appendSites...) //!TODO have one slice of sites which will be added on by the childs themselves, avoid large realocs
 	}
 
 	return
-
 }
 
 /*
