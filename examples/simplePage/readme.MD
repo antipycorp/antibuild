@@ -1,7 +1,5 @@
-
-## example project using basic build-in modules
-
-this is the config file for this example, it uses most build-in modules, it shows you how you can load files, configure slugs and nest them.
+## Example project using basic built-in modules
+This is the config file for this example, it uses most built-in modules, it shows you how you can load files, configure slugs and nest them.
 
 ```json
 {
@@ -66,7 +64,7 @@ These are the data files for this project, the lists are rangable and everything
     ]
 }
 ```
-This data file is written in markdown, as you can see in the config file you can load these using the yamnl module instead of the json one.
+This data file is written in yaml, as you can see in the config file you can load these using the yaml module instead of the json one.
 ```yaml
 nl: 
   Page: 
