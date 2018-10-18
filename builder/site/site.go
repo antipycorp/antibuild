@@ -115,7 +115,8 @@ func unfold(cSite *ConfigSite, parent *ConfigSite) (sites []*Site, err error) {
 		cSite.Slug = parent.Slug + cSite.Slug
 	}
 	//If this is the last in the chain, add it to the list of return values
-	if cSite.Sites == nil {
+	if len(cSite.Sites) == 0 {
+		fmt.Println("last site!")
 		site := &Site{
 			Slug: cSite.Slug,
 		}
@@ -131,7 +132,7 @@ func unfold(cSite *ConfigSite, parent *ConfigSite) (sites []*Site, err error) {
 		}
 
 		sites = append(sites, site)
-		return nil, err
+		return sites, err
 	}
 
 	for _, childSite := range cSite.Sites {
