@@ -6,6 +6,8 @@ package module
 
 import (
 	"errors"
+	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -173,8 +175,6 @@ var (
 
 	//ModuleReady tells the host that the config worked
 	ModuleReady = "module: ready"
-
-	con *protocol.Connection
 )
 
 /*
@@ -210,17 +210,23 @@ func register(name string) *Module {
 
 //Start listenes to messages from host and responds if possible. Should be called AFTER registering all functions to the module.
 func (m *Module) Start() {
-	start(m)
+	start(m, os.Stdin, os.Stdout)
 }
 
-func start(m *Module) {
-	con = protocol.OpenConnection(os.Stdin, os.Stdout)
-	con.Init(false)
+//CustomStart just like Start but with custom read adn writers
+func (m *Module) CustomStart(in io.Reader, out io.Writer) {
+	start(m, in, out)
+}
 
+func start(m *Module, in io.Reader, out io.Writer) {
+	con := protocol.OpenConnection(in, out)
+	con.ID = m.name
+	con.Init(false)
 	for {
 		r := con.Receive()
 		if len(r.Data) == 1 {
 			if r.Data[0] == protocol.EOF {
+				fmt.Println("exiting now")
 				os.Exit(1)
 			}
 		}
@@ -331,6 +337,7 @@ func templateFunctionsHandle(command string, r protocol.Token, m *Module) {
 
 func fileLoadersHandle(command string, r protocol.Token, m *Module) {
 	if m.fileLoaders[command].Function == nil {
+		fmt.Fprintf(os.Stderr, "does not exist:", m.name)
 		r.Respond(ErrInvalidCommand)
 		return
 	}
@@ -361,6 +368,7 @@ func fileLoadersHandle(command string, r protocol.Token, m *Module) {
 
 func fileParsersHandle(command string, r protocol.Token, m *Module) {
 	if m.fileParsers[command].Function == nil {
+		fmt.Fprintf(os.Stderr, "does not exist:", m.name)
 		r.Respond(ErrInvalidCommand)
 		return
 	}

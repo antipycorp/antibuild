@@ -62,6 +62,8 @@ type (
 
 		rlock sync.Mutex
 		wlock sync.Mutex
+
+		ID string
 	}
 
 	//ID is the type used for identification of the messages
@@ -131,7 +133,9 @@ func (c *Connection) Init(isHost bool) (int, error) {
 		}
 		return int(v), nil
 	}
+	fmt.Fprintln(os.Stderr, "opening connection:")
 	message := c.Receive()
+	fmt.Fprintln(os.Stderr, "open connection:", message)
 	if message.ID != verifyVersionID {
 		return 0, ErrProtocoolViolation
 	}
@@ -152,7 +156,6 @@ func (c *Connection) Init(isHost bool) (int, error) {
 //Receive waits for a command from the host to excecute
 func (c *Connection) Receive() Token {
 	var command message
-
 	err := c.getMessage(&command)
 	if err != nil {
 		return Token{Data: []interface{}{EOF}}
@@ -187,15 +190,14 @@ func (c *Connection) Send(command string, payload payload, id ID) {
 	c.wlock.Lock()
 	err := c.writer.Encode(message)
 	c.wlock.Unlock()
+
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "could not send message:", err)
 	}
-
 }
 
 func (c *Connection) getMessage(m interface{}) error {
 	c.inInit.Do(initIn(c))
-
 	c.rlock.Lock()
 	err := c.reader.Decode(m)
 	c.rlock.Unlock()

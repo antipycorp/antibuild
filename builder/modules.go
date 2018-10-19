@@ -1,13 +1,18 @@
 package builder
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 
 	"gitlab.com/antipy/antibuild/cli/builder/site"
+	modFile "gitlab.com/antipy/antibuild/cli/internalmods/file"
+	modFirebase "gitlab.com/antipy/antibuild/cli/internalmods/firebase"
+	modJSON "gitlab.com/antipy/antibuild/cli/internalmods/json"
 	"gitlab.com/antipy/antibuild/cli/module/host"
 )
 
@@ -31,6 +36,11 @@ type (
 		host    *host.ModuleHost
 		command string
 	}
+	internalMod struct {
+		version string
+		start   func(io.Reader, io.Writer)
+		name    string
+	}
 )
 
 var (
@@ -43,6 +53,23 @@ var (
 	filePostProcessors = &site.FilePostProcessors
 
 	sitePostProcessors = make(map[string]sitePostProcessor)
+	internalMods       = map[string]internalMod{
+		"file": internalMod{
+			version: "0.0.1",
+			name:    "file",
+			start:   modFile.Start,
+		},
+		"firebase": internalMod{
+			version: "0.0.1",
+			name:    "firebase",
+			start:   modFirebase.Start,
+		},
+		"json": internalMod{
+			version: "0.0.1",
+			name:    "json",
+			start:   modJSON.Start,
+		},
+	}
 )
 
 //communicates with modules to load them
@@ -52,27 +79,8 @@ func loadModules(config *Config) {
 
 	for identifier, version := range config.Modules.Dependencies {
 		fmt.Printf("Loading module: %s@%s\n", identifier, version)
-
-		//prepare command and get nesecary data
-		module := exec.Command(filepath.Join(config.Folders.Modules, "abm_"+identifier))
-
-		stdin, err := module.StdinPipe()
-		if nil != err {
-			log.Fatalf("Error obtaining stdin: %s", err.Error())
-		}
-
-		stdout, err := module.StdoutPipe()
-		if nil != err {
-			log.Fatalf("Error obtaining stdout: %s", err.Error())
-		}
-
-		module.Stderr = os.Stderr
-
-		//start module and initaite connection
-		if err := module.Start(); err != nil {
-			panic(err)
-		}
-
+		stdout, stdin := loadModule(identifier, version, config.Folders.Modules)
+		var err error
 		config.moduleHost[identifier], err = host.Start(stdout, stdin)
 		if err != nil {
 			panic(err)
@@ -113,6 +121,47 @@ func loadModules(config *Config) {
 			}
 		}
 	}
+}
+
+func loadModule(name, version, path string) (io.Reader, io.Writer) {
+	fmt.Printf("Loading module: %s@%s\n", name, version)
+
+	if v, ok := internalMods[name]; ok {
+		if v.version == version {
+			//var in, stdout io.Reader
+			//var out, stdin io.Writer
+
+			in, stdin := io.Pipe()
+			stdout, out := io.Pipe()
+			in2 := bufio.NewReader(in)
+			stdout2 := bufio.NewReader(stdout)
+
+			go v.start(in2, out)
+
+			return stdout2, stdin
+		}
+	}
+
+	//prepare command and get nesecary data
+	module := exec.Command(filepath.Join(path, "abm_"+name))
+
+	stdin, err := module.StdinPipe()
+	if nil != err {
+		log.Fatalf("Error obtaining stdin: %s", err.Error())
+	}
+
+	stdout, err := module.StdoutPipe()
+	if nil != err {
+		log.Fatalf("Error obtaining stdout: %s", err.Error())
+	}
+
+	module.Stderr = os.Stderr
+
+	//start module and initaite connection
+	if err := module.Start(); err != nil {
+		panic(err)
+	}
+	return stdout, stdin
 }
 
 //generates the function that is called when a template function in executed.

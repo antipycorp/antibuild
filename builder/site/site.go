@@ -9,8 +9,6 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
-	"regexp"
-	"strings"
 	"time"
 )
 
@@ -19,7 +17,7 @@ type (
 	ConfigSite struct {
 		Slug      string        `json:"slug"`
 		Templates []string      `json:"templates"`
-		Data      []string      `json:"data"`
+		Data      []datafile    `json:"data"`
 		Sites     []*ConfigSite `json:"sites"`
 	}
 
@@ -64,19 +62,8 @@ var (
 	//OutputFolder is the folder that should be exported to
 	OutputFolder string
 
-	//the splitter that is used to look what files should be parsed.
-	dataFileStringSplitter *regexp.Regexp
-
 	globalTemplates = make(map[string]*template.Template)
 )
-
-func init() {
-	var err error
-	dataFileStringSplitter, err = regexp.Compile("\\[(.*?)\\]")
-	if err != nil {
-		panic(err)
-	}
-}
 
 /*
 	UNFOLD
@@ -98,7 +85,7 @@ func unfold(cSite *ConfigSite, parent *ConfigSite) (sites []*Site, err error) {
 		if cSite.Data != nil {
 			cSite.Data = append(parent.Data, cSite.Data...)
 		} else {
-			cSite.Data = make([]string, len(parent.Data))
+			cSite.Data = make([]datafile, len(parent.Data))
 			for i, s := range parent.Data {
 				cSite.Data[i] = s
 			}
@@ -107,7 +94,7 @@ func unfold(cSite *ConfigSite, parent *ConfigSite) (sites []*Site, err error) {
 			cSite.Templates = append(parent.Templates, cSite.Templates...)
 		} else {
 			cSite.Templates = make([]string, len(parent.Templates))
-			for i, s := range parent.Data {
+			for i, s := range parent.Templates {
 				cSite.Templates[i] = s
 			}
 		}
@@ -125,12 +112,13 @@ func unfold(cSite *ConfigSite, parent *ConfigSite) (sites []*Site, err error) {
 		if err != nil {
 			return nil, err
 		}
+		fmt.Println("done with data stufs")
 
 		err = gatherTemplates(site, cSite.Templates)
 		if err != nil {
 			return nil, err
 		}
-
+		fmt.Println("dont with the last site")
 		sites = append(sites, site)
 		return sites, err
 	}
@@ -144,77 +132,20 @@ func unfold(cSite *ConfigSite, parent *ConfigSite) (sites []*Site, err error) {
 	return
 }
 
-/*
-	CONVERT
-
-	Iterate over the []ConfigSite and use modules/file loaders and template
-	parsers to collect all of the templates and data points. Put these into
-	an array of Site to be executed later.
-*/
-
-//Convert the []ConfigSite into a []Site by collecting all data and templates
-func Convert(configSites []*ConfigSite) ([]*Site, error) {
-	return convert(configSites)
-}
-
-func convert(configSites []*ConfigSite) ([]*Site, error) {
-	//Make the array that will store the converted sites
-	sites := []*Site{}
-
-	for _, configSite := range configSites {
-		//initalize a new Site with the correct slug
-		site := &Site{
-			Slug: configSite.Slug,
-		}
-
-		//collect data
-		err := gatherData(site, configSite.Data)
-		if err != nil {
-			return nil, err
-		}
-
-		//collect template
-		err = gatherTemplates(site, configSite.Templates)
-		if err != nil {
-			return nil, err
-		}
-
-		//add to finished sites
-		sites = append(sites, site)
-	}
-
-	return sites, nil
-}
-
 //collect data objects from modules
 //!!! need to implement post processors !!!
-func gatherData(site *Site, files []string) error {
-	for _, dataFileString := range files {
+func gatherData(site *Site, files []datafile) error {
+	for _, datafile := range files {
+		fmt.Println(datafile)
+
 		//init data if it is empty
 		if site.Data == nil {
 			site.Data = make(map[string]interface{})
 		}
 
-		//Split the dataFileString into its components using regexp
-		matches := dataFileStringSplitter.FindAllStringSubmatch(dataFileString, -1)
-
-		//split the loader by : and if there is no variable, define an empty one
-		loader := strings.SplitN(matches[0][1], ":", 2)
-		if len(loader) == 1 {
-			loader[1] = ""
-		}
-
-		//get the file using the defined module
-		file := FileLoaders[loader[0]].Load(loader[1])
-
-		//split the parser by : and if there is no variable, define an empty one
-		parser := strings.SplitN(matches[1][1], ":", 2)
-		if len(parser) == 1 {
-			parser = append(parser, "")
-		}
-
-		//parse the file using the defined module
-		parsed := FileParsers[parser[0]].Parse(file, parser[1])
+		//load and parse data
+		file := FileLoaders[datafile.loader].Load(datafile.file)
+		parsed := FileParsers[datafile.parser].Parse(file, datafile.parseArg)
 
 		//add the parsed data to the site data
 		for k, v := range parsed {
