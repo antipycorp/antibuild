@@ -82,28 +82,10 @@ func Unfold(configSite *ConfigSite) ([]*Site, error) {
 
 func unfold(cSite *ConfigSite, parent *ConfigSite) (sites []*Site, err error) {
 	if parent != nil {
-		if cSite.Data != nil {
-			cSite.Data = append(parent.Data, cSite.Data...)
-		} else {
-			cSite.Data = make([]datafile, len(parent.Data))
-			for i, s := range parent.Data {
-				cSite.Data[i] = s
-			}
-		}
-		if cSite.Templates != nil {
-			cSite.Templates = append(parent.Templates, cSite.Templates...)
-		} else {
-			cSite.Templates = make([]string, len(parent.Templates))
-			for i, s := range parent.Templates {
-				cSite.Templates[i] = s
-			}
-		}
-
-		cSite.Slug = parent.Slug + cSite.Slug
+		mergeConfigSite(cSite, parent)
 	}
 	//If this is the last in the chain, add it to the list of return values
 	if len(cSite.Sites) == 0 {
-		fmt.Println("last site!")
 		site := &Site{
 			Slug: cSite.Slug,
 		}
@@ -112,13 +94,12 @@ func unfold(cSite *ConfigSite, parent *ConfigSite) (sites []*Site, err error) {
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println("done with data stufs")
 
 		err = gatherTemplates(site, cSite.Templates)
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println("dont with the last site")
+		//append site to the list of sites that will be executed
 		sites = append(sites, site)
 		return sites, err
 	}
@@ -130,6 +111,27 @@ func unfold(cSite *ConfigSite, parent *ConfigSite) (sites []*Site, err error) {
 	}
 
 	return
+}
+
+func mergeConfigSite(cSite *ConfigSite, parent *ConfigSite) {
+	if cSite.Data != nil {
+		cSite.Data = append(parent.Data, cSite.Data...)
+	} else {
+		cSite.Data = make([]datafile, len(parent.Data))
+		for i, s := range parent.Data {
+			cSite.Data[i] = s
+		}
+	}
+	if cSite.Templates != nil {
+		cSite.Templates = append(parent.Templates, cSite.Templates...)
+	} else {
+		cSite.Templates = make([]string, len(parent.Templates))
+		for i, s := range parent.Templates {
+			cSite.Templates[i] = s
+		}
+	}
+
+	cSite.Slug = parent.Slug + cSite.Slug
 }
 
 //collect data objects from modules
