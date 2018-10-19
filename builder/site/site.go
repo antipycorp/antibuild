@@ -113,25 +113,26 @@ func unfold(cSite *ConfigSite, parent *ConfigSite) (sites []*Site, err error) {
 	return
 }
 
-func mergeConfigSite(cSite *ConfigSite, parent *ConfigSite) {
-	if cSite.Data != nil {
-		cSite.Data = append(parent.Data, cSite.Data...)
+//mergeConfigSite merges the src into the dst
+func mergeConfigSite(dst *ConfigSite, src *ConfigSite) {
+	if dst.Data != nil {
+		dst.Data = append(src.Data, dst.Data...)
 	} else {
-		cSite.Data = make([]datafile, len(parent.Data))
-		for i, s := range parent.Data {
-			cSite.Data[i] = s
+		dst.Data = make([]datafile, len(src.Data))
+		for i, s := range src.Data {
+			dst.Data[i] = s
 		}
 	}
-	if cSite.Templates != nil {
-		cSite.Templates = append(parent.Templates, cSite.Templates...)
+	if dst.Templates != nil {
+		dst.Templates = append(src.Templates, dst.Templates...)
 	} else {
-		cSite.Templates = make([]string, len(parent.Templates))
-		for i, s := range parent.Templates {
-			cSite.Templates[i] = s
+		dst.Templates = make([]string, len(src.Templates))
+		for i, s := range src.Templates {
+			dst.Templates[i] = s
 		}
 	}
 
-	cSite.Slug = parent.Slug + cSite.Slug
+	dst.Slug = src.Slug + dst.Slug
 }
 
 //collect data objects from modules
