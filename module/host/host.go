@@ -6,6 +6,7 @@ package host
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"math/rand"
 	"sync"
@@ -42,6 +43,7 @@ func Start(in io.Reader, out io.Writer) (moduleHost *ModuleHost, err error) {
 		for {
 			resp := moduleHost.con.GetResponse()
 			conn := moduleHost.getCon(resp.ID)
+			fmt.Println("connection:", conn)
 			conn.send <- resp
 		}
 	}()

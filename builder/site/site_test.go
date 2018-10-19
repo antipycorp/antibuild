@@ -42,8 +42,11 @@ var unfoldTests = []unfoldPair{
 	unfoldPair{
 		in: ConfigSite{
 			Slug: "/index.html",
-			Data: []string{
-				"[l:1][p]",
+			Data: []datafile{
+				datafile{loader: "l",
+					file:   "1",
+					parser: "p",
+				},
 			},
 			Templates: []string{
 				"t1",
