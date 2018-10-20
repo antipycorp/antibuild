@@ -1,4 +1,5 @@
 // +build module,json
+
 // Copyright © 2018 Antipy V.O.F. info@antipy.com
 //
 // Licensed under the MIT License
