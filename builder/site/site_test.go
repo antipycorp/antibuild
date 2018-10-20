@@ -32,6 +32,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+
 	err = ioutil.WriteFile("/tmp/templates/t1", []byte("{{define \"html\"}}hello darkness my old friend{{end}}"), 0777)
 	if err != nil {
 		panic(err)

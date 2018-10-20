@@ -147,8 +147,8 @@ func gatherData(site *Site, files []datafile) error {
 		}
 
 		//load and parse data
-		file := FileLoaders[datafile.loader].Load(datafile.file)
-		parsed := FileParsers[datafile.parser].Parse(file, datafile.parseArg)
+		file := FileLoaders[datafile.loader].Load(datafile.loaderArguments)
+		parsed := FileParsers[datafile.parser].Parse(file, datafile.parserArguments)
 
 		//add the parsed data to the site data
 		for k, v := range parsed {
