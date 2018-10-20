@@ -12,7 +12,7 @@ type (
 		file          string
 		parser        string
 		parseArg      string
-		postprocessor string //TODO I not used and will be probably be changed
+		postprocessor string //TODO Is not yet used and will be probably be changed
 	}
 )
 

@@ -1,3 +1,4 @@
+// +build !module
 // Copyright © 2018 Antipy V.O.F. info@antipy.com
 //
 // Licensed under the MIT License
@@ -9,6 +10,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.com/antipy/antibuild/cli/builder"
+	"gitlab.com/antipy/antibuild/cli/cmd/modules"
+	"gitlab.com/antipy/antibuild/cli/cmd/new"
 )
 
 const version = "v0.4.0"
@@ -57,9 +60,9 @@ func main() {
 	developCmd.Flags().StringVarP(&portDevelopCmd, "port", "p", "8080", "The port that is used to host the development server.")
 	buildCmd.Flags().StringVarP(&configFileBuildCmd, "config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
 
-	modulesCmd.AddCommand(modulesInstallCmd)
-	modulesCmd.AddCommand(modulesAddCmd)
-	modulesCmd.AddCommand(modulesRemoveCmd)
-	rootCmd.AddCommand(developCmd, buildCmd, newCmd, modulesCmd)
+	modules.ModulesCMD.AddCommand(modules.ModulesInstallCMD)
+	modules.ModulesCMD.AddCommand(modules.ModulesAddCMD)
+	modules.ModulesCMD.AddCommand(modules.ModulesRemoveCMD)
+	rootCmd.AddCommand(developCmd, buildCmd, new.NewCmd, modules.ModulesCMD)
 	rootCmd.Execute()
 }

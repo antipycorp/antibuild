@@ -13,7 +13,7 @@ import (
 
 	"gitlab.com/antipy/antibuild/cli/builder/site"
 
-	_ "gitlab.com/antipy/antibuild/cli/module/internal"
+	//_ "gitlab.com/antipy/antibuild/cli/module/internal"
 	"gitlab.com/antipy/antibuild/cli/module/protocol"
 )
 
@@ -337,7 +337,7 @@ func templateFunctionsHandle(command string, r protocol.Token, m *Module) {
 
 func fileLoadersHandle(command string, r protocol.Token, m *Module) {
 	if m.fileLoaders[command].Function == nil {
-		fmt.Fprintf(os.Stderr, "does not exist:", m.name)
+		fmt.Fprintf(os.Stderr, "does not exist: %s", m.name)
 		r.Respond(ErrInvalidCommand)
 		return
 	}
@@ -368,7 +368,7 @@ func fileLoadersHandle(command string, r protocol.Token, m *Module) {
 
 func fileParsersHandle(command string, r protocol.Token, m *Module) {
 	if m.fileParsers[command].Function == nil {
-		fmt.Fprintf(os.Stderr, "does not exist:", m.name)
+		fmt.Fprintf(os.Stderr, "does not exist: %s", m.name)
 		r.Respond(ErrInvalidCommand)
 		return
 	}
