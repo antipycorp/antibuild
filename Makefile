@@ -4,8 +4,9 @@ binary := antibuild
 outbinary := $(binary)
 debugflags = -gcflags=all="-N -l" 
 filetags = -tags 'module file'
-firebasetags = -tags 'module firebase'
 jsontags = -tags 'module json'
+languagetags = -tags 'module language'
+noescapetags = -tags 'module noescape'
 
 $(binary): $(shell find . -name '*.go' -type f)
 	go build -o $(outbinary)
@@ -13,8 +14,11 @@ $(binary): $(shell find . -name '*.go' -type f)
 file: $(shell find . -name '*.go' -type f)
 	go build -o $(outbinary) $(filetags)
 
-firebase: $(shell find . -name '*.go' -type f)
-	go build -o $(outbinary) $(firebasetags)
-
 json: $(shell find . -name '*.go' -type f)
 	go build -o $(outbinary) $(jsontags)
+
+language: $(shell find . -name '*.go' -type f)
+	go build -o $(outbinary) $(languagetags)
+
+noescape: $(shell find . -name '*.go' -type f)
+	go build -o $(outbinary) $(noescapetags)

@@ -12,7 +12,7 @@ import (
 	"os"
 
 	"gitlab.com/antipy/antibuild/cli/builder/site"
-	"gitlab.com/antipy/antibuild/cli/module/host"
+	"gitlab.com/antipy/antibuild/api/host"
 	UI "gitlab.com/antipy/antibuild/cli/ui"
 )
 

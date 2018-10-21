@@ -1,4 +1,4 @@
-// +build module,firebase
+// +build module,noescape
 
 // Copyright © 2018 Antipy V.O.F. info@antipy.com
 //
@@ -9,10 +9,10 @@ package cmd
 import (
 	"os"
 
-	modFirebase "gitlab.com/antipy/antibuild/cli/internalmods/firebase"
+	modNoESC "gitlab.com/antipy/antibuild/cli/internalmods/noescape"
 )
 
 //Start starts the module indicated by build-flags
 func Start() {
-	modFirebase.Start(os.Stdin, os.Stdout)
+	modNoESC.Start(os.Stdin, os.Stdout)
 }

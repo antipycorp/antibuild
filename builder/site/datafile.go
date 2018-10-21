@@ -32,7 +32,7 @@ func (df *datafile) UnmarshalJSON(data []byte) error {
 	loader := data[i1+1 : i2]
 	data = data[i2+1:]
 
-	//get all the arguments for the fileLoader
+	//get all the arguments for the loader
 	sep := bytes.Split(loader, []byte(":"))
 	if len(sep) >= 2 {
 		df.loader = string(sep[0])
