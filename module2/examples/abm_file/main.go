@@ -2,28 +2,23 @@
 //
 // Licensed under the MIT License
 
-package file
+package main
 
 import (
-	"fmt"
-	"io"
 	"io/ioutil"
 
-	abm "gitlab.com/antipy/antibuild/api/client"
+	abm "gitlab.com/antipy/antibuild/cli/module/client"
 )
 
-//Start starts the file module
-func Start(in io.Reader, out io.Writer) {
+func main() {
 	module := abm.Register("file")
 
 	module.FileLoaderRegister("file", loadFile)
 
-	module.CustomStart(in, out)
+	module.Start()
 }
 
 func loadFile(w abm.FLRequest, r *abm.FLResponse) {
-	fmt.Println("new f request")
-
 	if w.Variable == "" {
 		r.Error = abm.ErrInvalidInput
 		return
@@ -34,7 +29,6 @@ func loadFile(w abm.FLRequest, r *abm.FLResponse) {
 		r.Error = err
 		return
 	}
-	//fmt.Println("new file:", string(file))
 
 	r.Data = file
 }

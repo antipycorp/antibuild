@@ -2,24 +2,22 @@
 //
 // Licensed under the MIT License
 
-package json
+package main
 
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 
-	abm "gitlab.com/antipy/antibuild/api/client"
+	abm "gitlab.com/antipy/antibuild/cli/module/client"
 )
 
-//Start starts the file module
-func Start(in io.Reader, out io.Writer) {
+func main() {
 	module := abm.Register("json")
 
 	module.FileParserRegister("json", parseJSON)
 
-	module.CustomStart(in, out)
+	module.Start()
 }
 
 func parseJSON(w abm.FPRequest, r *abm.FPResponse) {

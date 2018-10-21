@@ -11,9 +11,10 @@ import (
 
 	"gitlab.com/antipy/antibuild/cli/builder/site"
 	modFile "gitlab.com/antipy/antibuild/cli/internalmods/file"
-	modFirebase "gitlab.com/antipy/antibuild/cli/internalmods/firebase"
 	modJSON "gitlab.com/antipy/antibuild/cli/internalmods/json"
-	"gitlab.com/antipy/antibuild/cli/module/host"
+	modLang "gitlab.com/antipy/antibuild/cli/internalmods/language"
+	modNoESC "gitlab.com/antipy/antibuild/cli/internalmods/noescape"
+	"gitlab.com/antipy/antibuild/api/host"
 )
 
 type (
@@ -59,15 +60,20 @@ var (
 			name:    "file",
 			start:   modFile.Start,
 		},
-		"firebase": internalMod{
-			version: "0.0.1",
-			name:    "firebase",
-			start:   modFirebase.Start,
-		},
 		"json": internalMod{
 			version: "0.0.1",
 			name:    "json",
 			start:   modJSON.Start,
+		},
+		"language": internalMod{
+			version: "0.0.1",
+			name:    "language",
+			start:   modLang.Start,
+		},
+		"noescape": internalMod{
+			version: "0.0.1",
+			name:    "noescape",
+			start:   modNoESC.Start,
 		},
 	}
 )

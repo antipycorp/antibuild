@@ -2,12 +2,11 @@
 //
 // Licensed under the MIT License
 
-package firebase
+package main
 
 import (
 	"context"
 	"fmt"
-	"io"
 	"os"
 
 	"firebase.google.com/go"
@@ -16,14 +15,13 @@ import (
 	abm "gitlab.com/antipy/antibuild/cli/module/client"
 )
 
-//Start starts the file module
-func Start(in io.Reader, out io.Writer) {
+func main() {
 	module := abm.Register("firebase")
 
 	module.FileLoaderRegister("path", firebasePath)
 	module.FileParserRegister("get", getFromFirebase)
 
-	module.CustomStart(in, out)
+	module.Start()
 }
 
 func firebasePath(w abm.FLRequest, r *abm.FLResponse) {
