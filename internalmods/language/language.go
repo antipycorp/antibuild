@@ -79,36 +79,26 @@ func languageProcess(w abm.SPPRequest, r *abm.SPPResponse) {
 			}
 
 			var newData = make(map[string]interface{})
-			for i, v := range page.Data {
-				newData[i] = v
-			}
-
-			for _, lang := range languages {
-				if lang != language {
-					delete(newData, lang)
-				}
-			}
-
 			var ok bool
-			var correctLanguageData = make(map[interface{}]interface{})
-			if newData[language] != nil {
-				fmt.Fprint(os.Stderr, reflect.TypeOf(newData[language]), "\n")
-				if correctLanguageData, ok = newData[language].(map[interface{}]interface{}); !ok {
-					fmt.Fprint(os.Stderr, newData, "\n")
-					fmt.Fprint(os.Stderr, correctLanguageData, "\n")
-					r.Error = abm.ErrInvalidInput
-					return
-				}
-			}
+			var langData map[string]interface{}
 
-			for i, v := range correctLanguageData {
-				if k, ok := i.(string); ok {
-					newData[k] = v
+			for i, v := range page.Data {
+				if i == language { //if this the language we asked for
+
+					fmt.Fprint(os.Stderr, reflect.TypeOf(v), " is the type\n")
+					if langData, ok = v.(map[string]interface{}); !ok {
+						fmt.Fprint(os.Stderr, v, "\n")
+						fmt.Fprint(os.Stderr, langData, "\n")
+						r.Error = abm.ErrInvalidInput
+						return
+					}
+
+					for datk, v := range langData {
+						newData[datk] = v
+					}
 				} else {
-					r.Error = abm.ErrInvalidInput
-					return
+					newData[i] = v
 				}
-
 			}
 
 			r.Data = append(r.Data, &site.Site{
