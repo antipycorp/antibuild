@@ -81,24 +81,42 @@ func languageProcess(w abm.SPPRequest, r *abm.SPPResponse) {
 			var newData = make(map[string]interface{})
 			var ok bool
 			var langData map[string]interface{}
+			var langDataINTF map[interface{}]interface{}
 
 			for i, v := range page.Data {
 				if i == language { //if this the language we asked for
 
 					fmt.Fprint(os.Stderr, reflect.TypeOf(v), " is the type\n")
 					if langData, ok = v.(map[string]interface{}); !ok {
-						fmt.Fprint(os.Stderr, v, "\n")
-						fmt.Fprint(os.Stderr, langData, "\n")
-						r.Error = abm.ErrInvalidInput
-						return
+						/* This is really shitty, but some serializers support non-strings as keys,
+						and after the first layer it will use whatever it finds cool.
+						hence we also chec if it can be converted to a string*/
+						if langDataINTF, ok = v.(map[interface{}]interface{}); !ok {
+							fmt.Fprint(os.Stderr, v, "\n")
+							fmt.Fprint(os.Stderr, langDataINTF, "\n")
+							r.Error = abm.ErrInvalidInput
+							return
+						}
+						// Finaly converting the key to a string, I really hate this
+						for i, v := range langDataINTF {
+							if k, ok := i.(string); ok {
+								newData[k] = v
+							} else {
+								r.Error = abm.ErrInvalidInput
+								return
+							}
+
+						}
+						continue
+
 					}
 
 					for datk, v := range langData {
 						newData[datk] = v
 					}
-				} else {
-					newData[i] = v
+					continue
 				}
+				newData[i] = v
 			}
 
 			r.Data = append(r.Data, &site.Site{
