@@ -22,7 +22,7 @@ require (
 	github.com/sirupsen/logrus v1.1.1 // indirect
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/pflag v1.0.3 // indirect
-	gitlab.com/antipy/antibuild/api v0.0.1
+	gitlab.com/antipy/antibuild/api v0.0.2
 	go.opencensus.io v0.17.0 // indirect
 	golang.org/x/arch v0.0.0-20180920145803-b19384d3c130 // indirect
 	golang.org/x/net v0.0.0-20181011144130-49bb7cea24b1 // indirect

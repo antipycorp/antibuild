@@ -12,7 +12,7 @@ import (
 	"firebase.google.com/go"
 	"google.golang.org/api/option"
 
-	abm "gitlab.com/antipy/antibuild/cli/module/client"
+	abm "gitlab.com/antipy/antibuild/api/client"
 )
 
 func main() {
