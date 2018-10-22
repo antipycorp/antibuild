@@ -88,9 +88,11 @@ func languageProcess(w abm.SPPRequest, r *abm.SPPResponse) {
 
 					fmt.Fprint(os.Stderr, reflect.TypeOf(v), " is the type\n")
 					if langData, ok = v.(map[string]interface{}); !ok {
+
 						/* This is really shitty, but some serializers support non-strings as keys,
 						and after the first layer it will use whatever it finds cool.
-						hence we also chec if it can be converted to a string*/
+						hence we also chec if it can be converted to a string */
+
 						if langDataINTF, ok = v.(map[interface{}]interface{}); !ok {
 							fmt.Fprint(os.Stderr, v, "\n")
 							fmt.Fprint(os.Stderr, langDataINTF, "\n")
@@ -105,10 +107,8 @@ func languageProcess(w abm.SPPRequest, r *abm.SPPResponse) {
 								r.Error = abm.ErrInvalidInput
 								return
 							}
-
 						}
 						continue
-
 					}
 
 					for datk, v := range langData {
