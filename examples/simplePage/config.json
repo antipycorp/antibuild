@@ -38,7 +38,7 @@
                 "slug": "/index.html",
                 "templates": [],
                 "data": [
-                    "[file_file:data/pages/Home.yml][yaml_yaml]"
+                    "[file_file:data/pages/Home.json][json_json]"
                 ]
             }
         ]

@@ -94,6 +94,8 @@ func languageProcess(w abm.SPPRequest, r *abm.SPPResponse) {
 			if newData[language] != nil {
 				fmt.Fprint(os.Stderr, reflect.TypeOf(newData[language]), "\n")
 				if correctLanguageData, ok = newData[language].(map[interface{}]interface{}); !ok {
+					fmt.Fprint(os.Stderr, newData, "\n")
+					fmt.Fprint(os.Stderr, correctLanguageData, "\n")
 					r.Error = abm.ErrInvalidInput
 					return
 				}
