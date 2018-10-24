@@ -76,6 +76,7 @@ func buildOnRefresh(config *Config, configLocation string) {
 				info, err := os.Lstat(config.Folders.Static)
 				if err != nil {
 					fmt.Println("couldn't move files form static to out: ", err.Error())
+					continue
 				}
 
 				genCopy(config.Folders.Static, config.Folders.Output, info)

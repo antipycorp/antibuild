@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"io"
 	"net"
 
 	tm "github.com/buger/goterm"
@@ -21,6 +22,7 @@ type Warning struct {
 
 //UI is the way to display stuff on the console.
 type UI struct {
+	LogFile        io.Writer
 	HostingEnabled bool
 	Port           string
 	succes         bool
@@ -129,14 +131,22 @@ func getIP() string {
 }
 
 func (ui *UI) Info(err string) {
-	ui.log = append(ui.log, tm.Color(tm.Bold("Info:."), tm.BLUE)+err+"\n")
+	entry := tm.Color(tm.Bold("Info:."), tm.BLUE) + err + "\n"
+	ui.log = append(ui.log, entry)
+	ui.LogFile.Write([]byte(entry + "\n"))
 }
 
 func (ui *UI) Error(err string) {
-	ui.log = append(ui.log, tm.Color(tm.Bold("Error:."), tm.YELLOW)+err+"\n")
+	entry := tm.Color(tm.Bold("Error:."), tm.YELLOW) + err + "\n"
+	ui.log = append(ui.log, entry)
+	ui.LogFile.Write([]byte(entry + "\n"))
+
 }
 
 func (ui *UI) Fatal(err string) {
-	ui.log = append(ui.log, tm.Color(tm.Bold("Failled to compile:"), tm.RED)+err+"\n")
+	entry := tm.Color(tm.Bold("Failled to compile:"), tm.RED) + err + "\n"
+	ui.log = append(ui.log, entry)
+	ui.LogFile.Write([]byte(entry + "\n"))
+
 	ui.succes = false
 }
