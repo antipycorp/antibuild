@@ -23,12 +23,14 @@ type Warning struct {
 type UI struct {
 	HostingEnabled bool
 	Port           string
+	succes         bool
+	log            []string
 }
 
 //ShowCompiling should be shown when you start compiling
 func (ui *UI) ShowCompiling() {
-	tm.Clear()
-	tm.MoveCursor(1, 1)
+	//tm.Clear()
+	//tm.MoveCursor(1, 1)
 
 	tm.Print("" +
 		"Compiling...\n" +
@@ -37,22 +39,27 @@ func (ui *UI) ShowCompiling() {
 	tm.Flush()
 }
 
-//ShowBuiltSuccess should be shown when something builds successfully
-func (ui *UI) ShowBuiltSuccess() {
+//ShowResult should be shown when something builds successfully
+func (ui *UI) ShowResult() {
 	tm.Clear()
 	tm.MoveCursor(1, 1)
+	if len(ui.log) != 0 {
+		if ui.succes {
+			tm.Print(tm.Color(tm.Bold("Compiles With Warnings:"), tm.YELLOW) + "\n")
+		} else {
+			tm.Print(tm.Color(tm.Bold("Failed to compile:"), tm.YELLOW) + "\n")
+		}
+	} else {
+		tm.Print(tm.Color(tm.Bold("Compiled successfully."), tm.GREEN) + "\n\n")
 
+	}
 	if !ui.HostingEnabled {
 		tm.Print("" +
-			tm.Color(tm.Bold("Compiled successfully."), tm.GREEN) + "\n" +
-			"\n" +
 			"The " + tm.Color(tm.Bold("build"), tm.BLUE) + " folder is ready to be deployed.\n" +
 			"You should serve it with a static server.\n" +
 			"")
 	} else {
 		tm.Print("" +
-			tm.Color(tm.Bold("Compiled successfully."), tm.GREEN) + "\n" +
-			"\n" +
 			"You can now view your project in the browser.\n" +
 			"   Local:            http://localhost:" + ui.Port + "/\n" +
 			"   On Your Network:  http://" + getIP() + ":" + ui.Port + "/\n" +
@@ -60,6 +67,14 @@ func (ui *UI) ShowBuiltSuccess() {
 			"Note that the development build is not optimized. \n" +
 			"To create a production build, use " + tm.Color(tm.Bold("antibuild build"), tm.BLUE) + ".\n" +
 			"")
+	}
+	if len(ui.log) != 0 {
+		tm.Print("\n" +
+			tm.Color(tm.Bold("the following errors have occured:"), tm.YELLOW) + "\n")
+
+		for _, e := range ui.log { //e for entry
+			tm.Print(e + "\n")
+		}
 	}
 
 	tm.Flush()
@@ -111,4 +126,17 @@ func getIP() string {
 	}
 
 	return ""
+}
+
+func (ui *UI) Info(err string) {
+	ui.log = append(ui.log, tm.Color(tm.Bold("Info:."), tm.BLUE)+err+"\n")
+}
+
+func (ui *UI) Error(err string) {
+	ui.log = append(ui.log, tm.Color(tm.Bold("Error:."), tm.YELLOW)+err+"\n")
+}
+
+func (ui *UI) Fatal(err string) {
+	ui.log = append(ui.log, tm.Color(tm.Bold("Failled to compile:"), tm.RED)+err+"\n")
+	ui.succes = false
 }

@@ -117,3 +117,8 @@ var NewCmd = &cobra.Command{
 		fmt.Println("Failed.")
 	},
 }
+
+//SetCommands sets the commands for this package to the cmd argument
+func SetCommands(cmd *cobra.Command){
+	cmd.AddCommand(NewCmd)
+	}

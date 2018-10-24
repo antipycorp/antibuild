@@ -22,3 +22,6 @@ language: $(shell find . -name '*.go' -type f)
 
 noescape: $(shell find . -name '*.go' -type f)
 	go build -o $(outbinary) $(noescapetags)
+
+clean:
+	rm $(binary)
