@@ -5,7 +5,6 @@
 package builder
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -23,6 +22,14 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 		ui.Fatal("Could not parse the config file")
 		return
 	}
+
+	file, err := os.OpenFile(config.LogFile, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0660)
+	if err != nil {
+		ui.Fatal(err.Error())
+	}
+	file.Seek(0, 0)
+	ui.LogFile = file
+
 	config.uilogger = ui
 
 	if isConfigSet {
@@ -64,32 +71,22 @@ func startParse(config *Config) error {
 	return nil
 }
 
-//parses the config file
+//parses the config file and check for any missing information
 func parseConfig(configLocation string) (*Config, error) {
-	var config Config
-
-	//open the file
-	configFile, err := os.Open(configLocation)
-	defer configFile.Close()
+	config, err := GetConfig(configLocation)
 	if err != nil {
-		return nil, errors.New("could not open the config file: " + err.Error())
-	}
-
-	dec := json.NewDecoder(configFile)
-	err = dec.Decode(&config)
-	if err != nil {
-		return &config, err
+		return config, err
 	}
 
 	if config.Folders.Templates == "" {
-		return &config, errors.New("template folder not set")
+		return config, errors.New("template folder not set")
 	}
 
 	if config.Folders.Output == "" {
-		return &config, errors.New("output folder not set")
+		return config, errors.New("output folder not set")
 	}
 
-	return &config, nil
+	return config, nil
 }
 
 //start the template execution

@@ -12,6 +12,9 @@ import (
 	"gitlab.com/antipy/antibuild/cli/internal"
 )
 
+
+var configFile string
+
 // ModulesCMD represents the modules command
 var ModulesCMD = &cobra.Command{
 	Use: "modules",
@@ -32,7 +35,11 @@ var ModulesAddCMD = &cobra.Command{
 	Long:  `Adds and downloads a module.`,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		config := builder.GetConfig()
+		config, err := builder.GetConfig(configFile)
+		if err != nil{
+			fmt.Println("Failled in life!")//TODO make this propper UI stuff
+		}
+
 		newModule := args[0]
 
 		if config.Modules.Dependencies[newModule] != "" {
@@ -43,9 +50,9 @@ var ModulesAddCMD = &cobra.Command{
 
 		config.Modules.Dependencies[newModule] = "0.0.1"
 
-		builder.SaveConfig(config)
+		builder.SaveConfig(configFile, config)
 
-		err := installModule(newModule)
+		err = installModule(newModule)
 		checkModuleErr(err)
 		tm.Print(tm.Color(tm.Bold("Downloading "+newModule+" at version "+config.Modules.Dependencies[newModule]+"..."), tm.BLUE))
 		tm.Flush()
@@ -67,7 +74,10 @@ var ModulesRemoveCMD = &cobra.Command{
 	Long:  `Removes and deletes a module.`,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		config := builder.GetConfig()
+		config, err := builder.GetConfig(configFile)
+		if err != nil{
+			fmt.Println("Failled in life!")//TODO make this propper UI stuff
+		}
 		newModule := args[0]
 
 		if config.Modules.Dependencies[newModule] == "" {
@@ -78,9 +88,9 @@ var ModulesRemoveCMD = &cobra.Command{
 
 		delete(config.Modules.Dependencies, newModule)
 
-		builder.SaveConfig(config)
+		builder.SaveConfig(configFile, config)
 
-		err := os.Remove(".modules/abm_" + newModule)
+		err = os.Remove(".modules/abm_" + newModule)
 		if err != nil {
 			fmt.Println(err.Error())
 			return
@@ -102,7 +112,10 @@ var ModulesInstallCMD = &cobra.Command{
 	Short: "Install all modules defined in the config file.",
 	Long:  `Will install all modules defined in the config file at the right versions and OS/ARCH.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		config := builder.GetConfig()
+		config, err := builder.GetConfig(configFile)
+		if err != nil{
+			fmt.Println("Failled in life!")//TODO make this propper UI stuff
+		}
 
 		for moduleName, version := range config.Modules.Dependencies {
 			tm.Print(tm.Color(tm.Bold("Downloading "+moduleName+" at version "+version+"..."), tm.BLUE))
@@ -168,6 +181,10 @@ func checkModuleErr(err error) {
 
 //SetCommands sets the commands for this package to the cmd argument
 func SetCommands(cmd *cobra.Command){
+	ModulesInstallCMD.Flags().StringVarP(&configFile, "config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
+	ModulesAddCMD.Flags().StringVarP(&configFile, "config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
+	ModulesRemoveCMD.Flags().StringVarP(&configFile, "config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
+
 	ModulesCMD.AddCommand(ModulesInstallCMD)
 	ModulesCMD.AddCommand(ModulesAddCMD)
 	ModulesCMD.AddCommand(ModulesRemoveCMD)

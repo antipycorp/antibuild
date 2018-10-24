@@ -3,26 +3,8 @@
         "templates": "templates/",
         "output": "public/",
         "modules": ".modules/"
-    },
-    "modules": {
-        "dependencies": {
-            "file": "0.0.1",
-            "json": "0.0.1",
-            "language": "0.0.2"
-        },
-        "config": {
-            "language": {
-                "languages": [
-                    "en",
-                    "nl"
-                ],
-                "default": "en"
-            }
-        },
-        "site_post_processors": [
-            "language_language"
-        ]
-    },
+	},
+	"logfile":"abm.log",
     "pages": {
         "slug": "",
         "templates": [
@@ -39,6 +21,25 @@
                     "[file_file:data/pages/Home.json][json_json]"
                 ]
             }
+        ]
+	},
+	"modules": {
+        "dependencies": {
+            "file": "0.0.1",
+            "json": "0.0.1",
+            "language": "0.0.2"
+        },
+        "config": {
+            "language": {
+                "languages": [
+                    "en",
+                    "nl"
+                ],
+                "default": "en"
+            }
+        },
+        "site_post_processors": [
+            "language_language"
         ]
     }
 }

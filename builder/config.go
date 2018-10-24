@@ -2,6 +2,7 @@ package builder
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 
@@ -10,11 +11,10 @@ import (
 	UI "gitlab.com/antipy/antibuild/cli/ui"
 )
 
-const configPath = "config.json"
-
 type (
 	//Config is the config struct
 	Config struct {
+		LogFile    string           `json:"logfile"`
 		Folders    ConfigFolder     `json:"folders"`
 		Modules    ConfigModules    `json:"modules"`
 		Pages      *site.ConfigSite `json:"pages"`
@@ -54,30 +54,28 @@ type (
 	}
 )
 
-//GetConfig gets the config file
-func GetConfig() (config *Config) {
-	config = new(Config)
-	file, err := os.Open(configPath)
+//GetConfig gets the config file. DOES NOT CHECK FOR MISSIN INFORMATION!!
+func GetConfig(configLocation string) (config *Config, err error) {
+	configFile, err := os.Open(configLocation)
+	defer configFile.Close()
 	if err != nil {
-		fmt.Println(err)
-		return
+		return nil, errors.New("could not open the config file: " + err.Error())
 	}
 
-	err = json.NewDecoder(file).Decode(config)
+	dec := json.NewDecoder(configFile)
+	err = dec.Decode(&config)
 	if err != nil {
-		fmt.Println(err)
-		return
+		return config, err
 	}
-
 	return
 }
 
 //SaveConfig saves the config file
-func SaveConfig(config *Config) {
-	file, err := os.Create(configPath)
+func SaveConfig(configLocation string, config *Config) (err error) {
+	file, err := os.Create(configLocation)
 	if err != nil {
 		fmt.Println(err)
-		return
+		return err
 	}
 
 	encoder := json.NewEncoder(file)
@@ -85,8 +83,8 @@ func SaveConfig(config *Config) {
 	err = encoder.Encode(config)
 	if err != nil {
 		fmt.Println(err)
-		return
+		return err
 	}
 
-	return
+	return nil
 }
