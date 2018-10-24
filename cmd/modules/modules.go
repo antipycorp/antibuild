@@ -165,3 +165,12 @@ func checkModuleErr(err error) {
 		tm.Flush()
 	}
 }
+
+//SetCommands sets the commands for this package to the cmd argument
+func SetCommands(cmd *cobra.Command){
+	ModulesCMD.AddCommand(ModulesInstallCMD)
+	ModulesCMD.AddCommand(ModulesAddCMD)
+	ModulesCMD.AddCommand(ModulesRemoveCMD)
+
+	cmd.AddCommand(ModulesCMD)
+	}

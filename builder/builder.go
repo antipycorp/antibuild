@@ -12,84 +12,56 @@ import (
 	"os"
 
 	"gitlab.com/antipy/antibuild/cli/builder/site"
-	"gitlab.com/antipy/antibuild/api/host"
 	UI "gitlab.com/antipy/antibuild/cli/ui"
 )
 
-type (
-	Config struct {
-		Folders    ConfigFolder     `json:"folders"`
-		Modules    ConfigModules    `json:"modules"`
-		Pages      *site.ConfigSite `json:"pages"`
-		moduleHost map[string]*host.ModuleHost
-	}
-
-	//ConfigFolder is the part of the config file that handles folders
-	ConfigFolder struct {
-		Templates string `json:"templates"`
-		Static    string `json:"static"`
-		Output    string `json:"output"`
-		Modules   string `json:"modules"`
-	}
-
-	//ConfigModules is the part of the config file that handles modules
-	ConfigModules struct {
-		Dependencies       map[string]string                 `json:"dependencies"`
-		Config             map[string]map[string]interface{} `json:"config"`
-		SitePostProcessors []string                          `json:"site_post_processors"`
-	}
-)
-
-var ui = &UI.UI{}
-
 //Start the build process
 func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSet bool, port string) {
+	ui := &UI.UI{}
+	config, configErr := parseConfig(configLocation)
+	if configErr != nil {
+		ui.Fatal("Could not parse the config file")
+		return
+	}
+	config.uilogger = ui
+
 	if isConfigSet {
 		ui.HostingEnabled = isHost
 		ui.Port = port
 
-		config, parseErr := startParse(configLocation)
+		if isHost {
+			go hostLocally(config, port)
+		}
+
+		if isRefreshEnabled { // if refresh is enabled run the refresh, if it returns return
+			buildOnRefresh(config, configLocation)
+			return
+		}
+
+		parseErr := startParse(config)
 		if parseErr != nil {
 			log.Fatal(parseErr.Error())
-		}
-
-		if isHost {
-			hostLocally(config, port)
-		}
-
-		if isRefreshEnabled {
-			buildOnRefresh(config, configLocation)
+			return
 		}
 	}
 }
 
-func startParse(configLocation string) (*Config, error) {
-	//show compiling on ui
-	ui.ShowCompiling()
+func startParse(config *Config) error {
 
-	//reparse the config
-	config, configErr := parseConfig(configLocation)
-	if configErr != nil {
-		return config, configErr
-	}
+	config.uilogger.ShowCompiling()
 
-	//check if modules have already been loaded
-	if loadedModules == false {
-		//load modules and make sure they dont get loaded again
-		loadModules(config)
-		loadedModules = true
-	}
+	loadModules(config) // loadModules checks if modules are already loaded
 
 	//actually run the template
 	templateErr := executeTemplate(config)
 	if templateErr != nil {
 		fmt.Println("failed building templates: ", templateErr.Error())
-		return config, templateErr
+		return templateErr
 	}
 
 	//print finish time
-	ui.ShowBuiltSuccess()
-	return config, nil
+	config.uilogger.ShowResult()
+	return nil
 }
 
 //parses the config file

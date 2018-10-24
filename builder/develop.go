@@ -36,6 +36,11 @@ func hostLocally(config *Config, port string) {
 
 //watches files and folders and rebuilds when things change
 func buildOnRefresh(config *Config, configLocation string) {
+	ui := config.uilogger // the UI logger cannot change
+	ui.Info("making a refresh")
+
+	startParse(config)
+
 	//initalze watchers
 	watcher, err := fsnotify.NewWatcher()
 	staticWatcher, err := fsnotify.NewWatcher()
@@ -88,8 +93,15 @@ func buildOnRefresh(config *Config, configLocation string) {
 			if !ok {
 				return
 			}
+			ui.Info("making a refresh")
+			config, configErr := parseConfig(configLocation)
+			if configErr != nil {
+				ui.Fatal("Could not parse the config file")
+				return
+			}
+			config.uilogger = ui
 
-			startParse(configLocation)
+			startParse(config)
 		case err, ok := <-watcher.Errors:
 			if !ok {
 				return

@@ -9,12 +9,12 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"gitlab.com/antipy/antibuild/api/host"
 	"gitlab.com/antipy/antibuild/cli/builder/site"
 	modFile "gitlab.com/antipy/antibuild/cli/internalmods/file"
 	modJSON "gitlab.com/antipy/antibuild/cli/internalmods/json"
 	modLang "gitlab.com/antipy/antibuild/cli/internalmods/language"
 	modNoESC "gitlab.com/antipy/antibuild/cli/internalmods/noescape"
-	"gitlab.com/antipy/antibuild/api/host"
 )
 
 type (
@@ -66,7 +66,7 @@ var (
 			start:   modJSON.Start,
 		},
 		"language": internalMod{
-			version: "0.0.1",
+			version: "0.0.2",
 			name:    "language",
 			start:   modLang.Start,
 		},
@@ -80,6 +80,10 @@ var (
 
 //communicates with modules to load them
 func loadModules(config *Config) {
+	if loadedModules {
+		return
+	}
+
 	//make a refrence to keep all module (data) in
 	config.moduleHost = make(map[string]*host.ModuleHost, len(config.Modules.Dependencies))
 
