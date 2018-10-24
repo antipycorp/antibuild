@@ -130,6 +130,7 @@ func getIP() string {
 	return ""
 }
 
+//TODO make this check for some boolean to check if using propper formatting or noob text-only(for text editors)
 func (ui *UI) Info(err string) {
 	entry := tm.Color(tm.Bold("Info:."), tm.BLUE) + err + "\n"
 	ui.log = append(ui.log, entry)
