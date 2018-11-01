@@ -7,14 +7,15 @@ import (
 	"os"
 
 	"gitlab.com/antipy/antibuild/api/host"
+	"gitlab.com/antipy/antibuild/cli/modules"
+
 	"gitlab.com/antipy/antibuild/cli/builder/site"
-	UI "gitlab.com/antipy/antibuild/cli/ui"
 )
 
 type (
 	//Config is the config struct
 	Config struct {
-		LogFile    string           `json:"logfile"`
+		LogConfig  configLog        `json:"logfile"`
 		Folders    ConfigFolder     `json:"folders"`
 		Modules    ConfigModules    `json:"modules"`
 		Pages      *site.ConfigSite `json:"pages"`
@@ -31,9 +32,14 @@ type (
 
 	//ConfigModules is the part of the config file that handles modules
 	ConfigModules struct {
-		Dependencies       map[string]string                 `json:"dependencies"`
-		Config             map[string]map[string]interface{} `json:"config"`
-		SitePostProcessors []string                          `json:"site_post_processors"`
+		Dependencies       map[string]string               `json:"dependencies"`
+		Config             map[string]modules.ModuleConfig `json:"config"`
+		SitePostProcessors []string                        `json:"site_post_processors"`
+	}
+
+	configLog struct {
+		File       string `json:"file"`
+		PretyPrint bool   `json:"pretyprint"`
 	}
 
 	uilogger interface {
@@ -44,7 +50,6 @@ type (
 	ui1 interface {
 		ShowCompiling()
 		ShowResult()
-		ShowBuiltWarning(warn UI.Warning, page string, line string, data []interface{})
 	}
 
 	logger interface {
@@ -86,5 +91,25 @@ func SaveConfig(configLocation string, config *Config) (err error) {
 		return err
 	}
 
+	return nil
+}
+
+func (l *configLog) UnmarshalJSON(data []byte) error {
+	defer fmt.Println(l.File)
+	switch data[0] {
+	case '{':
+		cfg := struct {
+			File       string `json:"file"`
+			PretyPrint bool   `json:"pretyprint"`
+		}{}
+		if err := json.Unmarshal(data, &cfg); err != nil {
+			return err
+		}
+		*l = cfg //converts cfg to a propper configLog
+	default:
+		if err := json.Unmarshal(data, &l.File); err != nil {
+			return err
+		}
+	}
 	return nil
 }

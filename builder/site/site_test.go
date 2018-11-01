@@ -80,7 +80,7 @@ func (p fParser) Parse(data []byte, useless string) (ret map[string]interface{})
 func TestUnfold(t *testing.T) {
 	for _, test := range unfoldTests {
 		fmt.Println(test.in)
-		dat, _ := (Unfold(&test.in))
+		dat, _ := (Unfold(&test.in, nil))
 		test.res = dat
 		if dat[0].Slug != test.out[0].Slug {
 			t.FailNow()

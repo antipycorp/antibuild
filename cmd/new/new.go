@@ -65,8 +65,8 @@ var newSurvey = []*survey.Question{
 	},
 }
 
-// NewCmd represents the new command
-var NewCmd = &cobra.Command{
+// newCMD represents the new command
+var newCMD = &cobra.Command{
 	Use:   "new",
 	Short: "Make a new antibuild project.",
 	Long:  `Generate a new antibuild project. To get started run "antibuild new" and follow the prompts.`,
@@ -120,5 +120,5 @@ var NewCmd = &cobra.Command{
 
 //SetCommands sets the commands for this package to the cmd argument
 func SetCommands(cmd *cobra.Command){
-	cmd.AddCommand(NewCmd)
-	}
+	cmd.AddCommand(newCMD)
+}

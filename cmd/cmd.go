@@ -9,38 +9,38 @@ import(
 )
 
 var (
-	configFileDevelopCmd string
-	portDevelopCmd       string
+	configFileDevelopCMD string
+	portDevelopCMD       string
 
-	// newCmd represents the new command
-	developCmd = &cobra.Command{
+	// newCMD represents the new command
+	developCMD = &cobra.Command{
 		Use:   "develop",
 		Short: "Develop a project using the config file file",
 		Long:  `Develop a Antibuild project and export into the output folder. Will also install any dependencies.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			builder.Start(true, true, configFileDevelopCmd, true, portDevelopCmd)
+			builder.Start(true, true, configFileDevelopCMD, true, portDevelopCMD)
 		},
 	}
 
-	configFileBuildCmd string
+	configFileBuildCMD string
 
-	// newCmd represents the new command
-	buildCmd = &cobra.Command{
+	// newCMD represents the new command
+	buildCMD = &cobra.Command{
 		Use:   "build",
-		Short: "Build a project using the " + configFileBuildCmd + " file",
+		Short: "Build a project using the " + configFileBuildCMD + " file",
 		Long:  `Build a Antibuild project and export into the output folder. Will also install any dependencies.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			builder.Start(false, false, configFileBuildCmd, true, "")
+			builder.Start(false, false, configFileBuildCMD, true, "")
 		},
 	}
 )
 //SetCommands sets the commands for this package to the cmd argument
 func SetCommands(cmd *cobra.Command){
-	developCmd.Flags().StringVarP(&configFileDevelopCmd, "config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
-	developCmd.Flags().StringVarP(&portDevelopCmd, "port", "p", "8080", "The port that is used to host the development server.")
-	buildCmd.Flags().StringVarP(&configFileBuildCmd, "config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
+	developCMD.Flags().StringVarP(&configFileDevelopCMD, "config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
+	developCMD.Flags().StringVarP(&portDevelopCMD, "port", "p", "8080", "The port that is used to host the development server.")
+	buildCMD.Flags().StringVarP(&configFileBuildCMD, "config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
 
-cmd.AddCommand(developCmd, buildCmd)
-new.SetCommands(cmd)
-modules.SetCommands(cmd)
+	cmd.AddCommand(developCMD, buildCMD)
+	new.SetCommands(cmd)
+	modules.SetCommands(cmd)
 }

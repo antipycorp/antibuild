@@ -1,7 +1,8 @@
-package builder
+package modules
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -11,10 +12,10 @@ import (
 
 	"gitlab.com/antipy/antibuild/api/host"
 	"gitlab.com/antipy/antibuild/cli/builder/site"
-	modFile "gitlab.com/antipy/antibuild/cli/internalmods/file"
-	modJSON "gitlab.com/antipy/antibuild/cli/internalmods/json"
-	modLang "gitlab.com/antipy/antibuild/cli/internalmods/language"
-	modNoESC "gitlab.com/antipy/antibuild/cli/internalmods/noescape"
+	modFile "gitlab.com/antipy/antibuild/cli/modules/file"
+	modJSON "gitlab.com/antipy/antibuild/cli/modules/json"
+	modLang "gitlab.com/antipy/antibuild/cli/modules/language"
+	modNoESC "gitlab.com/antipy/antibuild/cli/modules/noescape"
 )
 
 type (
@@ -37,10 +38,20 @@ type (
 		host    *host.ModuleHost
 		command string
 	}
+
+	templateFunction struct {
+		host    *host.ModuleHost
+		command string
+	}
+
 	internalMod struct {
 		version string
 		start   func(io.Reader, io.Writer)
 		name    string
+	}
+
+	ModuleConfig struct {
+		Config map[string]interface{}
 	}
 )
 
@@ -52,9 +63,9 @@ var (
 	fileLoaders        = &site.FileLoaders
 	fileParsers        = &site.FileParsers
 	filePostProcessors = &site.FilePostProcessors
+	sitePostProcessors = &site.SitePostProcessors
 
-	sitePostProcessors = make(map[string]sitePostProcessor)
-	internalMods       = map[string]internalMod{
+	internalMods = map[string]internalMod{
 		"file": internalMod{
 			version: "0.0.1",
 			name:    "file",
@@ -78,59 +89,59 @@ var (
 	}
 )
 
-//communicates with modules to load them
-func loadModules(config *Config) {
-	if loadedModules {
-		return
+//LoadModules communicates with modules to load them
+func LoadModules(moduleRoot string, deps map[string]string, configs map[string]ModuleConfig) (moduleHost map[string]*host.ModuleHost) {
+	if loadedModules { //TODO doesnt support hotloadding modules
+		return nil
 	}
 
-	//make a refrence to keep all module (data) in
-	config.moduleHost = make(map[string]*host.ModuleHost, len(config.Modules.Dependencies))
+	moduleHost = make(map[string]*host.ModuleHost, len(deps))
 
-	for identifier, version := range config.Modules.Dependencies {
+	for identifier, version := range deps {
 		fmt.Printf("Loading module: %s@%s\n", identifier, version)
-		stdout, stdin := loadModule(identifier, version, config.Folders.Modules)
+		stdout, stdin := loadModule(identifier, version, moduleRoot)
 		var err error
-		config.moduleHost[identifier], err = host.Start(stdout, stdin)
+		moduleHost[identifier], err = host.Start(stdout, stdin)
 		if err != nil {
 			panic(err)
 		}
 
-		methods, err := config.moduleHost[identifier].AskMethods()
+		methods, err := moduleHost[identifier].AskMethods()
 		if err != nil {
 			panic(err)
 		}
 
 		//registers all functions modules can possibly suply
 		for _, function := range methods["templateFunctions"] {
-			templateFunctions[identifier+"_"+function] = moduleTemplateFunctionDefinition(identifier, function, config)
+			templateFunctions[identifier+"_"+function] = getTemplateFunction(function, moduleHost[identifier])
 		}
 
 		for _, function := range methods["fileLoaders"] {
-			(*fileLoaders)[identifier+"_"+function] = getFileLoader(function, config.moduleHost[identifier])
+			(*fileLoaders)[identifier+"_"+function] = getFileLoader(function, moduleHost[identifier])
 		}
 
 		for _, function := range methods["fileParsers"] {
-			(*fileParsers)[identifier+"_"+function] = getFileParser(function, config.moduleHost[identifier])
+			(*fileParsers)[identifier+"_"+function] = getFileParser(function, moduleHost[identifier])
 		}
 
 		for _, function := range methods["filePostProcessors"] {
-			(*filePostProcessors)[identifier+"_"+function] = getFilePostProcessor(function, config.moduleHost[identifier])
+			(*filePostProcessors)[identifier+"_"+function] = getFilePostProcessor(function, moduleHost[identifier])
 		}
 
 		for _, function := range methods["sitePostProcessors"] {
-			sitePostProcessors[identifier+"_"+function] = getSitePostProcessor(function, config.moduleHost[identifier])
+			(*sitePostProcessors)[identifier+"_"+function] = getSitePostProcessor(function, moduleHost[identifier])
 		}
 
-		if config.Modules.Config[identifier] != nil {
-			output, err := config.moduleHost[identifier].ExcecuteMethod("internal_config", []interface{}{
-				config.Modules.Config[identifier],
+		if configs[identifier].Config != nil {
+			output, err := moduleHost[identifier].ExcecuteMethod("internal_config", []interface{}{
+				configs[identifier].Config,
 			})
 			if err != nil || output != "module: ready" {
 				panic("couldnt send config: " + err.Error())
 			}
 		}
 	}
+	return
 }
 
 func loadModule(name, version, path string) (io.Reader, io.Writer) {
@@ -174,18 +185,27 @@ func loadModule(name, version, path string) (io.Reader, io.Writer) {
 	return stdout, stdin
 }
 
-//generates the function that is called when a template function in executed.
-func moduleTemplateFunctionDefinition(module string, command string, config *Config) func(data ...interface{}) interface{} {
-	return func(data ...interface{}) interface{} {
-		//send the data to the module and wait for response
-		output, err := config.moduleHost[module].ExcecuteMethod("templateFunctions_"+command, data)
-		if err != nil {
-			panic("execute methods: " + err.Error())
-		}
-
-		//return the data
-		return output
+func getTemplateFunction(command string, host *host.ModuleHost) *templateFunction {
+	return &templateFunction{
+		host:    host,
+		command: command,
 	}
+}
+
+func (f *templateFunction) Load(data ...interface{}) []byte {
+	output, err := f.host.ExcecuteMethod("templateFunctions_"+f.command, data)
+	if err != nil {
+		panic("execute methods: " + err.Error())
+	}
+
+	//check if return type is correct
+	var outputFinal []byte
+	var ok bool
+	if outputFinal, ok = output.([]byte); ok != true {
+		panic("fileLoader_" + f.command + " did not return a []byte")
+	}
+
+	return outputFinal
 }
 
 func getFileLoader(command string, host *host.ModuleHost) *fileLoader {
@@ -297,4 +317,15 @@ func (s sitePostProcessor) Process(data []*site.Site, variable string) []*site.S
 	}
 
 	return outputFinal
+}
+
+func (mc *ModuleConfig) UnmarshalJSON(data []byte) error {
+	if err := json.Unmarshal(data, &mc.Config); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (mc *ModuleConfig) MarshalJSON() ([]byte, error) {
+	return json.Marshal(mc.Config)
 }

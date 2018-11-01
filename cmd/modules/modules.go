@@ -15,8 +15,8 @@ import (
 
 var configFile string
 
-// ModulesCMD represents the modules command
-var ModulesCMD = &cobra.Command{
+// modulesCMD represents the modules command
+var modulesCMD = &cobra.Command{
 	Use: "modules",
 	Aliases: []string{
 		"m",
@@ -25,8 +25,8 @@ var ModulesCMD = &cobra.Command{
 	Long:  `Used to manage your modules for antibuild. Run a subcommand to get more info.`,
 }
 
-// ModulesAddCMD represents the modules add command
-var ModulesAddCMD = &cobra.Command{
+// modulesAddCMD represents the modules add command
+var modulesAddCMD = &cobra.Command{
 	Use: "add",
 	Aliases: []string{
 		"a",
@@ -64,8 +64,8 @@ var ModulesAddCMD = &cobra.Command{
 	},
 }
 
-// ModulesRemoveCMD represents the modules remove command
-var ModulesRemoveCMD = &cobra.Command{
+// modulesRemoveCMD represents the modules remove command
+var modulesRemoveCMD = &cobra.Command{
 	Use: "remove",
 	Aliases: []string{
 		"r",
@@ -103,8 +103,8 @@ var ModulesRemoveCMD = &cobra.Command{
 	},
 }
 
-// ModulesInstallCMD represents the modules install command
-var ModulesInstallCMD = &cobra.Command{
+// modulesInstallCMD represents the modules install command
+var modulesInstallCMD = &cobra.Command{
 	Use: "install",
 	Aliases: []string{
 		"i",
@@ -181,13 +181,13 @@ func checkModuleErr(err error) {
 
 //SetCommands sets the commands for this package to the cmd argument
 func SetCommands(cmd *cobra.Command){
-	ModulesInstallCMD.Flags().StringVarP(&configFile, "config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
-	ModulesAddCMD.Flags().StringVarP(&configFile, "config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
-	ModulesRemoveCMD.Flags().StringVarP(&configFile, "config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
+	modulesInstallCMD.Flags().StringVarP(&configFile, "config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
+	modulesAddCMD.Flags().StringVarP(&configFile, "config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
+	modulesRemoveCMD.Flags().StringVarP(&configFile, "config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
 
-	ModulesCMD.AddCommand(ModulesInstallCMD)
-	ModulesCMD.AddCommand(ModulesAddCMD)
-	ModulesCMD.AddCommand(ModulesRemoveCMD)
+	modulesCMD.AddCommand(modulesInstallCMD)
+	modulesCMD.AddCommand(modulesAddCMD)
+	modulesCMD.AddCommand(modulesRemoveCMD)
 
-	cmd.AddCommand(ModulesCMD)
-	}
+	cmd.AddCommand(modulesCMD)
+}
