@@ -11,6 +11,7 @@ import (
 	"os"
 
 	"gitlab.com/antipy/antibuild/cli/builder/site"
+	"gitlab.com/antipy/antibuild/cli/modules"
 	UI "gitlab.com/antipy/antibuild/cli/ui"
 )
 
@@ -23,12 +24,13 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 		return
 	}
 
-	file, err := os.OpenFile(config.LogFile, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0660)
+	file, err := os.OpenFile(config.LogConfig.File, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0660)
 	if err != nil {
 		ui.Fatal(err.Error())
 	}
 	file.Seek(0, 0)
 	ui.LogFile = file
+	ui.PrettyLog = config.LogConfig.PretyPrint
 
 	config.uilogger = ui
 
@@ -56,8 +58,10 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 func startParse(config *Config) error {
 
 	config.uilogger.ShowCompiling()
-
-	loadModules(config) // loadModules checks if modules are already loaded
+	mhost := modules.LoadModules(config.Folders.Modules, config.Modules.Dependencies, config.Modules.Config)
+	if mhost != nil { // loadModules checks if modules are already loaded
+		config.moduleHost = mhost
+	}
 
 	//actually run the template
 	templateErr := executeTemplate(config)
@@ -110,13 +114,9 @@ func executeTemplate(config *Config) (err error) {
 	site.TemplateFolder = config.Folders.Templates
 	site.StaticFolder = config.Folders.Static
 
-	pages, err := site.Unfold(config.Pages)
+	pages, err := site.Unfold(config.Pages, config.Modules.SitePostProcessors)
 	if err != nil {
 		fmt.Println("failed to unfold:", err)
-	}
-
-	for _, spp := range config.Modules.SitePostProcessors {
-		pages = sitePostProcessors[spp].Process(pages, "")
 	}
 
 	err = site.Execute(pages)

@@ -42,6 +42,10 @@ type (
 	FilePostProcessor interface {
 		Process(map[string]interface{}, string) map[string]interface{}
 	}
+	//SitePostProcessor is a function thats able to post-process data
+	SitePostProcessor interface {
+		Process([]*Site, string) []*Site
+	}
 )
 
 var (
@@ -54,6 +58,8 @@ var (
 	FileParsers = make(map[string]FileParser)
 	//FilePostProcessors are all the module data post processors
 	FilePostProcessors = make(map[string]FilePostProcessor)
+	//SitePostProcessors are all the module data post processors
+	SitePostProcessors = make(map[string]SitePostProcessor)
 
 	//TemplateFolder is the folder all templates are stored
 	TemplateFolder string
@@ -76,8 +82,15 @@ var (
 */
 
 //Unfold the ConfigSite into a []ConfigSite
-func Unfold(configSite *ConfigSite) ([]*Site, error) {
-	return unfold(configSite, nil)
+func Unfold(configSite *ConfigSite, SPPs []string) ([]*Site, error) {
+	sites, err := unfold(configSite, nil)
+	if err != nil {
+		return sites, err
+	}
+	for _, spp := range SPPs {
+		sites = SitePostProcessors[spp].Process(sites, "")
+	}
+	return sites, err
 }
 
 func unfold(cSite *ConfigSite, parent *ConfigSite) (sites []*Site, err error) {

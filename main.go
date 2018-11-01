@@ -8,12 +8,12 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"github.com/spf13/cobra"
 	"gitlab.com/antipy/antibuild/cli/cmd"
+	"os"
 )
 
-const version = "v0.5.1"
+const version = "v0.5.2"
 
 var (
 	// rootCMD represents the base command when called without any subcommands
@@ -36,6 +36,7 @@ Antibuild is written in Golang and can be extended by modules written in Golang.
 )
 
 func main() {
+	rootCMD.AddCommand(versionCMD)
 	cmd.SetCommands(rootCMD)
 	rootCMD.Execute()
 }

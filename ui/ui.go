@@ -25,8 +25,9 @@ type UI struct {
 	LogFile        io.Writer
 	HostingEnabled bool
 	Port           string
-	succes         bool
+	failed         bool
 	log            []string
+	PrettyLog      bool
 }
 
 //ShowCompiling should be shown when you start compiling
@@ -46,10 +47,10 @@ func (ui *UI) ShowResult() {
 	tm.Clear()
 	tm.MoveCursor(1, 1)
 	if len(ui.log) != 0 {
-		if ui.succes {
-			tm.Print(tm.Color(tm.Bold("Compiles With Warnings:"), tm.YELLOW) + "\n")
+		if ui.failed {
+			tm.Print(tm.Color(tm.Bold("Failed to compile:"), tm.RED) + "\n")
 		} else {
-			tm.Print(tm.Color(tm.Bold("Failed to compile:"), tm.YELLOW) + "\n")
+			tm.Print(tm.Color(tm.Bold("Compiled With Warnings:"), tm.YELLOW) + "\n")
 		}
 	} else {
 		tm.Print(tm.Color(tm.Bold("Compiled successfully."), tm.GREEN) + "\n\n")
@@ -82,37 +83,6 @@ func (ui *UI) ShowResult() {
 	tm.Flush()
 }
 
-//ShowBuiltWarning should be shown when something build correctly but has warnings
-func (ui *UI) ShowBuiltWarning(warn Warning, page string, line string, data []interface{}) {
-	tm.Clear()
-	tm.MoveCursor(1, 1)
-
-	tm.Print("" +
-		tm.Color(tm.Bold("Compiled with warnings."), tm.YELLOW) + "\n" +
-		"\n" +
-		tm.Background(tm.Color(tm.Bold(page), tm.BLACK), tm.WHITE) + "\n" +
-		"   Line " + line + ":  " + fmt.Sprintf(warn.extensive, data) + "   " + tm.Color(warn.short, tm.YELLOW) + "\n" +
-		"")
-
-	tm.Flush()
-
-}
-
-//showError should be shown when something errors out
-func (ui *UI) showError(err Error, page string, line string, data []interface{}) {
-	tm.Clear()
-	tm.MoveCursor(1, 1)
-
-	tm.Print("" +
-		tm.Color(tm.Bold("Failed to compile."), tm.RED) + "\n" +
-		"\n" +
-		tm.Background(tm.Color(tm.Bold(page), tm.BLACK), tm.WHITE) + "\n" +
-		"   Line " + line + ":  " + fmt.Sprintf(err.extensive, data) + "   " + tm.Color(err.short, tm.RED) + "\n" +
-		"")
-
-	tm.Flush()
-}
-
 func getIP() string {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
@@ -130,24 +100,55 @@ func getIP() string {
 	return ""
 }
 
-//TODO make this check for some boolean to check if using propper formatting or noob text-only(for text editors)
+//Debug logs to the log file only
+func (ui *UI) Debug(err string) {
+	if ui.LogFile != nil {
+		if ui.PrettyLog {
+			entry := tm.Color(tm.Bold("Debug:."), tm.WHITE) + err + "\n"
+			ui.LogFile.Write([]byte(entry))
+			return
+		}
+		ui.LogFile.Write([]byte(err + "\n"))
+	}
+}
+
+//Info logs helpfull information/warnings
 func (ui *UI) Info(err string) {
 	entry := tm.Color(tm.Bold("Info:."), tm.BLUE) + err + "\n"
 	ui.log = append(ui.log, entry)
-	ui.LogFile.Write([]byte(entry + "\n"))
+	if ui.LogFile != nil {
+		if ui.PrettyLog {
+			ui.LogFile.Write([]byte(entry))
+			return
+		}
+		ui.LogFile.Write([]byte(err + "\n"))
+	}
 }
 
+//Error logs errors, these can later be followed up on with a fatal or have potential consequences for the outcome
 func (ui *UI) Error(err string) {
 	entry := tm.Color(tm.Bold("Error:."), tm.YELLOW) + err + "\n"
 	ui.log = append(ui.log, entry)
-	ui.LogFile.Write([]byte(entry + "\n"))
-
+	if ui.LogFile != nil {
+		if ui.PrettyLog {
+			ui.LogFile.Write([]byte(entry))
+			return
+		}
+		ui.LogFile.Write([]byte(err + "\n"))
+	}
 }
 
+//Fatal should be called when in an unrecoverable state. EG: config file not found, template function not called etc.
 func (ui *UI) Fatal(err string) {
-	entry := tm.Color(tm.Bold("Failled to compile:"), tm.RED) + err + "\n"
+	entry := tm.Color(tm.Bold("Failled to compile:."), tm.RED) + err + "\n"
 	ui.log = append(ui.log, entry)
-	ui.LogFile.Write([]byte(entry + "\n"))
+	ui.failed = true
 
-	ui.succes = false
+	if ui.LogFile != nil {
+		if ui.PrettyLog {
+			ui.LogFile.Write([]byte(entry))
+			return
+		}
+		ui.LogFile.Write([]byte(err + "\n"))
+	}
 }

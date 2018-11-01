@@ -4,7 +4,11 @@
         "output": "public/",
         "modules": ".modules/"
 	},
-	"logfile":"abm.log",
+	"logfile":{
+		"file":"abm.log",
+		"pretyprint":true
+	},
+	
     "pages": {
         "slug": "",
         "templates": [
