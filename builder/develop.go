@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 
 	"github.com/fsnotify/fsnotify"
+	"gitlab.com/antipy/antibuild/cli/builder/config"
 )
 
 var (
@@ -17,7 +18,7 @@ var (
 )
 
 //locally hosts output folder
-func hostLocally(config *Config, port string) {
+func hostLocally(cfg *config.Config, port string) {
 	//make sure there is a port set
 	addr := ":" + port
 	if addr == ":" {
@@ -25,7 +26,7 @@ func hostLocally(config *Config, port string) {
 	}
 
 	//host a static file server from the output folder
-	r := http.StripPrefix("/", http.FileServer(http.Dir(config.Folders.Output)))
+	r := http.StripPrefix("/", http.FileServer(http.Dir(cfg.Folders.Output)))
 	server = http.Server{Addr: addr, Handler: r}
 	server.ErrorLog = log.New(os.Stdout, "", 0)
 
@@ -35,11 +36,11 @@ func hostLocally(config *Config, port string) {
 }
 
 //watches files and folders and rebuilds when things change
-func buildOnRefresh(config *Config, configLocation string) {
-	ui := config.uilogger // the UI logger cannot change
+func buildOnRefresh(cfg *config.Config, configLocation string) {
+	ui := cfg.UILogger // the UI logger cannot change
 	ui.Info("making a refresh")
 
-	startParse(config)
+	startParse(cfg)
 
 	//initalze watchers
 	watcher, err := fsnotify.NewWatcher()
@@ -49,7 +50,7 @@ func buildOnRefresh(config *Config, configLocation string) {
 	}
 
 	//add template folder to watcher
-	err = filepath.Walk(config.Folders.Templates, func(path string, file os.FileInfo, err error) error {
+	err = filepath.Walk(cfg.Folders.Templates, func(path string, file os.FileInfo, err error) error {
 		return watcher.Add(path)
 	})
 	if err != nil {
@@ -57,7 +58,7 @@ func buildOnRefresh(config *Config, configLocation string) {
 	}
 
 	//add static folder to staticWatcher
-	err = filepath.Walk(config.Folders.Static, func(path string, file os.FileInfo, err error) error {
+	err = filepath.Walk(cfg.Folders.Static, func(path string, file os.FileInfo, err error) error {
 		return staticWatcher.Add(path)
 	})
 	if err != nil {
@@ -73,13 +74,13 @@ func buildOnRefresh(config *Config, configLocation string) {
 					return
 				}
 
-				info, err := os.Lstat(config.Folders.Static)
+				info, err := os.Lstat(cfg.Folders.Static)
 				if err != nil {
 					fmt.Println("couldn't move files form static to out: ", err.Error())
 					continue
 				}
 
-				genCopy(config.Folders.Static, config.Folders.Output, info)
+				genCopy(cfg.Folders.Static, cfg.Folders.Output, info)
 			case err, ok := <-watcher.Errors:
 				if !ok {
 					return
@@ -95,14 +96,14 @@ func buildOnRefresh(config *Config, configLocation string) {
 				return
 			}
 			ui.Info("making a refresh")
-			config, configErr := parseConfig(configLocation)
+			cfg, configErr := parseConfig(configLocation)
 			if configErr != nil {
 				ui.Fatal("Could not parse the config file")
 				return
 			}
-			config.uilogger = ui
+			cfg.UILogger = ui
 
-			startParse(config)
+			startParse(cfg)
 		case err, ok := <-watcher.Errors:
 			if !ok {
 				return
