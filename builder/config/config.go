@@ -1,4 +1,4 @@
-package builder
+package config
 
 import (
 	"encoding/json"
@@ -15,29 +15,29 @@ import (
 type (
 	//Config is the config struct
 	Config struct {
-		LogConfig  configLog        `json:"logfile"`
-		Folders    ConfigFolder     `json:"folders"`
-		Modules    ConfigModules    `json:"modules"`
+		LogConfig  log              `json:"logfile"`
+		Folders    Folder           `json:"folders"`
+		Modules    Modules          `json:"modules"`
 		Pages      *site.ConfigSite `json:"pages"`
-		moduleHost map[string]*host.ModuleHost
-		uilogger   uilogger
+		ModuleHost map[string]*host.ModuleHost
+		UILogger   uilogger
 	}
-	//ConfigFolder is the part of the config file that handles folders
-	ConfigFolder struct {
+	//Folder is the part of the config file that handles folders
+	Folder struct {
 		Templates string `json:"templates"`
 		Static    string `json:"static"`
 		Output    string `json:"output"`
 		Modules   string `json:"modules"`
 	}
 
-	//ConfigModules is the part of the config file that handles modules
-	ConfigModules struct {
+	//Modules is the part of the config file that handles modules
+	Modules struct {
 		Dependencies       map[string]string               `json:"dependencies"`
 		Config             map[string]modules.ModuleConfig `json:"config"`
 		SitePostProcessors []string                        `json:"site_post_processors"`
 	}
 
-	configLog struct {
+	log struct {
 		File       string `json:"file"`
 		PretyPrint bool   `json:"pretyprint"`
 	}
@@ -60,7 +60,7 @@ type (
 )
 
 //GetConfig gets the config file. DOES NOT CHECK FOR MISSIN INFORMATION!!
-func GetConfig(configLocation string) (config *Config, err error) {
+func GetConfig(configLocation string) (cfg *Config, err error) {
 	configFile, err := os.Open(configLocation)
 	defer configFile.Close()
 	if err != nil {
@@ -68,15 +68,15 @@ func GetConfig(configLocation string) (config *Config, err error) {
 	}
 
 	dec := json.NewDecoder(configFile)
-	err = dec.Decode(&config)
+	err = dec.Decode(&cfg)
 	if err != nil {
-		return config, err
+		return cfg, err
 	}
 	return
 }
 
 //SaveConfig saves the config file
-func SaveConfig(configLocation string, config *Config) (err error) {
+func SaveConfig(configLocation string, cfg *Config) (err error) {
 	file, err := os.Create(configLocation)
 	if err != nil {
 		fmt.Println(err)
@@ -85,7 +85,7 @@ func SaveConfig(configLocation string, config *Config) (err error) {
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "    ")
-	err = encoder.Encode(config)
+	err = encoder.Encode(cfg)
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -94,18 +94,18 @@ func SaveConfig(configLocation string, config *Config) (err error) {
 	return nil
 }
 
-func (l *configLog) UnmarshalJSON(data []byte) error {
+func (l *log) UnmarshalJSON(data []byte) error {
 	defer fmt.Println(l.File)
 	switch data[0] {
 	case '{':
-		cfg := struct {
+		cfgl := struct {
 			File       string `json:"file"`
 			PretyPrint bool   `json:"pretyprint"`
 		}{}
-		if err := json.Unmarshal(data, &cfg); err != nil {
+		if err := json.Unmarshal(data, &cfgl); err != nil {
 			return err
 		}
-		*l = cfg //converts cfg to a propper configLog
+		*l = cfgl //converts cfg to a propper configLog
 	default:
 		if err := json.Unmarshal(data, &l.File); err != nil {
 			return err
