@@ -25,7 +25,7 @@ This is the config file for this example, it uses most built-in modules, it show
                 "default": "en"
             }
         },
-        "site_post_processors": [
+        "spps": [
             "language_language"
         ]
     },

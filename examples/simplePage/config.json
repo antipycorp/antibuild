@@ -42,7 +42,7 @@
                 "default": "en"
             }
         },
-        "site_post_processors": [
+        "spps": [
             "language_language"
         ]
     }

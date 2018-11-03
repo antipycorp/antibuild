@@ -32,9 +32,9 @@ type (
 
 	//Modules is the part of the config file that handles modules
 	Modules struct {
-		Dependencies       map[string]string               `json:"dependencies"`
-		Config             map[string]modules.ModuleConfig `json:"config"`
-		SitePostProcessors []string                        `json:"site_post_processors"`
+		Dependencies map[string]string               `json:"dependencies"`
+		Config       map[string]modules.ModuleConfig `json:"config"`
+		SPPs         []string                        `json:"spps"`
 	}
 
 	log struct {

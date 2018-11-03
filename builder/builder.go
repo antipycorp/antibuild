@@ -115,7 +115,7 @@ func executeTemplate(cfg *config.Config) (err error) {
 	site.TemplateFolder = cfg.Folders.Templates
 	site.StaticFolder = cfg.Folders.Static
 
-	pages, err := site.Unfold(cfg.Pages, cfg.Modules.SitePostProcessors)
+	pages, err := site.Unfold(cfg.Pages, cfg.Modules.SPPs)
 	if err != nil {
 		fmt.Println("failed to unfold:", err)
 	}

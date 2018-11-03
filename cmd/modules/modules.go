@@ -10,8 +10,13 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.com/antipy/antibuild/cli/builder/config"
 	"gitlab.com/antipy/antibuild/cli/internal"
+	"gitlab.com/antipy/antibuild/cli/ui"
 )
 
+var fallbackUI = ui.UI{
+	HostingEnabled: false,
+	PrettyLog: true,
+}
 
 var configFile string
 
@@ -37,7 +42,9 @@ var modulesAddCMD = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg, err := config.GetConfig(configFile)
 		if err != nil{
-			fmt.Println("Failled in life!")//TODO make this propper UI stuff
+			fallbackUI.Fatal("could not get the config")
+			fallbackUI.ShowResult()
+			return
 		}
 
 		newModule := args[0]
@@ -76,7 +83,9 @@ var modulesRemoveCMD = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg, err := config.GetConfig(configFile)
 		if err != nil{
-			fmt.Println("Failled in life!")//TODO make this propper UI stuff
+			fallbackUI.Fatal("could not get the config")
+			fallbackUI.ShowResult()
+			return
 		}
 		newModule := args[0]
 
@@ -114,7 +123,9 @@ var modulesInstallCMD = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg, err := config.GetConfig(configFile)
 		if err != nil{
-			fmt.Println("Failled in life!")//TODO make this propper UI stuff
+			fallbackUI.Fatal("could not get the config")
+			fallbackUI.ShowResult()
+			return
 		}
 
 		for moduleName, version := range cfg.Modules.Dependencies {
