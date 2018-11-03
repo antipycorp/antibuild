@@ -15,14 +15,14 @@
             "Layout.html"
         ],
         "data": [
-            "[file_file:data/Layout.json][json_json]"
+            "[file:data/Layout.json][json]"
         ],
         "sites": [
             {
                 "slug": "/index.html",
                 "templates": [],
                 "data": [
-                    "[file_file:data/pages/Home.json][json_json]"
+                    "[file:data/pages/Home.json][json]"
                 ]
             }
         ]

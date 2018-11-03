@@ -35,14 +35,14 @@ This is the config file for this example, it uses most built-in modules, it show
             "Layout.html"
         ],
         "data": [
-            "[file_file:data/Layout.json][json_json]"
+            "[file:data/Layout.json][json]"
         ],
         "sites": [
             {
                 "slug": "/index.html",
                 "templates": [],
                 "data": [
-                    "[file_file:data/pages/Home.yml][yaml_yaml]"
+                    "[file:data/pages/Home.json][json]"
                 ]
             }
         ]
