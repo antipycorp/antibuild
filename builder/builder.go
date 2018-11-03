@@ -21,6 +21,7 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 	ui := &UI.UI{}
 	cfg, configErr := parseConfig(configLocation)
 	if configErr != nil {
+		fmt.Println("could not parse the config file:", configErr)
 		ui.Fatal("Could not parse the config file")
 		return
 	}
