@@ -38,12 +38,12 @@ type (
 		Parse([]byte, string) map[string]interface{}
 	}
 
-	//FilePostProcessor is a function thats able to post-process data
-	FilePostProcessor interface {
+	//FPP is a function thats able to post-process data
+	FPP interface {
 		Process(map[string]interface{}, string) map[string]interface{}
 	}
-	//SitePostProcessor is a function thats able to post-process data
-	SitePostProcessor interface {
+	//SPP is a function thats able to post-process data
+	SPP interface {
 		Process([]*Site, string) []*Site
 	}
 )
@@ -57,9 +57,9 @@ var (
 	//FileParsers are all the module file parsers
 	FileParsers = make(map[string]FileParser)
 	//FilePostProcessors are all the module data post processors
-	FilePostProcessors = make(map[string]FilePostProcessor)
-	//SitePostProcessors are all the module data post processors
-	SitePostProcessors = make(map[string]SitePostProcessor)
+	FilePostProcessors = make(map[string]FPP)
+	//SPPs are all the module data post processors
+	SPPs = make(map[string]SPP)
 
 	//TemplateFolder is the folder all templates are stored
 	TemplateFolder string
@@ -82,18 +82,21 @@ var (
 */
 
 //Unfold the ConfigSite into a []ConfigSite
-func Unfold(configSite *ConfigSite, SPPs []string) ([]*Site, error) {
-	sites, err := unfold(configSite, nil)
+func Unfold(configSite *ConfigSite, spps []string) ([]*Site, error) {
+	sites := make([]*Site, 0, len(configSite.Sites)*2)
+	err := unfold(configSite, nil, &sites)
 	if err != nil {
 		return sites, err
 	}
-	for _, spp := range SPPs {
-		sites = SitePostProcessors[spp].Process(sites, "")
+	for _, spp := range spps {
+		if k, ok := SPPs[spp]; ok {
+			sites = k.Process(sites, "")
+		}
 	}
 	return sites, err
 }
 
-func unfold(cSite *ConfigSite, parent *ConfigSite) (sites []*Site, err error) {
+func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]*Site) (err error) {
 	if parent != nil {
 		mergeConfigSite(cSite, parent)
 	}
@@ -105,22 +108,22 @@ func unfold(cSite *ConfigSite, parent *ConfigSite) (sites []*Site, err error) {
 
 		err := gatherData(site, cSite.Data)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		err = gatherTemplates(site, cSite.Templates)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		//append site to the list of sites that will be executed
-		sites = append(sites, site)
-		return sites, err
+		*sites = append(*sites, site)
+		return nil
 	}
 
 	for _, childSite := range cSite.Sites {
-		var appendSites []*Site
-		appendSites, err = unfold(childSite, cSite)
-		sites = append(sites, appendSites...) //!TODO have one slice of sites which will be added on by the childs themselves, avoid large realocs
+		fmt.Println("adding a new site:", *sites)
+		err = unfold(childSite, cSite, sites)
+		fmt.Println("added a new site:", *sites)
 	}
 
 	return

@@ -74,7 +74,6 @@ func (ui *UI) ShowResult() {
 	if len(ui.log) != 0 {
 		tm.Print("\n" +
 			tm.Color(tm.Bold("the following errors have occured:"), tm.YELLOW) + "\n")
-
 		for _, e := range ui.log { //e for entry
 			tm.Print(e + "\n")
 		}

@@ -49,7 +49,7 @@ type (
 		start   func(io.Reader, io.Writer)
 		name    string
 	}
-
+	//ModuleConfig contains the config for modules
 	ModuleConfig struct {
 		Config map[string]interface{}
 	}
@@ -63,7 +63,7 @@ var (
 	fileLoaders        = &site.FileLoaders
 	fileParsers        = &site.FileParsers
 	filePostProcessors = &site.FilePostProcessors
-	sitePostProcessors = &site.SitePostProcessors
+	sitePostProcessors = &site.SPPs
 
 	internalMods = map[string]internalMod{
 		"file": internalMod{
@@ -89,9 +89,10 @@ var (
 	}
 )
 
-//LoadModules communicates with modules to load them
+//LoadModules communicates with modules to load them.
+//Although this should be used for initial setup, for hoatloading modules use LoadModule.
 func LoadModules(moduleRoot string, deps map[string]string, configs map[string]ModuleConfig) (moduleHost map[string]*host.ModuleHost) {
-	if loadedModules { //TODO doesnt support hotloadding modules
+	if loadedModules {
 		return nil
 	}
 
@@ -105,43 +106,61 @@ func LoadModules(moduleRoot string, deps map[string]string, configs map[string]M
 		if err != nil {
 			panic(err)
 		}
-
-		methods, err := moduleHost[identifier].AskMethods()
-		if err != nil {
-			panic(err)
-		}
-
-		//registers all functions modules can possibly suply
-		for _, function := range methods["templateFunctions"] {
-			templateFunctions[identifier+"_"+function] = getTemplateFunction(function, moduleHost[identifier])
-		}
-
-		for _, function := range methods["fileLoaders"] {
-			(*fileLoaders)[identifier+"_"+function] = getFileLoader(function, moduleHost[identifier])
-		}
-
-		for _, function := range methods["fileParsers"] {
-			(*fileParsers)[identifier+"_"+function] = getFileParser(function, moduleHost[identifier])
-		}
-
-		for _, function := range methods["filePostProcessors"] {
-			(*filePostProcessors)[identifier+"_"+function] = getFilePostProcessor(function, moduleHost[identifier])
-		}
-
-		for _, function := range methods["sitePostProcessors"] {
-			(*sitePostProcessors)[identifier+"_"+function] = getSitePostProcessor(function, moduleHost[identifier])
-		}
-
-		if configs[identifier].Config != nil {
-			output, err := moduleHost[identifier].ExcecuteMethod("internal_config", []interface{}{
-				configs[identifier].Config,
-			})
-			if err != nil || output != "module: ready" {
-				panic("couldnt send config: " + err.Error())
-			}
-		}
+		setupModule(identifier, moduleHost[identifier], configs[identifier])
 	}
 	return
+}
+
+//LoadModule Loads a specific module and is menth for hotloading, this
+//should not be used for initial setup. For initial setup use LoadModules.
+func LoadModule(moduleRoot string, identifier string, version string, moduleHost map[string]*host.ModuleHost, config ModuleConfig) {
+	fmt.Printf("Loading module: %s@%s\n", identifier, version)
+	stdout, stdin := loadModule(identifier, version, moduleRoot)
+	var err error
+	moduleHost[identifier], err = host.Start(stdout, stdin)
+	if err != nil {
+		panic(err)
+	}
+	setupModule(identifier, moduleHost[identifier], config)
+
+}
+
+func setupModule(identifier string, moduleHost *host.ModuleHost, config ModuleConfig) {
+	methods, err := moduleHost.AskMethods()
+	if err != nil {
+		panic(err)
+	}
+
+	//registers all functions modules can possibly suply
+	for _, function := range methods["templateFunctions"] {
+		templateFunctions[identifier+"_"+function] = getTemplateFunction(function, moduleHost)
+	}
+
+	for _, function := range methods["fileLoaders"] {
+		(*fileLoaders)[identifier+"_"+function] = getFileLoader(function, moduleHost)
+	}
+
+	for _, function := range methods["fileParsers"] {
+		(*fileParsers)[identifier+"_"+function] = getFileParser(function, moduleHost)
+	}
+
+	for _, function := range methods["filePostProcessors"] {
+		(*filePostProcessors)[identifier+"_"+function] = getFilePostProcessor(function, moduleHost)
+	}
+
+	for _, function := range methods["sitePostProcessors"] {
+		(*sitePostProcessors)[identifier+"_"+function] = getSitePostProcessor(function, moduleHost)
+	}
+
+	if config.Config != nil {
+		output, err := moduleHost.ExcecuteMethod("internal_config", []interface{}{
+			config.Config,
+		})
+		if err != nil || output != "module: ready" {
+			panic("couldnt send config: " + err.Error())
+		}
+	}
+
 }
 
 func loadModule(name, version, path string) (io.Reader, io.Writer) {
@@ -149,11 +168,10 @@ func loadModule(name, version, path string) (io.Reader, io.Writer) {
 
 	if v, ok := internalMods[name]; ok {
 		if v.version == version {
-			//var in, stdout io.Reader
-			//var out, stdin io.Writer
 
 			in, stdin := io.Pipe()
 			stdout, out := io.Pipe()
+
 			in2 := bufio.NewReader(in)
 			stdout2 := bufio.NewReader(stdout)
 
@@ -319,6 +337,7 @@ func (s sitePostProcessor) Process(data []*site.Site, variable string) []*site.S
 	return outputFinal
 }
 
+//UnmarshalJSON unmarschals the json into a moduleconfig
 func (mc *ModuleConfig) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &mc.Config); err != nil {
 		return err
@@ -326,6 +345,7 @@ func (mc *ModuleConfig) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+//MarshalJSON marschals the data into json
 func (mc *ModuleConfig) MarshalJSON() ([]byte, error) {
 	return json.Marshal(mc.Config)
 }
