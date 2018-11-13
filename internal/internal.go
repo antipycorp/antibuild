@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 func Unzip(src string, dest string) ([]string, error) {
@@ -31,8 +30,10 @@ func Unzip(src string, dest string) ([]string, error) {
 		// Store filename/path for returning and using later on
 		fpath := filepath.Join(dest, f.Name)
 
-		// Check for ZipSlip. More Info: http://bit.ly/2MsjAWE
-		if !strings.HasPrefix(fpath, filepath.Clean(dest)+string(os.PathSeparator)) {
+		prefix := filepath.Clean(dest) + string(os.PathSeparator)
+
+		// Check for CVE-2018-8008. AKA ZipSlip
+		if !(len(fpath) >= len(prefix) && fpath[0:len(prefix)] == prefix) { // strings.HasPrefix(fpath, prefix) removed in order to remove the dependency
 			return filenames, errors.New(fpath + ": illegal file path")
 		}
 
