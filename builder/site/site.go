@@ -4,12 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"io"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"time"
+
+	"gitlab.com/antipy/antibuild/cli/internal"
 )
 
 type (
@@ -121,9 +121,7 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]*Site) (err error) {
 	}
 
 	for _, childSite := range cSite.Sites {
-		fmt.Println("adding a new site:", *sites)
 		err = unfold(childSite, cSite, sites)
-		fmt.Println("added a new site:", *sites)
 	}
 
 	return
@@ -132,17 +130,17 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]*Site) (err error) {
 //mergeConfigSite merges the src into the dst
 func mergeConfigSite(dst *ConfigSite, src *ConfigSite) {
 	if dst.Data != nil {
-		dst.Data = append(src.Data, dst.Data...)
+		dst.Data = append(src.Data, dst.Data...) // just append
 	} else {
-		dst.Data = make([]datafile, len(src.Data))
+		dst.Data = make([]datafile, len(src.Data)) // or make a new one and fill it
 		for i, s := range src.Data {
 			dst.Data[i] = s
 		}
 	}
 	if dst.Templates != nil {
-		dst.Templates = append(src.Templates, dst.Templates...)
+		dst.Templates = append(src.Templates, dst.Templates...) // just append
 	} else {
-		dst.Templates = make([]string, len(src.Templates))
+		dst.Templates = make([]string, len(src.Templates)) // or make a new one and fill it
 		for i, s := range src.Templates {
 			dst.Templates[i] = s
 		}
@@ -155,7 +153,6 @@ func mergeConfigSite(dst *ConfigSite, src *ConfigSite) {
 //!!! need to implement post processors !!!
 func gatherData(site *Site, files []datafile) error {
 	for _, datafile := range files {
-		fmt.Println(datafile)
 
 		//init data if it is empty
 		if site.Data == nil {
@@ -164,7 +161,6 @@ func gatherData(site *Site, files []datafile) error {
 
 		//load and parse data
 		file := FileLoaders[datafile.loader].Load(datafile.loaderArguments)
-		fmt.Println(datafile.parser)
 		parsed := FileParsers[datafile.parser].Parse(file, datafile.parserArguments)
 
 		//add the parsed data to the site data
@@ -189,7 +185,7 @@ func gatherTemplates(site *Site, templates []string) error {
 	globalTemplates[id], err = template.New("").Funcs(TemplateFunctions).ParseFiles(newTemplates...)
 	site.Template = id
 	if err != nil {
-		return fmt.Errorf("could not parse the template files: %v", err.Error())
+		return errors.New("could not parse the template files: " + err.Error())
 	}
 
 	return nil
@@ -205,7 +201,6 @@ func gatherTemplates(site *Site, templates []string) error {
 func Execute(sites []*Site) error {
 	return execute(sites)
 }
-
 func execute(sites []*Site) error {
 	//move static folder
 	if StaticFolder != "" && OutputFolder != "" {
@@ -214,7 +209,7 @@ func execute(sites []*Site) error {
 			return err
 		}
 
-		genCopy(StaticFolder, OutputFolder, info)
+		internal.GenCopy(StaticFolder, OutputFolder, info)
 	}
 
 	//export every template
@@ -235,19 +230,19 @@ func (site *Site) executeTemplate() error {
 	//check all folders in the path of the output file
 	err := os.MkdirAll(filepath.Dir(fileLocation), 0766)
 	if err != nil {
-		return errors.New("couldn't create directory: " + err.Error())
+		return fmt.Errorf("couldn't create directory: %s", err.Error())
 	}
 
 	//create the file
 	file, err := os.Create(fileLocation)
 	if err != nil {
-		return errors.New("couldn't create file: " + err.Error())
+		return fmt.Errorf("couldn't create file: %s", err.Error())
 	}
 
 	//fill the file by executing the template
 	err = globalTemplates[site.Template].ExecuteTemplate(file, "html", site.Data)
 	if err != nil {
-		return errors.New("could not execute template: " + err.Error())
+		return fmt.Errorf("could not execute template: %s", err.Error())
 	}
 
 	return nil
@@ -258,59 +253,6 @@ func (site *Site) executeTemplate() error {
 
 	This should go into a diferent file, but no suitable place has been found
 */
-
-func genCopy(src, dest string, info os.FileInfo) error {
-	if info.IsDir() {
-		return dirCopy(src, dest, info)
-	}
-	return fileCopy(src, dest, info)
-}
-
-func fileCopy(src, dest string, info os.FileInfo) error {
-
-	if err := os.MkdirAll(filepath.Dir(dest), os.ModePerm); err != nil {
-		return err
-	}
-
-	f, err := os.Create(dest)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	if err = os.Chmod(f.Name(), info.Mode()); err != nil {
-		return err
-	}
-
-	s, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer s.Close()
-
-	_, err = io.Copy(f, s)
-	return err
-}
-
-func dirCopy(srcdir, destdir string, info os.FileInfo) error {
-
-	if err := os.MkdirAll(destdir, info.Mode()); err != nil {
-		return err
-	}
-
-	contents, err := ioutil.ReadDir(srcdir)
-	if err != nil {
-		return err
-	}
-
-	for _, content := range contents {
-		cs, cd := filepath.Join(srcdir, content.Name()), filepath.Join(destdir, content.Name())
-		if err := genCopy(cs, cd, content); err != nil {
-			return err
-		}
-	}
-	return nil
-}
 
 var srcRand = rand.NewSource(time.Now().UnixNano())
 

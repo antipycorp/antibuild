@@ -122,7 +122,6 @@ func LoadModule(moduleRoot string, identifier string, version string, moduleHost
 		panic(err)
 	}
 	setupModule(identifier, moduleHost[identifier], config)
-
 }
 
 func setupModule(identifier string, moduleHost *host.ModuleHost, config ModuleConfig) {
@@ -160,7 +159,6 @@ func setupModule(identifier string, moduleHost *host.ModuleHost, config ModuleCo
 			panic("couldnt send config: " + err.Error())
 		}
 	}
-
 }
 
 func loadModule(name, version, path string) (io.Reader, io.Writer) {

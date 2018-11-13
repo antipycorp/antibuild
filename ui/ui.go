@@ -85,7 +85,7 @@ func (ui *UI) ShowResult() {
 func getIP() string {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
-		fmt.Println(err)
+		return "failled to get IP address"
 	}
 
 	for _, address := range addrs {
@@ -103,17 +103,22 @@ func getIP() string {
 func (ui *UI) Debug(err string) {
 	if ui.LogFile != nil {
 		if ui.PrettyLog {
-			entry := tm.Color(tm.Bold("Debug:."), tm.WHITE) + err + "\n"
+			entry := tm.Color(tm.Bold("Debug:."), tm.WHITE) + err
 			ui.LogFile.Write([]byte(entry))
 			return
 		}
 		ui.LogFile.Write([]byte(err + "\n"))
 	}
+}
+
+//Debugf logs to the log file only
+func (ui *UI) Debugf(format string, a ...interface{}) {
+	ui.Debug(fmt.Sprintf(format, a...))
 }
 
 //Info logs helpfull information/warnings
 func (ui *UI) Info(err string) {
-	entry := tm.Color(tm.Bold("Info:."), tm.BLUE) + err + "\n"
+	entry := tm.Color(tm.Bold("Info:."), tm.BLUE) + err
 	ui.log = append(ui.log, entry)
 	if ui.LogFile != nil {
 		if ui.PrettyLog {
@@ -122,11 +127,16 @@ func (ui *UI) Info(err string) {
 		}
 		ui.LogFile.Write([]byte(err + "\n"))
 	}
+}
+
+//Infof logs helpfull information/warnings
+func (ui *UI) Infof(format string, a ...interface{}) {
+	ui.Info(fmt.Sprintf(format, a...))
 }
 
 //Error logs errors, these can later be followed up on with a fatal or have potential consequences for the outcome
 func (ui *UI) Error(err string) {
-	entry := tm.Color(tm.Bold("Error:."), tm.YELLOW) + err + "\n"
+	entry := tm.Color(tm.Bold("Error:."), tm.YELLOW) + err
 	ui.log = append(ui.log, entry)
 	if ui.LogFile != nil {
 		if ui.PrettyLog {
@@ -137,9 +147,14 @@ func (ui *UI) Error(err string) {
 	}
 }
 
+//Errorf logs errors, these can later be followed up on with a fatal or have potential consequences for the outcome
+func (ui *UI) Errorf(format string, a ...interface{}) {
+	ui.Error(fmt.Sprintf(format, a...))
+}
+
 //Fatal should be called when in an unrecoverable state. EG: config file not found, template function not called etc.
 func (ui *UI) Fatal(err string) {
-	entry := tm.Color(tm.Bold("Failled to compile:."), tm.RED) + err + "\n"
+	entry := tm.Color(tm.Bold("Failled to compile:."), tm.RED) + err
 	ui.log = append(ui.log, entry)
 	ui.failed = true
 
@@ -150,4 +165,9 @@ func (ui *UI) Fatal(err string) {
 		}
 		ui.LogFile.Write([]byte(err + "\n"))
 	}
+}
+
+//Fatalf should be called when in an unrecoverable state. EG: config file not found, template function not called etc.
+func (ui *UI) Fatalf(format string, a ...interface{}) {
+	ui.Fatal(fmt.Sprintf(format, a...))
 }

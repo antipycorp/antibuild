@@ -3,8 +3,8 @@ package internal
 import (
 	"archive/zip"
 	"errors"
-	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -33,7 +33,7 @@ func Unzip(src string, dest string) ([]string, error) {
 
 		// Check for ZipSlip. More Info: http://bit.ly/2MsjAWE
 		if !strings.HasPrefix(fpath, filepath.Clean(dest)+string(os.PathSeparator)) {
-			return filenames, fmt.Errorf("%s: illegal file path", fpath)
+			return filenames, errors.New(fpath + ": illegal file path")
 		}
 
 		filenames = append(filenames, fpath)
@@ -101,5 +101,58 @@ func DownloadFile(filepath string, url string, executable bool) error {
 		out.Chmod(0777)
 	}
 
+	return nil
+}
+
+func GenCopy(src, dest string, info os.FileInfo) error {
+	if info.IsDir() {
+		return DirCopy(src, dest, info)
+	}
+	return FileCopy(src, dest, info)
+}
+
+func FileCopy(src, dest string, info os.FileInfo) error {
+
+	if err := os.MkdirAll(filepath.Dir(dest), os.ModePerm); err != nil {
+		return err
+	}
+
+	f, err := os.Create(dest)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	if err = os.Chmod(f.Name(), info.Mode()); err != nil {
+		return err
+	}
+
+	s, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer s.Close()
+
+	_, err = io.Copy(f, s)
+	return err
+}
+
+func DirCopy(srcdir, destdir string, info os.FileInfo) error {
+
+	if err := os.MkdirAll(destdir, info.Mode()); err != nil {
+		return err
+	}
+
+	contents, err := ioutil.ReadDir(srcdir)
+	if err != nil {
+		return err
+	}
+
+	for _, content := range contents {
+		cs, cd := filepath.Join(srcdir, content.Name()), filepath.Join(destdir, content.Name())
+		if err := GenCopy(cs, cd, content); err != nil {
+			return err
+		}
+	}
 	return nil
 }

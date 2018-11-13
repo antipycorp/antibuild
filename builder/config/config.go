@@ -3,7 +3,6 @@ package config
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"os"
 
 	"gitlab.com/antipy/antibuild/api/host"
@@ -44,7 +43,7 @@ type (
 
 	uilogger interface {
 		ui1
-		logger
+		Logger
 	}
 
 	ui1 interface {
@@ -52,10 +51,16 @@ type (
 		ShowResult()
 	}
 
-	logger interface {
-		Info(err string)
-		Error(err string)
-		Fatal(err string)
+	//Logger is the logger we use
+	Logger interface {
+		Info(string)
+		Infof(string, ...interface{})
+		Error(string)
+		Errorf(string, ...interface{})
+		Fatal(string)
+		Fatalf(string, ...interface{})
+		Debug(string)
+		Debugf(string, ...interface{})
 	}
 )
 
@@ -79,7 +84,6 @@ func GetConfig(configLocation string) (cfg *Config, err error) {
 func SaveConfig(configLocation string, cfg *Config) (err error) {
 	file, err := os.Create(configLocation)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 
@@ -87,7 +91,6 @@ func SaveConfig(configLocation string, cfg *Config) (err error) {
 	encoder.SetIndent("", "    ")
 	err = encoder.Encode(cfg)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 
@@ -95,7 +98,6 @@ func SaveConfig(configLocation string, cfg *Config) (err error) {
 }
 
 func (l *log) UnmarshalJSON(data []byte) error {
-	defer fmt.Println(l.File)
 	switch data[0] {
 	case '{':
 		cfgl := struct {
