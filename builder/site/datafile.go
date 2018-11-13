@@ -73,7 +73,6 @@ func (df *datafile) UnmarshalJSON(data []byte) error {
 		if len(bytes.Split(parser, []byte("_"))) == 1 {
 			parser = append(parser, append([]byte("_"), parser...)...)
 		}
-		//fmt.Println(bytes.Split(sep[0], []byte("_")))
 
 		df.parser = string(parser)
 		df.parserArguments = ""

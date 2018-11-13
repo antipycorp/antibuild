@@ -6,8 +6,6 @@ package builder
 
 import (
 	"errors"
-	"fmt"
-	"log"
 	"os"
 
 	"gitlab.com/antipy/antibuild/cli/builder/config"
@@ -19,10 +17,17 @@ import (
 //Start the build process
 func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSet bool, port string) {
 	ui := &UI.UI{}
+
 	cfg, configErr := parseConfig(configLocation)
 	if configErr != nil {
-		fmt.Println("could not parse the config file:", configErr)
-		ui.Fatal("Could not parse the config file")
+		ui.Fatalf("could not parse the config file: %s", configErr)
+
+		failledToLoadConfig(ui, os.TempDir()+"/abm/public")
+
+		ui.ShowResult()
+		if isHost {
+			hostLocally(os.TempDir()+"/abm/public", "8080")
+		}
 		return
 	}
 
@@ -41,7 +46,7 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 		ui.Port = port
 
 		if isHost {
-			go hostLocally(cfg, port)
+			go hostLocally(cfg.Folders.Output, port) //still continues running, hosting doesnt actually build
 		}
 
 		if isRefreshEnabled { // if refresh is enabled run the refresh, if it returns return
@@ -51,7 +56,11 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 
 		parseErr := startParse(cfg)
 		if parseErr != nil {
-			log.Fatal(parseErr.Error())
+			failledToRender(cfg)
+
+			ui.Fatal(parseErr.Error())
+			ui.ShowResult()
+
 			return
 		}
 	}
@@ -68,8 +77,8 @@ func startParse(cfg *config.Config) error {
 	//actually run the template
 	templateErr := executeTemplate(cfg)
 	if templateErr != nil {
-		fmt.Println("failed building templates: ", templateErr.Error())
-		return templateErr
+		return errors.New("failed building templates:" + templateErr.Error())
+
 	}
 
 	//print finish time
@@ -103,7 +112,8 @@ func executeTemplate(cfg *config.Config) (err error) {
 	}
 
 	if err != nil {
-		fmt.Println("output not specified")
+		cfg.UILogger.Fatalf("output not specified: %s", err)
+		failledToRender(cfg)
 	}
 
 	sites := cfg.Pages
@@ -118,12 +128,15 @@ func executeTemplate(cfg *config.Config) (err error) {
 
 	pages, err := site.Unfold(cfg.Pages, cfg.Modules.SPPs)
 	if err != nil {
-		fmt.Println("failed to unfold:", err)
+		failledToRender(cfg)
+		return errors.New("failed to unfold: 1" + err.Error())
 	}
 
 	err = site.Execute(pages)
 	if err != nil {
-		fmt.Println("failed to execute function:", err)
+		failledToRender(cfg)
+		return errors.New("failed to execute function:" + err.Error())
+
 	}
 
 	return
