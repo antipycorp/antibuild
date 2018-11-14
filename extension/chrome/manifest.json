@@ -1,0 +1,15 @@
+{
+    "name": "Antibuild Companion",
+    "description" : "A companion for Antibuild that gives connects with the CLI to do some cool stuff.",
+    "version": "0.1",
+    "background": {
+        "scripts": ["background.js"],
+        "persistent": false
+    },
+    "permissions": ["activeTab", "declarativeContent", "storage"],
+    "manifest_version": 2,
+    "page_action": {
+        "default_popup": "index.html",
+        "default_icon": "icon.png"
+    }  
+}

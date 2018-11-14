@@ -30,7 +30,7 @@ func hostLocally(output, port string) {
 
 	//host a static file server from the output folder
 	mux := http.NewServeMux()
-	mux.HandleFunc("/websocket", ws.Handle)
+	mux.HandleFunc("/__/websocket", ws.Handle)
 	mux.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir(output))))
 	server.Server = http.Server{Addr: addr, Handler: handler{mux}}
 	server.ErrorLog = log.New(os.Stdout, "", 0)

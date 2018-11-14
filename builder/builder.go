@@ -10,6 +10,7 @@ import (
 
 	"gitlab.com/antipy/antibuild/cli/builder/config"
 	"gitlab.com/antipy/antibuild/cli/builder/site"
+	"gitlab.com/antipy/antibuild/cli/builder/websocket"
 	"gitlab.com/antipy/antibuild/cli/modules"
 	UI "gitlab.com/antipy/antibuild/cli/ui"
 )
@@ -67,7 +68,6 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 }
 
 func startParse(cfg *config.Config) error {
-
 	cfg.UILogger.ShowCompiling()
 	mhost := modules.LoadModules(cfg.Folders.Modules, cfg.Modules.Dependencies, cfg.Modules.Config)
 	if mhost != nil { // loadModules checks if modules are already loaded
@@ -83,6 +83,7 @@ func startParse(cfg *config.Config) error {
 
 	//print finish time
 	cfg.UILogger.ShowResult()
+	websocket.SendUpdate()
 	return nil
 }
 
@@ -138,6 +139,5 @@ func executeTemplate(cfg *config.Config) (err error) {
 		return errors.New("failed to execute function:" + err.Error())
 
 	}
-
 	return
 }

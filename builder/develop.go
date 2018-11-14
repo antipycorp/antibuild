@@ -23,7 +23,7 @@ func buildOnRefresh(cfg *config.Config, configLocation string) {
 
 }
 
-func staticWatch(src, dst string, shutdown chan int, log config.Logger) {
+func staticWatch(src, dst string, shutdown chan int, log config.UILogger) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Errorf("could not open a file watcher: %s", err.Error())
@@ -69,7 +69,7 @@ func staticWatch(src, dst string, shutdown chan int, log config.Logger) {
 }
 
 //! modules will not be able to call a refresh and thus we can only use the (local) templates as a source
-func watchBuild(src, configloc string, shutdown chan int, log config.Logger) {
+func watchBuild(src, configloc string, shutdown chan int, log config.UILogger) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Errorf("could not open a file watcher: %s", err.Error())
@@ -105,6 +105,8 @@ func watchBuild(src, configloc string, shutdown chan int, log config.Logger) {
 				log.Errorf("Could not parse the config file: %s", configErr)
 				continue
 			}
+
+			cfg.UILogger = log
 
 			startParse(cfg)
 		case err, ok := <-watcher.Errors:
