@@ -105,6 +105,8 @@ gitlab.com/antipy/antibuild/api v0.0.2 h1:Azkz3lMgc2qdIO9kUfp6q5R14E7aMe48BYf6Ho
 gitlab.com/antipy/antibuild/api v0.0.2/go.mod h1:3iPQiiWlpu673NqpSa36GaCaG28lVUx64KGjKzPpwsU=
 gitlab.com/antipy/antibuild/api v0.0.3 h1:9RJRl4bD6uor6TMkuaQ9zWCeBHuKNsnznxoL5gH6xeo=
 gitlab.com/antipy/antibuild/api v0.0.3/go.mod h1:qM26X5YbRzfUQYdM9cZ9SPrmhJlWMyHSIrSVz6HlHVI=
+gitlab.com/antipy/antibuild/api v0.0.4 h1:wB1mVqQurnWOljkG6mv+Jy7XnG0tPt5TR/fBcrbS1Yo=
+gitlab.com/antipy/antibuild/api v0.0.4/go.mod h1:qM26X5YbRzfUQYdM9cZ9SPrmhJlWMyHSIrSVz6HlHVI=
 gitlab.com/antipy/antibuild/cli v0.5.0/go.mod h1:nsYC0o/yzcgQjaRz9kL83RK3pvE3Te8LihNYG5u66UY=
 go.opencensus.io v0.17.0 h1:2Cu88MYg+1LU+WVD+NWwYhyP0kKgRlN9QjWGaX0jKTE=
 go.opencensus.io v0.17.0/go.mod h1:mp1VrMQxhlqqDpKvH4UcQUa4YwlzNmymAjPrDdfxNpI=

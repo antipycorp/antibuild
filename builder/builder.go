@@ -10,8 +10,9 @@ import (
 
 	"gitlab.com/antipy/antibuild/cli/builder/config"
 	"gitlab.com/antipy/antibuild/cli/builder/site"
-	"gitlab.com/antipy/antibuild/cli/builder/websocket"
 	"gitlab.com/antipy/antibuild/cli/modules"
+	"gitlab.com/antipy/antibuild/cli/net"
+	"gitlab.com/antipy/antibuild/cli/net/websocket"
 	UI "gitlab.com/antipy/antibuild/cli/ui"
 )
 
@@ -27,7 +28,7 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 
 		ui.ShowResult()
 		if isHost {
-			hostLocally(os.TempDir()+"/abm/public", "8080")
+			net.HostLocally(os.TempDir()+"/abm/public", "8080")
 		}
 		return
 	}
@@ -47,7 +48,7 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 		ui.Port = port
 
 		if isHost {
-			go hostLocally(cfg.Folders.Output, port) //still continues running, hosting doesnt actually build
+			go net.HostLocally(cfg.Folders.Output, port) //still continues running, hosting doesnt actually build
 		}
 
 		if isRefreshEnabled { // if refresh is enabled run the refresh, if it returns return
@@ -55,20 +56,19 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 			return
 		}
 
-		parseErr := startParse(cfg)
-		if parseErr != nil {
-			failledToRender(cfg)
-
-			ui.Fatal(parseErr.Error())
-			ui.ShowResult()
-
-			return
-		}
+		startParse(cfg)
 	}
 }
 
-func startParse(cfg *config.Config) error {
+func startParse(cfg *config.Config) {
+
+	defer func() {
+		websocket.SendUpdate()
+		cfg.UILogger.ShowResult()
+	}()
+
 	cfg.UILogger.ShowCompiling()
+
 	mhost := modules.LoadModules(cfg.Folders.Modules, cfg.Modules.Dependencies, cfg.Modules.Config)
 	if mhost != nil { // loadModules checks if modules are already loaded
 		cfg.ModuleHost = mhost
@@ -77,14 +77,13 @@ func startParse(cfg *config.Config) error {
 	//actually run the template
 	templateErr := executeTemplate(cfg)
 	if templateErr != nil {
-		return errors.New("failed building templates:" + templateErr.Error())
+		failledToRender(cfg)
+
+		cfg.UILogger.Fatal("failed building templates:" + templateErr.Error())
 
 	}
 
 	//print finish time
-	cfg.UILogger.ShowResult()
-	websocket.SendUpdate()
-	return nil
 }
 
 //parses the config file and check for any missing information

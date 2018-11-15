@@ -56,8 +56,6 @@ type (
 )
 
 var (
-	loadedModules = false
-
 	templateFunctions = site.TemplateFunctions
 
 	fileLoaders        = &site.FileLoaders
@@ -87,26 +85,34 @@ var (
 			start:   modNoESC.Start,
 		},
 	}
+
+	loadedModules = make(map[string]string)
 )
 
 //LoadModules communicates with modules to load them.
 //Although this should be used for initial setup, for hoatloading modules use LoadModule.
 func LoadModules(moduleRoot string, deps map[string]string, configs map[string]ModuleConfig) (moduleHost map[string]*host.ModuleHost) {
-	if loadedModules {
-		return nil
-	}
-
 	moduleHost = make(map[string]*host.ModuleHost, len(deps))
 
 	for identifier, version := range deps {
-		fmt.Printf("Loading module: %s@%s\n", identifier, version)
+		if _, ok := loadedModules[identifier]; ok { //check if the module is still loaded,
+			if loadedModules[identifier] == version { //if the version is the same leave it be
+				continue
+			}
+			remModule(identifier, moduleHost) //else remove the old version and continue with loading the new version
+		}
+
 		stdout, stdin := loadModule(identifier, version, moduleRoot)
+		if stdout == nil || stdin == nil {
+			return
+		}
 		var err error
 		moduleHost[identifier], err = host.Start(stdout, stdin)
 		if err != nil {
 			panic(err)
 		}
 		setupModule(identifier, moduleHost[identifier], configs[identifier])
+		loadedModules[identifier] = version
 	}
 	return
 }
@@ -114,54 +120,37 @@ func LoadModules(moduleRoot string, deps map[string]string, configs map[string]M
 //LoadModule Loads a specific module and is menth for hotloading, this
 //should not be used for initial setup. For initial setup use LoadModules.
 func LoadModule(moduleRoot string, identifier string, version string, moduleHost map[string]*host.ModuleHost, config ModuleConfig) {
-	fmt.Printf("Loading module: %s@%s\n", identifier, version)
+	if _, ok := loadedModules[identifier]; ok {
+		if loadedModules[identifier] == version {
+			return
+		}
+		remModule(identifier, moduleHost)
+	}
+
+	defer func() {
+		loadedModules[identifier] = version
+	}()
+
 	stdout, stdin := loadModule(identifier, version, moduleRoot)
+	if stdout == nil || stdin == nil {
+		return
+	}
 	var err error
 	moduleHost[identifier], err = host.Start(stdout, stdin)
 	if err != nil {
 		panic(err)
 	}
 	setupModule(identifier, moduleHost[identifier], config)
+	loadedModules[identifier] = version
 }
 
-func setupModule(identifier string, moduleHost *host.ModuleHost, config ModuleConfig) {
-	methods, err := moduleHost.AskMethods()
-	if err != nil {
-		panic(err)
-	}
-
-	//registers all functions modules can possibly suply
-	for _, function := range methods["templateFunctions"] {
-		templateFunctions[identifier+"_"+function] = getTemplateFunction(function, moduleHost)
-	}
-
-	for _, function := range methods["fileLoaders"] {
-		(*fileLoaders)[identifier+"_"+function] = getFileLoader(function, moduleHost)
-	}
-
-	for _, function := range methods["fileParsers"] {
-		(*fileParsers)[identifier+"_"+function] = getFileParser(function, moduleHost)
-	}
-
-	for _, function := range methods["filePostProcessors"] {
-		(*filePostProcessors)[identifier+"_"+function] = getFilePostProcessor(function, moduleHost)
-	}
-
-	for _, function := range methods["sitePostProcessors"] {
-		(*sitePostProcessors)[identifier+"_"+function] = getSitePostProcessor(function, moduleHost)
-	}
-
-	if config.Config != nil {
-		output, err := moduleHost.ExcecuteMethod("internal_config", []interface{}{
-			config.Config,
-		})
-		if err != nil || output != "module: ready" {
-			panic("couldnt send config: " + err.Error())
-		}
-	}
+func remModule(identifier string, hosts map[string]*host.ModuleHost) {
+	hosts[identifier].Kill()
+	delete(hosts, identifier)
 }
 
 func loadModule(name, version, path string) (io.Reader, io.Writer) {
+
 	fmt.Printf("Loading module: %s@%s\n", name, version)
 
 	if v, ok := internalMods[name]; ok {
@@ -199,6 +188,43 @@ func loadModule(name, version, path string) (io.Reader, io.Writer) {
 		panic(err)
 	}
 	return stdout, stdin
+}
+
+func setupModule(identifier string, moduleHost *host.ModuleHost, config ModuleConfig) {
+	methods, err := moduleHost.AskMethods()
+	if err != nil {
+		panic(err)
+	}
+
+	//registers all functions modules can possibly suply
+	for _, function := range methods["templateFunctions"] {
+		templateFunctions[identifier+"_"+function] = getTemplateFunction(function, moduleHost)
+	}
+
+	for _, function := range methods["fileLoaders"] {
+		(*fileLoaders)[identifier+"_"+function] = getFileLoader(function, moduleHost)
+	}
+
+	for _, function := range methods["fileParsers"] {
+		(*fileParsers)[identifier+"_"+function] = getFileParser(function, moduleHost)
+	}
+
+	for _, function := range methods["filePostProcessors"] {
+		(*filePostProcessors)[identifier+"_"+function] = getFilePostProcessor(function, moduleHost)
+	}
+
+	for _, function := range methods["sitePostProcessors"] {
+		(*sitePostProcessors)[identifier+"_"+function] = getSitePostProcessor(function, moduleHost)
+	}
+
+	if config.Config != nil {
+		output, err := moduleHost.ExcecuteMethod("internal_config", []interface{}{
+			config.Config,
+		})
+		if err != nil || output != "module: ready" {
+			panic("couldnt send config: " + err.Error())
+		}
+	}
 }
 
 func getTemplateFunction(command string, host *host.ModuleHost) *templateFunction {

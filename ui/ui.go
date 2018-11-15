@@ -44,7 +44,7 @@ func (ui *UI) ShowCompiling() {
 
 //ShowResult should be shown when something builds successfully
 func (ui *UI) ShowResult() {
-	tm.Clear()
+	/* tm.Clear()
 	tm.MoveCursor(1, 1)
 	if len(ui.log) != 0 {
 		if ui.failed {
@@ -79,7 +79,7 @@ func (ui *UI) ShowResult() {
 		}
 	}
 
-	tm.Flush()
+	tm.Flush() */
 }
 
 func getIP() string {
@@ -104,7 +104,7 @@ func (ui *UI) Debug(err string) {
 	if ui.LogFile != nil {
 		if ui.PrettyLog {
 			entry := tm.Color(tm.Bold("Debug:."), tm.WHITE) + err
-			ui.LogFile.Write([]byte(entry))
+			ui.LogFile.Write([]byte(entry + "\n"))
 			return
 		}
 		ui.LogFile.Write([]byte(err + "\n"))

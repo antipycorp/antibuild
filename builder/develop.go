@@ -17,20 +17,20 @@ func buildOnRefresh(cfg *config.Config, configLocation string) {
 	startParse(cfg)
 
 	shutdown := make(chan int, 10) // 10 is enough for some watcher to not get stuck on the chan
-
-	go staticWatch(cfg.Folders.Static, cfg.Folders.Output, shutdown, ui)
+	if cfg.Folders.Static != "" {
+		go staticWatch(cfg.Folders.Static, cfg.Folders.Output, shutdown, ui)
+	}
 	watchBuild(cfg.Folders.Templates, configLocation, shutdown, ui)
 
 }
 
-func staticWatch(src, dst string, shutdown chan int, log config.UILogger) {
+func staticWatch(src, dst string, shutdown chan int, log config.UIlogger) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Errorf("could not open a file watcher: %s", err.Error())
 		shutdown <- 0
 		return
 	}
-
 	//add static folder to watcher
 	err = filepath.Walk(src, func(path string, file os.FileInfo, err error) error {
 		return watcher.Add(path)
@@ -69,7 +69,7 @@ func staticWatch(src, dst string, shutdown chan int, log config.UILogger) {
 }
 
 //! modules will not be able to call a refresh and thus we can only use the (local) templates as a source
-func watchBuild(src, configloc string, shutdown chan int, log config.UILogger) {
+func watchBuild(src, configloc string, shutdown chan int, log config.UIlogger) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Errorf("could not open a file watcher: %s", err.Error())
@@ -109,6 +109,7 @@ func watchBuild(src, configloc string, shutdown chan int, log config.UILogger) {
 			cfg.UILogger = log
 
 			startParse(cfg)
+
 		case err, ok := <-watcher.Errors:
 			if !ok {
 				shutdown <- 0

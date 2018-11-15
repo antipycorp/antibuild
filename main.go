@@ -13,7 +13,7 @@ import (
 	"os"
 )
 
-const version = "v0.6.0"
+const version = "v0.6.1"
 
 var (
 	// rootCMD represents the base command when called without any subcommands
