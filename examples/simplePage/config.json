@@ -10,16 +10,26 @@
 	},
     "pages": {
         "slug": "",
-        "templates": [
-            "Layout.html"
-        ],
         "data": [
             "[file:data/Layout.json][json]"
         ],
         "sites": [
             {
+				"templates": [
+					"Layout.html"
+				],
+		
                 "slug": "/index.html",
-                "templates": [],
+                "data": [
+                    "[file:data/pages/Home.json][json]"
+                ]
+			},
+			{
+				"templates": [
+					"Layout2.html"
+				],
+		
+                "slug": "/index2.html",
                 "data": [
                     "[file:data/pages/Home.json][json]"
                 ]

@@ -1,0 +1,26 @@
+{{define "html"}}
+    <!DOCTYPE html>
+    <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <meta http-equiv="X-UA-Compatible" content="ie=edge">
+            <!-- you can acces all variables in both JSON files,
+            .Page.Name is from the pages/Home.yaml and .Name is from Layout.json
+            .Page.Name is loaded per language, so the /nl/ version would use Thuis  
+            -->
+
+            <title>{{.Page.nae}} | {{.Name}}</title>
+        </head>
+        <body>
+            <div>
+                <!--you can use all variables as normal, you can itterateover them etc-->
+                {{range .Headers }}
+                    <h1>{{.Name}}</h1>
+                {{end}}
+
+                <!-- you could use any functions provided by moduls here, see gitlab.com/antipy/antibuild/apiexamples/simplepage for example -->
+            </div>
+        </body>
+    </html>
+{{end}}
