@@ -19,7 +19,7 @@ type (
 		Modules    Modules          `json:"modules"`
 		Pages      *site.ConfigSite `json:"pages"`
 		ModuleHost map[string]*host.ModuleHost
-		UILogger   UILogger
+		UILogger   UIlogger
 	}
 	//Folder is the part of the config file that handles folders
 	Folder struct {
@@ -41,7 +41,7 @@ type (
 		PretyPrint bool   `json:"pretyprint"`
 	}
 
-	UILogger interface {
+	UIlogger interface {
 		ui1
 		Logger
 	}

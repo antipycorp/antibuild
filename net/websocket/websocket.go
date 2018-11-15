@@ -1,7 +1,6 @@
 package websocket
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -55,25 +54,16 @@ var (
 	cons    = make(map[ID]*Connection)
 )
 
-func jsonStatusMessage(status string, data map[string]interface{}) []byte {
-	out, err := json.MarshalIndent(map[string]interface{}{
-		"status": status,
-		"data":   data,
-	}, "", "    ")
-
-	if err != nil {
-		panic(err)
-	}
-
-	return out
-}
-
 //SendUpdate sends an update request to all the WS clients
 func SendUpdate() {
 	fmt.Println("\nupdate")
+	message := map[string]interface{}{
+		"status": "update",
+		"data":   nil,
+	}
 	for _, v := range cons {
-		err := v.encode(jsonStatusMessage("update", map[string]interface{}{}))
-		panic(err)
+		err := v.encode(message)
+		panic(err) //TODO: make it return error and handle it later
 	}
 }
 
