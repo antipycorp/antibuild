@@ -21,7 +21,6 @@ func buildOnRefresh(cfg *config.Config, configLocation string) {
 		go staticWatch(cfg.Folders.Static, cfg.Folders.Output, shutdown, ui)
 	}
 	watchBuild(cfg.Folders.Templates, configLocation, shutdown, ui)
-
 }
 
 func staticWatch(src, dst string, shutdown chan int, log config.UIlogger) {

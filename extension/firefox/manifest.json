@@ -1,0 +1,23 @@
+{
+
+	"manifest_version": 2,
+	"name": "Antibuild Companion",
+	"version": "0.1",
+  
+    "description" : "A companion for Antibuild that gives connects with the CLI to do some cool stuff.",
+  
+	"icons": {
+	  "48": "icons/icon-48.png"
+	},
+	
+	"permissions":[
+		"webRequest",
+		"<all_urls>"
+	],
+
+    "background": {
+        "scripts": ["background.js"],
+        "persistent": false
+    }
+  
+  }

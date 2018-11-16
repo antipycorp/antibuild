@@ -44,6 +44,7 @@ var (
 	upgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
+		CheckOrigin:     checkOrigin,
 	}
 	taken       = false
 	transcoders = map[string]transcoder{
@@ -56,15 +57,21 @@ var (
 
 //SendUpdate sends an update request to all the WS clients
 func SendUpdate() {
-	fmt.Println("\nupdate")
+	fmt.Println("update")
 	message := map[string]interface{}{
 		"status": "update",
 		"data":   nil,
 	}
-	for _, v := range cons {
+	for k, v := range cons {
 		err := v.encode(message)
-		panic(err) //TODO: make it return error and handle it later
+		fmt.Println("updated:", k)
+		if err != nil {
+			panic(err) //TODO: make it return error and handle it later
+		}
 	}
+}
+func checkOrigin(r *http.Request) bool {
+	return true
 }
 
 //AddAction adds an action to a map of actions, overwrites already set functions
@@ -74,7 +81,6 @@ func AddAction(name string, action Action) {
 
 //Handle handles the websocket connection
 func Handle(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("\new")
 	defer func() { taken = false }()
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
