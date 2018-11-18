@@ -91,7 +91,7 @@ var (
 
 //LoadModules communicates with modules to load them.
 //Although this should be used for initial setup, for hoatloading modules use LoadModule.
-func LoadModules(moduleRoot string, deps map[string]string, configs map[string]ModuleConfig, logger host.Logger) (moduleHost map[string]*host.ModuleHost) {
+func LoadModules(moduleRoot string, deps map[string]string, configs map[string]ModuleConfig) (moduleHost map[string]*host.ModuleHost) {
 	moduleHost = make(map[string]*host.ModuleHost, len(deps))
 
 	for identifier, version := range deps {
@@ -107,7 +107,7 @@ func LoadModules(moduleRoot string, deps map[string]string, configs map[string]M
 			return
 		}
 		var err error
-		moduleHost[identifier], err = host.Start(stdout, stdin, logger)
+		moduleHost[identifier], err = host.Start(stdout, stdin)
 		if err != nil {
 			panic(err)
 		}
@@ -119,7 +119,7 @@ func LoadModules(moduleRoot string, deps map[string]string, configs map[string]M
 
 //LoadModule Loads a specific module and is menth for hotloading, this
 //should not be used for initial setup. For initial setup use LoadModules.
-func LoadModule(moduleRoot string, identifier string, version string, moduleHost map[string]*host.ModuleHost, config ModuleConfig, logger host.Logger) {
+func LoadModule(moduleRoot string, identifier string, version string, moduleHost map[string]*host.ModuleHost, config ModuleConfig) {
 	if _, ok := loadedModules[identifier]; ok {
 		if loadedModules[identifier] == version {
 			return
@@ -136,7 +136,7 @@ func LoadModule(moduleRoot string, identifier string, version string, moduleHost
 		return
 	}
 	var err error
-	moduleHost[identifier], err = host.Start(stdout, stdin, logger)
+	moduleHost[identifier], err = host.Start(stdout, stdin)
 	if err != nil {
 		panic(err)
 	}

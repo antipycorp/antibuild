@@ -63,7 +63,7 @@ func startParse(cfg *config.Config) {
 
 	cfg.UILogger.ShowCompiling()
 
-	mhost := modules.LoadModules(cfg.Folders.Modules, cfg.Modules.Dependencies, cfg.Modules.Config, cfg.UILogger)
+	mhost := modules.LoadModules(cfg.Folders.Modules, cfg.Modules.Dependencies, cfg.Modules.Config)
 	if mhost != nil { // loadModules checks if modules are already loaded
 		cfg.ModuleHost = mhost
 	}

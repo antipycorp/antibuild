@@ -8,17 +8,6 @@ import (
 	tm "github.com/buger/goterm"
 )
 
-//Error s are a set of predefined errors to be displayed in the ui
-type Error struct {
-	extensive string
-	short     string
-}
-
-//Warning s are set of predefined warnings to be displayed in the ui
-type Warning struct {
-	extensive string
-	short     string
-}
 
 //UI is the way to display stuff on the console.
 type UI struct {
