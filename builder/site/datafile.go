@@ -1,19 +1,29 @@
+// Copyright © 2018 Antipy V.O.F. info@antipy.com
+//
+// Licensed under the MIT License
+
 package site
 
 import (
 	"bytes"
-	"errors"
+
+	"gitlab.com/antipy/antibuild/cli/internal/errors"
 )
 
-//!!! need to implement post processors !!!
 type (
 	datafile struct {
 		loader          string
 		loaderArguments string
 		parser          string
 		parserArguments string
-		postProcessor   string //TODO Is not yet used and will be probably be changed
 	}
+)
+
+var (
+	//ErrNoFileLoaderFound is when the template failled building
+	ErrNoFileLoaderFound = errors.NewError("could not get file loader information", 1)
+	//ErrNoFileParserFound is for a faillure moving the static folder
+	ErrNoFileParserFound = errors.NewError("could not get file parser information", 2)
 )
 
 func (df *datafile) MarshalJSON() ([]byte, error) {
@@ -36,7 +46,7 @@ func (df *datafile) UnmarshalJSON(data []byte) error {
 		//get all the arguments for the loader
 		sep := bytes.Split(loaderData, []byte(":"))
 		if len(sep) == 0 {
-			return errors.New("could not get file parser information")
+			return ErrNoFileLoaderFound.SetRoot(string(loaderData))
 		}
 		var loader = make([]byte, len(sep[0]))
 		copy(loader, sep[0])
@@ -57,13 +67,13 @@ func (df *datafile) UnmarshalJSON(data []byte) error {
 	i2 = bytes.Index(data, []byte("]"))
 
 	parserData := data[i1+1 : i2]
-	data = data[i2+1:] //data should not be empty after this, but might contain leftover data.
+	data = data[i2+1:] //keep this in place for potential fututre extentions
 
 	{
 		//get all the arguments for the fileParser
 		sep := bytes.Split(parserData, []byte(":"))
 		if len(sep) == 0 {
-			return errors.New("could not get file parser information")
+			return ErrNoFileParserFound.SetRoot(string(parserData))
 		}
 
 		var parser = make([]byte, len(sep[0]))

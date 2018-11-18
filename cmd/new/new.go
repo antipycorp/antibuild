@@ -15,17 +15,27 @@
 package new
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"regexp"
-
+	"reflect"
 	"github.com/spf13/cobra"
 	"gitlab.com/antipy/antibuild/cli/internal"
+	"gitlab.com/antipy/antibuild/cli/internal/errors"
 	"gopkg.in/AlecAivazis/survey.v1"
+)
+
+var(
+	nameregex = regexp.MustCompile("[a-z-]{3,}")
+
+	//ErrInvalidInput is when the template failled building
+	ErrInvalidInput = errors.NewError("invalid input", 1)
+	//ErrInvalidName is for a faillure moving the static folder
+	ErrInvalidName= errors.NewError("name does not match the requirements", 2)	
+
 )
 
 var newSurvey = []*survey.Question{
@@ -33,18 +43,17 @@ var newSurvey = []*survey.Question{
 		Name:   "name",
 		Prompt: &survey.Input{Message: "What should the name of the project be?"},
 		Validate: func(input interface{}) error {
-			if _, err := input.(string); err == false {
-				return errors.New("not a string")
+			var in string
+			var ok bool
+			if in, ok = input.(string); !ok {
+				return ErrInvalidInput.SetRoot("input is of type "+reflect.TypeOf(input).String()+"not string")
 			}
 
-			match, err := regexp.MatchString("\\A[a-z-]{3,}\\z", input.(string))
+			match := nameregex.MatchString(in)
 
-			if err != nil {
-				return err
-			} else if match == false {
-				return errors.New("Should be at least 3 characters and should only include a-z and - (dash)")
+			if !match {
+				return ErrInvalidName.SetRoot("the name should be at least 3 characters and only include a-z and - (dash)")
 			}
-
 			return nil
 		},
 	},

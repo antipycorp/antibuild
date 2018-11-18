@@ -1,7 +1,6 @@
 package modules
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"runtime"
@@ -10,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.com/antipy/antibuild/cli/builder/config"
 	"gitlab.com/antipy/antibuild/cli/internal"
+	"gitlab.com/antipy/antibuild/cli/internal/errors"
 	"gitlab.com/antipy/antibuild/cli/ui"
 )
 
@@ -17,6 +17,13 @@ var fallbackUI = ui.UI{
 	HostingEnabled: false,
 	PrettyLog: true,
 }
+
+var(
+		//ErrFailledDownload is when the template failled building
+		ErrFailledDownload = errors.NewError("failled downloading file", 1)
+		//ErrArchNotSupported is for a faillure moving the static folder
+		ErrArchNotSupported = errors.NewError("arch or os not supported", 2)	
+)
 
 var configFile string
 
@@ -99,7 +106,7 @@ var modulesRemoveCMD = &cobra.Command{
 
 		config.SaveConfig(configFile, cfg)
 
-		err = os.Remove(".modules/abm_" + newModule)
+		err = errors.Import(os.Remove(".modules/abm_" + newModule))
 		if err != nil {
 			fmt.Println(err.Error())
 			return
@@ -141,35 +148,33 @@ var modulesInstallCMD = &cobra.Command{
 	},
 }
 
-var errArchOrOsNotSupported = errors.New("arch or os not supported")
-
-func installModule(moduleName string) error {
+func installModule(moduleName string) errors.Error {
 	os := runtime.GOOS
 	arch := runtime.GOARCH
 	module := "abm_" + moduleName
 
 	if !((os == "linux" && (arch == "amd64" || arch == "arm" || arch == "arm64")) || (os == "darwin" && (arch == "amd64")) || (os == "windows" && (arch == "amd64"))) {
-		return errArchOrOsNotSupported
+		return ErrArchNotSupported.SetRoot("you are using an os/arch combination that isn't supported")
 	}
 
 	err := internal.DownloadFile(".modules/"+module, "https://build.antipy.com/cli/modules/"+os+"/"+arch+"/"+module, true)
 	if err != nil {
-		return err
+		return ErrFailledDownload.SetRoot(err.Error())
 	}
 
 	return nil
 }
 
-func checkModuleErr(err error) {
+func checkModuleErr(err errors.Error) {
 	if err != nil {
-		switch err {
-		case errArchOrOsNotSupported:
+		switch err.GetCode() {
+		case ErrArchNotSupported.GetCode():
 			tm.Print("" +
 				tm.Color(tm.Bold("Failed to download modules."), tm.RED) + "\n" +
 				"\n" +
 				"   Your os or arch is not suppported. To learn how to compile a module for your os and arch visit " + tm.Color("https://build.antipy.com/documentation", tm.BLUE) + "\n" +
 				"")
-		case internal.ErrFileNotExist:
+		case ErrFailledDownload.GetCode():
 			tm.Print("" +
 				tm.Color(tm.Bold("Failed to download modules."), tm.RED) + "\n" +
 				"\n" +
