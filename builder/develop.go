@@ -1,3 +1,7 @@
+// Copyright © 2018 Antipy V.O.F. info@antipy.com
+//
+// Licensed under the MIT License
+
 package builder
 
 import (
@@ -7,11 +11,12 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"gitlab.com/antipy/antibuild/cli/builder/config"
 	"gitlab.com/antipy/antibuild/cli/internal"
+	"gitlab.com/antipy/antibuild/cli/net"
+	UI "gitlab.com/antipy/antibuild/cli/ui"
 )
 
 //watches files and folders and rebuilds when things change
-func buildOnRefresh(cfg *config.Config, configLocation string) {
-	ui := cfg.UILogger // the UI logger cannot change
+func buildOnRefresh(cfg *config.Config, configLocation string, ui *UI.UI) {
 	ui.Debug("making a refresh")
 
 	startParse(cfg)
@@ -20,7 +25,7 @@ func buildOnRefresh(cfg *config.Config, configLocation string) {
 	if cfg.Folders.Static != "" {
 		go staticWatch(cfg.Folders.Static, cfg.Folders.Output, shutdown, ui)
 	}
-	watchBuild(cfg.Folders.Templates, configLocation, shutdown, ui)
+	watchBuild(cfg, configLocation, shutdown, ui)
 }
 
 func staticWatch(src, dst string, shutdown chan int, log config.UIlogger) {
@@ -68,44 +73,45 @@ func staticWatch(src, dst string, shutdown chan int, log config.UIlogger) {
 }
 
 //! modules will not be able to call a refresh and thus we can only use the (local) templates as a source
-func watchBuild(src, configloc string, shutdown chan int, log config.UIlogger) {
+func watchBuild(cfg *config.Config, configloc string, shutdown chan int, ui *UI.UI) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		log.Errorf("could not open a file watcher: %s", err.Error())
+		ui.Errorf("could not open a file watcher: %s", err.Error())
 		shutdown <- 0
 		return
 	}
 
 	//add static folder to watcher
-	err = filepath.Walk(src, func(path string, file os.FileInfo, err error) error {
+	err = filepath.Walk(cfg.Folders.Templates, func(path string, file os.FileInfo, err error) error {
 		return watcher.Add(path)
 	})
+
 	if err != nil {
-		log.Errorf("could not watch all files %s", err.Error())
+		ui.Errorf("could not watch all files %s", err.Error())
 		shutdown <- 0
 		return
 	}
 
 	err = watcher.Add(configloc)
 	if err != nil {
-		log.Infof("could not watch config file %s", err.Error())
+		ui.Errorf("could not watch config file %s", err.Error())
 	}
 	for {
 		//listen for watcher events
 		select {
-		case _, ok := <-watcher.Events:
+		case e, ok := <-watcher.Events:
 			if !ok {
 				shutdown <- 0
 				return
 			}
-			log.Debug("making a refresh")
-			cfg, configErr := parseConfig(configloc)
-			if configErr != nil {
-				log.Errorf("Could not parse the config file: %s", configErr)
-				continue
+			ui.Debug("making a refresh")
+			if e.Name == configloc {
+				cfg, err = config.CleanConfig(configloc, ui)
+				if err != nil {
+					failledToLoadConfig(ui, os.TempDir()+"/abm/public")
+					net.HostLocally(os.TempDir()+"/abm/public", "8080")
+				}
 			}
-
-			cfg.UILogger = log
 
 			startParse(cfg)
 
@@ -114,7 +120,7 @@ func watchBuild(src, configloc string, shutdown chan int, log config.UIlogger) {
 				shutdown <- 0
 				return
 			}
-			log.Errorf("error: %s", err.Error())
+			ui.Errorf("error: %s", err.Error())
 		case _ = <-shutdown:
 			return
 		}

@@ -1,8 +1,10 @@
+// Copyright © 2018 Antipy V.O.F. info@antipy.com
+//
+// Licensed under the MIT License
+
 package site
 
 import (
-	"errors"
-	"fmt"
 	"html/template"
 	"math/rand"
 	"os"
@@ -10,6 +12,7 @@ import (
 	"time"
 
 	"gitlab.com/antipy/antibuild/cli/internal"
+	"gitlab.com/antipy/antibuild/cli/internal/errors"
 )
 
 type (
@@ -69,6 +72,15 @@ var (
 	OutputFolder string
 
 	globalTemplates = make(map[string]*template.Template)
+
+	//ErrFailledTemplate is when the template failled building
+	ErrFailledTemplate = errors.NewError("failled building template", 1)
+	//ErrFailledStatic is for a faillure moving the static folder
+	ErrFailledStatic = errors.NewError("failled to move static folder", 2)
+	//ErrFailledGather is for a faillure in gathering files.
+	ErrFailledGather = errors.NewError("failled to gather files", 3)
+	//ErrFailledCreateFS is for a faillure in gathering files.
+	ErrFailledCreateFS = errors.NewError("couldn't create directory/file", 4)
 )
 
 /*
@@ -82,7 +94,7 @@ var (
 */
 
 //Unfold the ConfigSite into a []ConfigSite
-func Unfold(configSite *ConfigSite, spps []string) ([]*Site, error) {
+func Unfold(configSite *ConfigSite, spps []string) ([]*Site, errors.Error) {
 	sites := make([]*Site, 0, len(configSite.Sites)*2)
 	err := unfold(configSite, nil, &sites)
 	if err != nil {
@@ -93,10 +105,10 @@ func Unfold(configSite *ConfigSite, spps []string) ([]*Site, error) {
 			sites = k.Process(sites, "")
 		}
 	}
-	return sites, err
+	return sites, nil
 }
 
-func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]*Site) (err error) {
+func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]*Site) (err errors.Error) {
 	if parent != nil {
 		mergeConfigSite(cSite, parent)
 	}
@@ -108,12 +120,12 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]*Site) (err error) {
 
 		err := gatherData(site, cSite.Data)
 		if err != nil {
-			return err
+			return ErrFailledGather.SetRoot(err.Error())
 		}
 
 		err = gatherTemplates(site, cSite.Templates)
 		if err != nil {
-			return err
+			return ErrFailledGather.SetRoot(err.Error())
 		}
 		//append site to the list of sites that will be executed
 		*sites = append(*sites, site)
@@ -122,6 +134,9 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]*Site) (err error) {
 
 	for _, childSite := range cSite.Sites {
 		err = unfold(childSite, cSite, sites)
+		if err != nil {
+			return err
+		}
 	}
 
 	return
@@ -150,8 +165,7 @@ func mergeConfigSite(dst *ConfigSite, src *ConfigSite) {
 }
 
 //collect data objects from modules
-//!!! need to implement post processors !!!
-func gatherData(site *Site, files []datafile) error {
+func gatherData(site *Site, files []datafile) errors.Error {
 	for _, datafile := range files {
 
 		//init data if it is empty
@@ -172,7 +186,7 @@ func gatherData(site *Site, files []datafile) error {
 	return nil
 }
 
-func gatherTemplates(site *Site, templates []string) error {
+func gatherTemplates(site *Site, templates []string) errors.Error {
 	var newTemplates = make([]string, len(templates))
 	for i, template := range templates {
 		//prefix the templates with the TemplateFolder
@@ -180,12 +194,14 @@ func gatherTemplates(site *Site, templates []string) error {
 	}
 
 	var err error
+
 	//get the template with the TemplateFunctions initalized
 	id := randString(32)
 	globalTemplates[id], err = template.New("").Funcs(TemplateFunctions).ParseFiles(newTemplates...)
 	site.Template = id
+
 	if err != nil {
-		return errors.New("could not parse the template files: " + err.Error())
+		return errors.Import(err)
 	}
 
 	return nil
@@ -198,18 +214,21 @@ func gatherTemplates(site *Site, templates []string) error {
 */
 
 //Execute the templates of a []Site into the final files
-func Execute(sites []*Site) error {
+func Execute(sites []*Site) errors.Error {
 	return execute(sites)
 }
-func execute(sites []*Site) error {
+func execute(sites []*Site) errors.Error {
 	//move static folder
 	if StaticFolder != "" && OutputFolder != "" {
 		info, err := os.Lstat(StaticFolder)
 		if err != nil {
-			return err
+			return ErrFailledStatic.SetRoot(err.Error())
 		}
 
 		internal.GenCopy(StaticFolder, OutputFolder, info)
+		if err != nil {
+			return ErrFailledStatic.SetRoot(err.Error())
+		}
 	}
 
 	//export every template
@@ -219,30 +238,29 @@ func execute(sites []*Site) error {
 			return err
 		}
 	}
-
 	return nil
 }
 
-func (site *Site) executeTemplate() error {
+func (site *Site) executeTemplate() errors.Error {
 	//prefix the slug with the output folder
 	fileLocation := filepath.Join(OutputFolder, site.Slug)
 
 	//check all folders in the path of the output file
 	err := os.MkdirAll(filepath.Dir(fileLocation), 0766)
 	if err != nil {
-		return fmt.Errorf("couldn't create directory: %s", err.Error())
+		return ErrFailledCreateFS.SetRoot(err.Error())
 	}
 
 	//create the file
 	file, err := os.Create(fileLocation)
 	if err != nil {
-		return fmt.Errorf("couldn't create file: %s", err.Error())
+		return ErrFailledCreateFS.SetRoot(err.Error())
 	}
 
 	//fill the file by executing the template
 	err = globalTemplates[site.Template].ExecuteTemplate(file, "html", site.Data)
 	if err != nil {
-		return fmt.Errorf("could not execute template: %s", err.Error())
+		return ErrFailledTemplate.SetRoot(err.Error())
 	}
 
 	return nil
