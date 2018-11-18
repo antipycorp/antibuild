@@ -1,11 +1,16 @@
+// Copyright © 2018 Antipy V.O.F. info@antipy.com
+//
+// Licensed under the MIT License
+
 package config
 
 import (
 	"encoding/json"
-	"errors"
+	"io"
 	"os"
 
 	"gitlab.com/antipy/antibuild/api/host"
+	"gitlab.com/antipy/antibuild/cli/internal/errors"
 	"gitlab.com/antipy/antibuild/cli/modules"
 
 	"gitlab.com/antipy/antibuild/cli/builder/site"
@@ -40,13 +45,13 @@ type (
 		File       string `json:"file"`
 		PretyPrint bool   `json:"pretyprint"`
 	}
-
+	//UIlogger combines a UI and a logger
 	UIlogger interface {
-		ui1
+		ui
 		Logger
 	}
 
-	ui1 interface {
+	ui interface {
 		ShowCompiling()
 		ShowResult()
 	}
@@ -62,53 +67,124 @@ type (
 		Debug(string)
 		Debugf(string, ...interface{})
 	}
+
+	uiLoggerSetter interface {
+		logfileSetter
+		prettylogSetter
+		UIlogger
+	}
+	logfileSetter interface {
+		Setlogfile(io.Writer)
+	}
+	prettylogSetter interface {
+		Setprettyprint(bool)
+	}
 )
 
-//GetConfig gets the config file. DOES NOT CHECK FOR MISSIN INFORMATION!!
-func GetConfig(configLocation string) (cfg *Config, err error) {
+var (
+	//ErrFailledOpen is when the template failled building
+	ErrFailledOpen = errors.NewError("could not open the config file", 1)
+	//ErrFailledParse is for a faillure moving the static folder
+	ErrFailledParse = errors.NewError("could not parse the config file", 2)
+	//ErrFailledWrite is for a faillure in gathering files.
+	ErrFailledWrite = errors.NewError("could not write the config file", 3)
+	//ErrNoTemplateFolder is for a faillure in gathering files.
+	ErrNoTemplateFolder = errors.NewError("template folder not set", 4)
+	//ErrNoOutputFolder is for a faillure in gathering files.
+	ErrNoOutputFolder = errors.NewError("output folder not set", 5)
+	//ErrFailledCreateLog is for a faillure in gathering files.
+	ErrFailledCreateLog = errors.NewError("could not open log file", 6)
+)
+
+//GetConfig gets the config file. DOES NOT CHECK FOR MISSING INFORMATION!!
+func GetConfig(configLocation string) (cfg *Config, reterr errors.Error) {
 	configFile, err := os.Open(configLocation)
 	defer configFile.Close()
 	if err != nil {
-		return nil, errors.New("could not open the config file: " + err.Error())
+		return nil, ErrFailledOpen.SetRoot(err.Error())
 	}
 
 	dec := json.NewDecoder(configFile)
 	err = dec.Decode(&cfg)
 	if err != nil {
-		return cfg, err
+		return cfg, ErrFailledParse.SetRoot(err.Error())
 	}
 	return
 }
 
 //SaveConfig saves the config file
-func SaveConfig(configLocation string, cfg *Config) (err error) {
+func SaveConfig(configLocation string, cfg *Config) errors.Error {
 	file, err := os.Create(configLocation)
 	if err != nil {
-		return err
+		return ErrFailledOpen.SetRoot(err.Error())
 	}
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "    ")
 	err = encoder.Encode(cfg)
 	if err != nil {
-		return err
+		return ErrFailledWrite.SetRoot(err.Error())
 	}
 
 	return nil
 }
 
+//CleanConfig does everything for you
+func CleanConfig(configLocation string, ui uiLoggerSetter) (*Config, errors.Error) {
+	cfg, configErr := ParseConfig(configLocation)
+	if configErr != nil {
+		if configErr.GetCode() == ErrFailledParse.GetCode() {
+			ui.Fatalf("could not parse the config file: %s", configErr)
+
+			ui.ShowResult()
+			return nil, configErr
+		}
+		return nil, ErrFailledParse.SetRoot(configErr.GetRoot())
+	}
+
+	file, err := os.OpenFile(cfg.LogConfig.File, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0660)
+	if err != nil {
+		return nil, ErrFailledCreateLog.SetRoot(err.Error())
+	}
+	file.Seek(0, 0)
+	ui.Setlogfile(file)
+	ui.Setprettyprint(cfg.LogConfig.PretyPrint)
+
+	cfg.UILogger = ui
+	return cfg, nil
+}
+
+//ParseConfig parses the config file and check for any missing information
+func ParseConfig(configLocation string) (*Config, errors.Error) {
+	cfg, err := GetConfig(configLocation)
+	if err != nil {
+		return cfg, ErrFailledParse.SetRoot(err.Error())
+	}
+
+	if cfg.Folders.Templates == "" {
+		return cfg, ErrNoTemplateFolder
+	}
+
+	if cfg.Folders.Output == "" {
+		return cfg, ErrNoOutputFolder
+	}
+
+	return cfg, nil
+}
+
 func (l *log) UnmarshalJSON(data []byte) error {
 	switch data[0] {
-	case '{':
+	case '{': //if it starts with a { its and object and thus should be parsable as a whole
 		cfgl := struct {
 			File       string `json:"file"`
 			PretyPrint bool   `json:"pretyprint"`
 		}{}
+
 		if err := json.Unmarshal(data, &cfgl); err != nil {
 			return err
 		}
 		*l = cfgl //converts cfg to a propper configLog
-	default:
+	default: //else just parse it ad a string
 		if err := json.Unmarshal(data, &l.File); err != nil {
 			return err
 		}

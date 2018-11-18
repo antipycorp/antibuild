@@ -1,7 +1,12 @@
+// Copyright © 2018 Antipy V.O.F. info@antipy.com
+//
+// Licensed under the MIT License
+
 package builder
 
 import (
 	"io/ioutil"
+	"log"
 	"os"
 
 	"gitlab.com/antipy/antibuild/cli/builder/config"
@@ -33,11 +38,19 @@ func failledToLoadConfig(log config.Logger, output string) {
 func failledToRender(cfg *config.Config) {
 	var err error
 	if cfg.Folders.Output == "" {
-		err = os.RemoveAll(cfg.Folders.Output)
-		if err != nil {
-			cfg.UILogger.Fatalf("could not remove old files: %s", err.Error())
-		}
+		cfg.UILogger.Fatal("output folder not set:")
+
 	}
+	err = os.RemoveAll(cfg.Folders.Output)
+	if err != nil {
+		cfg.UILogger.Fatalf("could not remove old files: %s", err.Error())
+	}
+
+	err = os.MkdirAll(cfg.Folders.Output, 0700)
+	if err != nil {
+		log.Fatalf("could not place error file in place: %s", err.Error())
+	}
+
 	err = ioutil.WriteFile(cfg.Folders.Output+"/index.html", failledtorender, 0644)
 	if err != nil {
 		cfg.UILogger.Fatalf("could not place error file in place: %s", err.Error())
