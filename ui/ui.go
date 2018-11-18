@@ -53,8 +53,11 @@ func (ui *UI) ShowResult() {
 			tm.Print(tm.Color(tm.Bold("Compiled With Warnings:"), tm.YELLOW) + "\n")
 		}
 	} else {
-		tm.Print(tm.Color(tm.Bold("Compiled successfully."), tm.GREEN) + "\n\n")
-
+		if ui.failed {
+			tm.Print(tm.Color(tm.Bold("Failed to compile:"), tm.RED) + "\n")
+		} else {
+			tm.Print(tm.Color(tm.Bold("Compiled successfully."), tm.GREEN) + "\n\n")
+		}
 	}
 	if !ui.HostingEnabled {
 		tm.Print("" +
