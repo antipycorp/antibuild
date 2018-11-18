@@ -85,7 +85,7 @@ func (ui *UI) ShowResult() {
 func getIP() string {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
-		return "failled to get IP address"
+		return "failed to get IP address"
 	}
 
 	for _, address := range addrs {
@@ -154,7 +154,7 @@ func (ui *UI) Errorf(format string, a ...interface{}) {
 
 //Fatal should be called when in an unrecoverable state. EG: config file not found, template function not called etc.
 func (ui *UI) Fatal(err string) {
-	entry := tm.Color(tm.Bold("Failled to compile:."), tm.RED) + err
+	entry := tm.Color(tm.Bold("Failed to compile:."), tm.RED) + err
 	ui.log = append(ui.log, entry)
 	ui.failed = true
 
@@ -172,9 +172,9 @@ func (ui *UI) Fatalf(format string, a ...interface{}) {
 	ui.Fatal(fmt.Sprintf(format, a...))
 }
 
-func (ui *UI) Setlogfile(file io.Writer) {
+func (ui *UI) SetLogfile(file io.Writer) {
 	ui.LogFile = file
 }
-func (ui *UI) Setprettyprint(enabled bool) {
+func (ui *UI) SetPrettyPrint(enabled bool) {
 	ui.PrettyLog = enabled
 }
