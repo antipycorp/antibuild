@@ -74,10 +74,10 @@ type (
 		UIlogger
 	}
 	logfileSetter interface {
-		Setlogfile(io.Writer)
+		SetLogfile(io.Writer)
 	}
 	prettylogSetter interface {
-		Setprettyprint(bool)
+		SetPrettyPrint(bool)
 	}
 )
 
@@ -147,8 +147,8 @@ func CleanConfig(configLocation string, ui uiLoggerSetter) (*Config, errors.Erro
 		return nil, ErrFailledCreateLog.SetRoot(err.Error())
 	}
 	file.Seek(0, 0)
-	ui.Setlogfile(file)
-	ui.Setprettyprint(cfg.LogConfig.PretyPrint)
+	ui.SetLogfile(file)
+	ui.SetPrettyPrint(cfg.LogConfig.PretyPrint)
 
 	cfg.UILogger = ui
 	return cfg, nil
