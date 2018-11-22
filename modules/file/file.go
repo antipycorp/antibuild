@@ -5,7 +5,6 @@
 package file
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 
@@ -21,20 +20,16 @@ func Start(in io.Reader, out io.Writer) {
 	module.CustomStart(in, out)
 }
 
-func loadFile(w abm.FLRequest, r *abm.FLResponse) {
-	fmt.Println("new f request")
-
+func loadFile(w abm.FLRequest, r abm.Response) {
 	if w.Variable == "" {
-		r.Error = abm.ErrInvalidInput
+		r.AddInvalid(abm.InvalidInput)
 		return
 	}
 
 	file, err := ioutil.ReadFile(w.Variable)
 	if err != nil {
-		r.Error = err
+		r.AddErr(err.Error())
 		return
 	}
-	//fmt.Println("new file:", string(file))
-
-	r.Data = file
+	r.AddData(file)
 }

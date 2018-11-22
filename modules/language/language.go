@@ -9,9 +9,9 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"reflect"
 
 	abm "gitlab.com/antipy/antibuild/api/client"
+	"gitlab.com/antipy/antibuild/api/errors"
 	"gitlab.com/antipy/antibuild/cli/builder/site"
 )
 
@@ -22,28 +22,28 @@ var defaultLanguage string
 func Start(in io.Reader, out io.Writer) {
 	module := abm.Register("language")
 
-	module.ConfigFunctionRegister(func(input map[string]interface{}) error {
+	module.ConfigFunctionRegister(func(input map[string]interface{}) *errors.Error {
 		var ok bool
 		var languagesInterface []interface{}
 
 		if languagesInterface, ok = input["languages"].([]interface{}); !ok {
-			return abm.ErrInvalidInput
+			return &abm.ErrInvalidInput
 		}
 
 		for _, languageInterface := range languagesInterface {
 			if language, ok := languageInterface.(string); ok {
 				languages = append(languages, language)
 			} else {
-				return abm.ErrInvalidInput
+				return &abm.ErrInvalidInput
 			}
 		}
 
 		if languages == nil {
-			return abm.ErrInvalidInput
+			return &abm.ErrInvalidInput
 		}
 
 		if defaultLanguage, ok = input["default"].(string); !ok {
-			return abm.ErrInvalidInput
+			return &abm.ErrInvalidInput
 		}
 
 		if defaultLanguage == "" {
@@ -56,23 +56,25 @@ func Start(in io.Reader, out io.Writer) {
 			}
 		}
 
-		return abm.ErrInvalidInput
+		return &abm.ErrInvalidInput
 	})
-	module.SitePostProcessor("language", languageProcess)
+	module.SitePostProcessorRegister("language", languageProcess)
 
 	module.CustomStart(in, out)
 }
 
-func languageProcess(w abm.SPPRequest, r *abm.SPPResponse) {
+func languageProcess(w abm.SPPRequest, r abm.Response) {
 	var siteData = w.Data
 
 	if languages == nil {
-		r.Error = abm.ErrNoConfig
+		r.AddErr(abm.NoConfig)
 		return
 	}
 
-	for _, page := range siteData {
-		for _, language := range languages {
+	data := make([]*site.Site, len(siteData)*len(languages))
+
+	for ip, page := range siteData {
+		for il, language := range languages {
 			slugLanguage := language
 			if language == defaultLanguage {
 				slugLanguage = ""
@@ -85,8 +87,6 @@ func languageProcess(w abm.SPPRequest, r *abm.SPPResponse) {
 
 			for i, v := range page.Data {
 				if i == language { //if this the language we asked for
-
-					fmt.Fprint(os.Stderr, reflect.TypeOf(v), " is the type\n")
 					if langData, ok = v.(map[string]interface{}); !ok {
 
 						/* This is really shitty, but some serializers support non-strings as keys,
@@ -96,7 +96,7 @@ func languageProcess(w abm.SPPRequest, r *abm.SPPResponse) {
 						if langDataINTF, ok = v.(map[interface{}]interface{}); !ok {
 							fmt.Fprint(os.Stderr, v, "\n")
 							fmt.Fprint(os.Stderr, langDataINTF, "\n")
-							r.Error = abm.ErrInvalidInput
+							r.AddInvalid(abm.InvalidInput)
 							return
 						}
 						// Finaly converting the key to a string, I really hate this
@@ -104,7 +104,7 @@ func languageProcess(w abm.SPPRequest, r *abm.SPPResponse) {
 							if k, ok := i.(string); ok {
 								newData[k] = v
 							} else {
-								r.Error = abm.ErrInvalidInput
+								r.AddInvalid(abm.InvalidInput)
 								return
 							}
 						}
@@ -118,12 +118,12 @@ func languageProcess(w abm.SPPRequest, r *abm.SPPResponse) {
 				}
 				newData[i] = v
 			}
-
-			r.Data = append(r.Data, &site.Site{
+			data[ip*len(languages)+il] = &site.Site{
 				Slug:     filepath.Join(slugLanguage, page.Slug),
 				Template: page.Template,
 				Data:     newData,
-			})
+			}
 		}
 	}
+	r.AddData(data)
 }
