@@ -42,8 +42,8 @@ type (
 	}
 
 	log struct {
-		File       string `json:"file"`
-		PretyPrint bool   `json:"pretyprint"`
+		File        string `json:"file"`
+		PrettyPrint bool   `json:"prettyprint"`
 	}
 	//UIlogger combines a UI and a logger
 	UIlogger interface {
@@ -148,7 +148,7 @@ func CleanConfig(configLocation string, ui uiLoggerSetter) (*Config, errors.Erro
 	}
 	file.Seek(0, 0)
 	ui.SetLogfile(file)
-	ui.SetPrettyPrint(cfg.LogConfig.PretyPrint)
+	ui.SetPrettyPrint(cfg.LogConfig.PrettyPrint)
 
 	cfg.UILogger = ui
 	return cfg, nil
@@ -176,8 +176,8 @@ func (l *log) UnmarshalJSON(data []byte) error {
 	switch data[0] {
 	case '{': //if it starts with a { its and object and thus should be parsable as a whole
 		cfgl := struct {
-			File       string `json:"file"`
-			PretyPrint bool   `json:"pretyprint"`
+			File        string `json:"file"`
+			PrettyPrint bool   `json:"prettyprint"`
 		}{}
 
 		if err := json.Unmarshal(data, &cfgl); err != nil {

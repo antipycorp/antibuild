@@ -5,8 +5,8 @@
         "modules": ".modules/"
 	},
 	"logfile":{
-		"file":"abm.log",
-		"pretyprint":true
+		"file": "abm.log",
+		"prettyprint": true
 	},
     "pages": {
         "slug": "",

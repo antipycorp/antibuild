@@ -8,7 +8,6 @@ import (
 	tm "github.com/buger/goterm"
 )
 
-
 //UI is the way to display stuff on the console.
 type UI struct {
 	LogFile        io.Writer
@@ -25,7 +24,7 @@ func (ui *UI) ShowCompiling() {
 	//tm.MoveCursor(1, 1)
 
 	tm.Print("" +
-		"Compiling...\n" +
+		"Building...\n" +
 		"\n")
 
 	tm.Flush()
@@ -37,35 +36,36 @@ func (ui *UI) ShowResult() {
 	tm.MoveCursor(1, 1)
 	if len(ui.log) != 0 {
 		if ui.failed {
-			tm.Print(tm.Color(tm.Bold("Failed to compile:"), tm.RED) + "\n")
+			tm.Print(tm.Color(tm.Bold("Failed to build."), tm.RED) + "\n")
 		} else {
-			tm.Print(tm.Color(tm.Bold("Compiled With Warnings:"), tm.YELLOW) + "\n")
+			tm.Print(tm.Color(tm.Bold("Built with warnings."), tm.YELLOW) + "\n")
 		}
 	} else {
 		if ui.failed {
-			tm.Print(tm.Color(tm.Bold("Failed to compile:"), tm.RED) + "\n")
+			tm.Print(tm.Color(tm.Bold("Failed to build."), tm.RED) + "\n")
 		} else {
-			tm.Print(tm.Color(tm.Bold("Compiled successfully."), tm.GREEN) + "\n\n")
+			tm.Print(tm.Color(tm.Bold("Built successfully."), tm.GREEN) + "\n\n")
+			if !ui.HostingEnabled {
+				tm.Print("" +
+					"The " + tm.Color(tm.Bold("build"), tm.BLUE) + " folder is ready to be deployed.\n" +
+					"You should serve it with a static hosting server.\n" +
+					"")
+			} else {
+				tm.Print("" +
+					"You can now view your project in the browser.\n" +
+					"   Local:            http://localhost:" + ui.Port + "/\n" +
+					"   On Your Network:  http://" + getIP() + ":" + ui.Port + "/\n" +
+					"\n" +
+					"Note that the development build is not optimized. \n" +
+					"To create a production build, use " + tm.Color(tm.Bold("antibuild build"), tm.BLUE) + ".\n" +
+					"")
+			}
 		}
 	}
-	if !ui.HostingEnabled {
-		tm.Print("" +
-			"The " + tm.Color(tm.Bold("build"), tm.BLUE) + " folder is ready to be deployed.\n" +
-			"You should serve it with a static server.\n" +
-			"")
-	} else {
-		tm.Print("" +
-			"You can now view your project in the browser.\n" +
-			"   Local:            http://localhost:" + ui.Port + "/\n" +
-			"   On Your Network:  http://" + getIP() + ":" + ui.Port + "/\n" +
-			"\n" +
-			"Note that the development build is not optimized. \n" +
-			"To create a production build, use " + tm.Color(tm.Bold("antibuild build"), tm.BLUE) + ".\n" +
-			"")
-	}
+
 	if len(ui.log) != 0 {
 		tm.Print("\n" +
-			tm.Color(tm.Bold("the following errors have occured:"), tm.YELLOW) + "\n")
+			tm.Color(tm.Bold("The following errors have occured:"), tm.RED) + "\n")
 		for _, e := range ui.log { //e for entry
 			tm.Print(e + "\n")
 		}
@@ -77,7 +77,7 @@ func (ui *UI) ShowResult() {
 func getIP() string {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
-		return "failed to get IP address"
+		return "unknown"
 	}
 
 	for _, address := range addrs {
@@ -95,7 +95,7 @@ func getIP() string {
 func (ui *UI) Debug(err string) {
 	if ui.LogFile != nil {
 		if ui.PrettyLog {
-			entry := tm.Color(tm.Bold("Debug:."), tm.WHITE) + err
+			entry := tm.Color(tm.Bold("debug "), tm.WHITE) + err
 			ui.LogFile.Write([]byte(entry + "\n"))
 			return
 		}
@@ -110,7 +110,7 @@ func (ui *UI) Debugf(format string, a ...interface{}) {
 
 //Info logs helpfull information/warnings
 func (ui *UI) Info(err string) {
-	entry := tm.Color(tm.Bold("Info:."), tm.BLUE) + err
+	entry := tm.Color(tm.Bold("info "), tm.BLUE) + err
 	ui.log = append(ui.log, entry)
 	if ui.LogFile != nil {
 		if ui.PrettyLog {
@@ -128,7 +128,7 @@ func (ui *UI) Infof(format string, a ...interface{}) {
 
 //Error logs errors, these can later be followed up on with a fatal or have potential consequences for the outcome
 func (ui *UI) Error(err string) {
-	entry := tm.Color(tm.Bold("Error:."), tm.YELLOW) + err
+	entry := tm.Color(tm.Bold("error "), tm.RED) + err
 	ui.log = append(ui.log, entry)
 	if ui.LogFile != nil {
 		if ui.PrettyLog {
@@ -146,7 +146,7 @@ func (ui *UI) Errorf(format string, a ...interface{}) {
 
 //Fatal should be called when in an unrecoverable state. EG: config file not found, template function not called etc.
 func (ui *UI) Fatal(err string) {
-	entry := tm.Color(tm.Bold("Failed to compile:."), tm.RED) + err
+	entry := tm.Color(tm.Bold("Failed to build. \n\n"), tm.RED) + err
 	ui.log = append(ui.log, entry)
 	ui.failed = true
 
