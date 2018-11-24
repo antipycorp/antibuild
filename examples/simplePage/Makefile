@@ -16,7 +16,13 @@ build: $(binary) setup
 
 refresh: $(binary) setup
 	$(binary) $(templaterefresh)
+
+stress: export STRESS = 1
+stress: $(binary) setup 
 	
+	echo "${STRESS}"
+	$(binary) $(templaterefresh)
+
 clean:
 	rm -rf $(output)
 	rm $(binary)

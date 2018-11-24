@@ -34,36 +34,34 @@ func Start(in io.Reader, out io.Writer) {
 	module.CustomStart(in, out)
 }
 
-func html(w abm.TFRequest, r *abm.TFResponse) {
+func html(w abm.TFRequest, r abm.Response) {
 	var args = make([]string, len(w.Data))
 	var err bool
 
 	for i, data := range w.Data {
 		if args[i], err = data.(string); err == false {
-			r.Error = abm.ErrInvalidInput
+			r.AddInvalid(abm.InvalidInput)
 			return
 		}
 	}
 
 	result := template.HTML(args[0])
-
-	r.Data = result
+	r.AddData(result)
 	return
 }
 
-func js(w abm.TFRequest, r *abm.TFResponse) {
+func js(w abm.TFRequest, r abm.Response) {
 	var args = make([]string, len(w.Data))
 	var err bool
 
 	for i, data := range w.Data {
 		if args[i], err = data.(string); err == false {
-			r.Error = abm.ErrInvalidInput
+			r.AddInvalid(abm.InvalidInput)
 			return
 		}
 	}
 
 	result := template.JS(args[0])
-
-	r.Data = result
+	r.AddData(result)
 	return
 }

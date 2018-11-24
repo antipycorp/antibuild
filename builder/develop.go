@@ -7,6 +7,7 @@ package builder
 import (
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 	"gitlab.com/antipy/antibuild/cli/builder/config"
@@ -18,6 +19,20 @@ import (
 //watches files and folders and rebuilds when things change
 func buildOnRefresh(cfg *config.Config, configLocation string, ui *UI.UI) {
 	ui.Debug("making a refresh")
+	if os.Getenv("STRESS") == "1" {
+		timeout := time.NewTimer(time.Second * 100).C
+
+		for {
+			select {
+			case <-timeout:
+				<-make(chan int)
+			default:
+				ui.Info("new force build")
+				startParse(cfg)
+			}
+		}
+	}
+	ui.Infof("doing normal refresh: %s", os.Getenv("STRESS"))
 
 	startParse(cfg)
 

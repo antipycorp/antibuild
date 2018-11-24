@@ -5,6 +5,7 @@
 package builder
 
 import (
+	"fmt"
 	"os"
 
 	"gitlab.com/antipy/antibuild/cli/builder/config"
@@ -51,6 +52,7 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 			buildOnRefresh(cfg, configLocation, ui)
 			return
 		}
+		fmt.Println("started parsing")
 		startParse(cfg)
 	}
 }
@@ -63,13 +65,14 @@ func startParse(cfg *config.Config) {
 
 	cfg.UILogger.ShowCompiling()
 
-	mhost := modules.LoadModules(cfg.Folders.Modules, cfg.Modules.Dependencies, cfg.Modules.Config)
+	mhost := modules.LoadModules(cfg.Folders.Modules, cfg.Modules.Dependencies, cfg.Modules.Config, cfg.UILogger)
 	if mhost != nil { // loadModules checks if modules are already loaded
 		cfg.ModuleHost = mhost
 	}
-
+	fmt.Println("loaded modules")
 	//actually run the template
 	templateErr := executeTemplate(cfg)
+	fmt.Println("ran the templates")
 	if templateErr != nil {
 		cfg.UILogger.Fatal("failed building templates:" + templateErr.Error())
 
@@ -88,7 +91,6 @@ func executeTemplate(cfg *config.Config) errors.Error {
 	} else {
 		return ErrNoOutpuSpecified
 	}
-
 	sites := cfg.Pages
 
 	cfg.Pages = &site.ConfigSite{}

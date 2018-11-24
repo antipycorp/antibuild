@@ -33,10 +33,9 @@ func HostLocally(output, port string) {
 	}
 	if os.Getenv("DEBUG") == "1" {
 		debug := http.Server{
-			Addr:         ":5000",
-			Handler:      http.DefaultServeMux,
-			ReadTimeout:  time.Millisecond * 500,
-			WriteTimeout: time.Millisecond * 500,
+			Addr:        ":5000",
+			Handler:     http.DefaultServeMux,
+			ReadTimeout: time.Millisecond * 500,
 		}
 		go debug.ListenAndServe()
 	}

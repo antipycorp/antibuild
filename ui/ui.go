@@ -69,6 +69,7 @@ func (ui *UI) ShowResult() {
 		for _, e := range ui.log { //e for entry
 			tm.Print(e + "\n")
 		}
+		ui.log = ui.log[:0] // not being garbage collected, but that should be fine since there is not a lot of data
 	}
 
 	tm.Flush()

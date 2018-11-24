@@ -45,6 +45,7 @@ type (
 	FPP interface {
 		Process(map[string]interface{}, string) map[string]interface{}
 	}
+
 	//SPP is a function thats able to post-process data
 	SPP interface {
 		Process([]*Site, string) []*Site
@@ -96,6 +97,8 @@ var (
 //Unfold the ConfigSite into a []ConfigSite
 func Unfold(configSite *ConfigSite, spps []string) ([]*Site, errors.Error) {
 	sites := make([]*Site, 0, len(configSite.Sites)*2)
+	globalTemplates = make(map[string]*template.Template, len(sites))
+
 	err := unfold(configSite, nil, &sites)
 	if err != nil {
 		return sites, err
@@ -186,6 +189,7 @@ func gatherData(site *Site, files []datafile) errors.Error {
 	return nil
 }
 
+//TODO optimize the SHIT out od this.
 func gatherTemplates(site *Site, templates []string) errors.Error {
 	var newTemplates = make([]string, len(templates))
 	for i, template := range templates {
@@ -197,12 +201,13 @@ func gatherTemplates(site *Site, templates []string) errors.Error {
 
 	//get the template with the TemplateFunctions initalized
 	id := randString(32)
-	globalTemplates[id], err = template.New("").Funcs(TemplateFunctions).ParseFiles(newTemplates...)
-	site.Template = id
-
+	template, err := template.New("").Funcs(TemplateFunctions).ParseFiles(newTemplates...)
 	if err != nil {
 		return errors.Import(err)
 	}
+
+	globalTemplates[id] = template
+	site.Template = id
 
 	return nil
 }
