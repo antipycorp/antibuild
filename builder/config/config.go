@@ -103,7 +103,8 @@ func GetConfig(configLocation string) (cfg *Config, reterr errors.Error) {
 	if err != nil {
 		return nil, ErrFailledOpen.SetRoot(err.Error())
 	}
-
+	io.Copy(os.Stdout, configFile)
+	configFile.Seek(0, 0)
 	dec := json.NewDecoder(configFile)
 	err = dec.Decode(&cfg)
 	if err != nil {
@@ -133,12 +134,6 @@ func SaveConfig(configLocation string, cfg *Config) errors.Error {
 func CleanConfig(configLocation string, ui uiLoggerSetter) (*Config, errors.Error) {
 	cfg, configErr := ParseConfig(configLocation)
 	if configErr != nil {
-		if configErr.GetCode() == ErrFailledParse.GetCode() {
-			ui.Fatalf("could not parse the config file: %s", configErr)
-
-			ui.ShowResult()
-			return nil, configErr
-		}
 		return nil, ErrFailledParse.SetRoot(configErr.GetRoot())
 	}
 
@@ -158,7 +153,7 @@ func CleanConfig(configLocation string, ui uiLoggerSetter) (*Config, errors.Erro
 func ParseConfig(configLocation string) (*Config, errors.Error) {
 	cfg, err := GetConfig(configLocation)
 	if err != nil {
-		return cfg, ErrFailledParse.SetRoot(err.Error())
+		return cfg, ErrFailledParse.SetRoot(err.GetRoot())
 	}
 
 	if cfg.Folders.Templates == "" {

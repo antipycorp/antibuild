@@ -8,7 +8,6 @@ import (
 	tm "github.com/buger/goterm"
 )
 
-
 //UI is the way to display stuff on the console.
 type UI struct {
 	LogFile        io.Writer
