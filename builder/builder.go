@@ -19,14 +19,14 @@ import (
 )
 
 var (
-	//ErrFailledUnfold is when the template failled building
-	ErrFailledUnfold = errors.NewError("failed to unfold", 1)
-	//ErrFailledExport is for a faillure moving the static folder
-	ErrFailledExport = errors.NewError("failled to export the template files", 2)
-	//ErrNoOutpuSpecified is for a faillure in gathering files.
+	//ErrFailedUnfold is when the template failed building
+	ErrFailedUnfold = errors.NewError("failed to unfold", 1)
+	//ErrFailedExport is for a failure moving the static folder
+	ErrFailedExport = errors.NewError("failed to export the template files", 2)
+	//ErrNoOutpuSpecified is for a failure in gathering files.
 	ErrNoOutpuSpecified = errors.NewError("no output folder specified", 3)
-	//ErrFailledRemoveFile is for a faillure in gathering files.
-	ErrFailledRemoveFile = errors.NewError("failled removing filles", 4)
+	//ErrFailedRemoveFile is for a failure in gathering files.
+	ErrFailedRemoveFile = errors.NewError("failed removing filles", 4)
 )
 
 //Start the build process
@@ -86,7 +86,7 @@ func executeTemplate(cfg *config.Config) errors.Error {
 	if cfg.Folders.Output != "" {
 		err := os.RemoveAll(cfg.Folders.Output)
 		if err != nil {
-			return ErrFailledRemoveFile.SetRoot(err.Error())
+			return ErrFailedRemoveFile.SetRoot(err.Error())
 		}
 	} else {
 		return ErrNoOutpuSpecified
@@ -103,12 +103,12 @@ func executeTemplate(cfg *config.Config) errors.Error {
 
 	pages, err := site.Unfold(cfg.Pages, cfg.Modules.SPPs)
 	if err != nil {
-		return ErrFailledUnfold.SetRoot(err.GetRoot())
+		return ErrFailedUnfold.SetRoot(err.GetRoot())
 	}
 
 	err = site.Execute(pages)
 	if err != nil {
-		return ErrFailledExport.SetRoot(err.GetRoot())
+		return ErrFailedExport.SetRoot(err.GetRoot())
 	}
 	return nil
 }
