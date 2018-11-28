@@ -2,7 +2,8 @@
     "folders": {
         "templates": "templates/",
         "output": "public/",
-        "modules": ".modules/"
+        "modules": ".modules/",
+        "static": "static/"
 	},
 	"logfile":{
 		"file": "abm.log",
@@ -11,16 +12,20 @@
     "pages": {
         "slug": "",
 		"templates": [
-			"Layout.html"
+            "layout.html",
+            "components/navbar.html"
 		],
 		"data": [
-            "[file:data/Layout.json][json]"
+            "[file:data/layout.json][json]"
         ],
         "sites": [
             {
                 "slug": "/index.html",
+                "templates": [
+                    "home.html"
+                ],
                 "data": [
-                    "[file:data/pages/Home.json][json]"
+                    "[file:data/home.yaml][yaml]"
                 ]
 			}
         ]
@@ -29,6 +34,7 @@
         "dependencies": {
             "file": "0.0.1",
             "json": "0.0.1",
+            "yaml": "0.0.1",
             "language": "0.0.2"
         },
         "config": {

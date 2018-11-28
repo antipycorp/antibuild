@@ -1,0 +1,15 @@
+{
+    "layout": {
+        "name": "Antibuild Demo Page",
+        "pages": [
+            {
+                "title": "Home",
+                "slug": "/"
+            },
+            {
+                "title": "News",
+                "slug": "/news"
+            }
+        ]
+    }
+}
