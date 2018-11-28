@@ -5,6 +5,7 @@
 package builder
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -81,7 +82,8 @@ func staticWatch(src, dst string, shutdown chan int, log config.UIlogger) {
 				return
 			}
 			log.Errorf("error: %s", err.Error())
-		case _ = <-shutdown:
+		case <-shutdown:
+			shutdown <- 0
 			return
 		}
 	}
@@ -106,7 +108,6 @@ func watchBuild(cfg *config.Config, configloc string, shutdown chan int, ui *UI.
 		shutdown <- 0
 		return
 	}
-
 	err = watcher.Add(configloc)
 	if err != nil {
 		ui.Errorf("could not watch config file %s", err.Error())
@@ -119,12 +120,24 @@ func watchBuild(cfg *config.Config, configloc string, shutdown chan int, ui *UI.
 				shutdown <- 0
 				return
 			}
+			fmt.Println(e.String())
+
+			if e.Op != fsnotify.Create && e.Op != fsnotify.Remove && e.Op != fsnotify.Rename && e.Op != fsnotify.Write {
+				break
+			}
 			ui.Debug("making a refresh")
+			fmt.Println(configloc)
 			if e.Name == configloc {
-				cfg, err = config.CleanConfig(configloc, ui)
+				ncfg, err := config.CleanConfig(configloc, ui)
 				if err != nil {
+					ui.Fatalf(err.Error())
+					ui.ShowResult()
+
+					fmt.Println(err)
 					failledToLoadConfig(ui, os.TempDir()+"/abm/public")
-					net.HostLocally(os.TempDir()+"/abm/public", "8080")
+					go net.HostLocally(os.TempDir()+"/abm/public", "8080")
+				} else {
+					cfg = ncfg
 				}
 			}
 
@@ -136,7 +149,8 @@ func watchBuild(cfg *config.Config, configloc string, shutdown chan int, ui *UI.
 				return
 			}
 			ui.Errorf("error: %s", err.Error())
-		case _ = <-shutdown:
+		case <-shutdown:
+			shutdown <- 0
 			return
 		}
 	}

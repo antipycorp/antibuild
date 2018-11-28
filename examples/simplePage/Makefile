@@ -20,7 +20,6 @@ refresh: $(binary) setup
 stress: export STRESS = 1
 stress: $(binary) setup 
 	
-	echo "${STRESS}"
 	$(binary) $(templaterefresh)
 
 clean:

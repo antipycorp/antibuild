@@ -46,8 +46,8 @@ func (e ierror) GetCode() string {
 //NewError returns a new ierror, RootCause should be set yourself
 func NewError(message string, code int) Error {
 	return &ierror{
-		RootCause: message,
-		code:      strconv.Itoa(code),
+		message: message,
+		code:    strconv.Itoa(code),
 	}
 }
 
