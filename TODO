@@ -1,0 +1,10 @@
+being able to cache the templates would be fabulous
+#IMPORTANT
+store the data in in files and read when neccesary to preserve memory, pass file locations to the module which loads them
+
+#IDEA
+
+you should not use map[string]interface for json/yaml encoding
+
+I saw your message before you deleted it, I had to think for a sec before I knew what to say about that. So, is it true you feel like we’ll stab you in the back? That we’ll betray you?
+I’m really sorry if you feel that way. Can you explain why you feel that way?

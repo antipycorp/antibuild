@@ -14,7 +14,7 @@ require (
 	github.com/spf13/afero v1.1.2 // indirect
 	github.com/spf13/cobra v0.0.3
 	github.com/src-d/go-git v4.7.0+incompatible // indirect
-	gitlab.com/antipy/antibuild/api v0.1.2
+	gitlab.com/antipy/antibuild/api v0.2.2
 	gopkg.in/AlecAivazis/survey.v1 v1.6.2
 	gopkg.in/src-d/go-git.v4 v4.7.1 // indirect
 )
