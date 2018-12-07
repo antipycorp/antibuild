@@ -2,7 +2,6 @@ package modules
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -19,31 +18,6 @@ import (
 )
 
 type (
-	fileLoader struct {
-		host    *host.ModuleHost
-		command string
-	}
-
-	fileParser struct {
-		host    *host.ModuleHost
-		command string
-	}
-
-	filePostProcessor struct {
-		host    *host.ModuleHost
-		command string
-	}
-
-	sitePostProcessor struct {
-		host    *host.ModuleHost
-		command string
-	}
-
-	templateFunction struct {
-		host    *host.ModuleHost
-		command string
-	}
-
 	internalMod struct {
 		version string
 		start   func(io.Reader, io.Writer)
@@ -95,6 +69,7 @@ func LoadModules(moduleRoot string, deps map[string]string, configs map[string]M
 	moduleHost = make(map[string]*host.ModuleHost, len(deps))
 
 	for identifier, version := range deps {
+
 		if _, ok := loadedModules[identifier]; ok { //check if the module is still loaded,
 			if loadedModules[identifier] == version { //if the version is the same leave it be
 				continue
@@ -225,152 +200,4 @@ func setupModule(identifier string, moduleHost *host.ModuleHost, config ModuleCo
 			panic("couldnt send config: " + err.Error())
 		}
 	}
-}
-
-func getTemplateFunction(command string, host *host.ModuleHost) *templateFunction {
-	return &templateFunction{
-		host:    host,
-		command: command,
-	}
-}
-
-func (f *templateFunction) Load(data ...interface{}) []byte {
-	output, err := f.host.ExcecuteMethod("templateFunctions_"+f.command, data)
-	if err != nil {
-		panic("execute methods: " + err.Error())
-	}
-
-	//check if return type is correct
-	var outputFinal []byte
-	var ok bool
-	if outputFinal, ok = output.([]byte); ok != true {
-		panic("fileLoader_" + f.command + " did not return a []byte")
-	}
-
-	return outputFinal
-}
-
-func getFileLoader(command string, host *host.ModuleHost) *fileLoader {
-	return &fileLoader{
-		host:    host,
-		command: command,
-	}
-}
-
-func (f *fileLoader) Load(variable string) []byte {
-	data := []interface{}{
-		variable,
-	}
-
-	output, err := f.host.ExcecuteMethod("fileLoaders_"+f.command, data)
-	if err != nil {
-		panic("execute methods: " + err.Error())
-	}
-
-	//check if return type is correct
-	var outputFinal []byte
-	var ok bool
-	if outputFinal, ok = output.([]byte); ok != true {
-		panic("fileLoader_" + f.command + " did not return a []byte")
-	}
-
-	return outputFinal
-}
-
-func getFileParser(command string, host *host.ModuleHost) *fileParser {
-	return &fileParser{
-		host:    host,
-		command: command,
-	}
-}
-
-func (f *fileParser) Parse(data []byte, variable string) map[string]interface{} {
-	sendData := []interface{}{
-		data,
-		variable,
-	}
-
-	output, err := f.host.ExcecuteMethod("fileParsers_"+f.command, sendData)
-	if err != nil {
-		panic("execute methods: " + err.Error())
-	}
-
-	//check if return type is correct
-	var outputFinal map[string]interface{}
-	var ok bool
-	if outputFinal, ok = output.(map[string]interface{}); ok != true {
-		panic("fileParser_" + f.command + " did not return a map[string]interface{}")
-	}
-
-	return outputFinal
-}
-
-func getFilePostProcessor(command string, host *host.ModuleHost) *filePostProcessor {
-	return &filePostProcessor{
-		host:    host,
-		command: command,
-	}
-}
-
-func (f *filePostProcessor) Process(data map[string]interface{}, variable string) map[string]interface{} {
-	sendData := []interface{}{
-		data,
-		variable,
-	}
-	output, err := f.host.ExcecuteMethod("filePostProcessors_"+f.command, sendData)
-	if err != nil {
-		panic("execute methods: " + err.Error())
-	}
-
-	//check if return type is correct
-	var outputFinal map[string]interface{}
-	var ok bool
-	if outputFinal, ok = output.(map[string]interface{}); ok != true {
-		panic("filePostProcessors_" + f.command + " did not return a map[string]interface{}")
-	}
-
-	return outputFinal
-}
-
-func getSitePostProcessor(command string, host *host.ModuleHost) sitePostProcessor {
-	return sitePostProcessor{
-		host:    host,
-		command: command,
-	}
-}
-
-func (s sitePostProcessor) Process(data []*site.Site, variable string) []*site.Site {
-	sendData := []interface{}{
-		data,
-		variable,
-	}
-
-	fmt.Println("starting")
-	output, err := s.host.ExcecuteMethod("sitePostProcessors_"+s.command, sendData)
-	fmt.Println("done")
-	if err != nil {
-		panic("execute methods: " + err.Error())
-	}
-
-	//check if return type is correct
-	var outputFinal []*site.Site
-	var ok bool
-	if outputFinal, ok = output.([]*site.Site); ok != true {
-		panic("sitePostProcessors_" + s.command + " did not return a []*site.Site")
-	}
-
-	return outputFinal
-}
-
-//UnmarshalJSON unmarschals the json into a moduleconfig
-func (mc *ModuleConfig) UnmarshalJSON(data []byte) error {
-	if err := json.Unmarshal(data, &mc.Config); err != nil {
-		return err
-	}
-	return nil
-}
-
-//MarshalJSON marschals the data into json
-func (mc *ModuleConfig) MarshalJSON() ([]byte, error) {
-	return json.Marshal(mc.Config)
 }

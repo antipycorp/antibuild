@@ -15,25 +15,15 @@ type UI struct {
 	Port           string
 	failed         bool
 	log            []string
+	infolog        []string
 	PrettyLog      bool
-}
-
-//ShowCompiling should be shown when you start compiling
-func (ui *UI) ShowCompiling() {
-	//tm.Clear()
-	//tm.MoveCursor(1, 1)
-
-	tm.Print("" +
-		"Building...\n" +
-		"\n")
-
-	tm.Flush()
 }
 
 //ShowResult should be shown when something builds successfully
 func (ui *UI) ShowResult() {
 	tm.Clear()
 	tm.MoveCursor(1, 1)
+
 	if len(ui.log) != 0 {
 		if ui.failed {
 			tm.Print(tm.Color(tm.Bold("Failed to build."), tm.RED) + "\n")
@@ -64,14 +54,41 @@ func (ui *UI) ShowResult() {
 	}
 
 	if len(ui.log) != 0 {
-		tm.Print("\n" +
-			tm.Color(tm.Bold("The following errors have occured:"), tm.RED) + "\n")
+		if ui.failed {
+			tm.Print("\n" +
+				tm.Color(tm.Bold("The following errors have occured:"), tm.RED) + "\n\n")
+		} else {
+			tm.Print("\n" +
+				tm.Color(tm.Bold("The following warnings have been reported:"), tm.BLUE) + "\n\n")
+		}
 		for _, e := range ui.log { //e for entry
 			tm.Print(e + "\n")
 		}
-		ui.log = ui.log[:0] // not being garbage collected, but that should be fine since there is not a lot of data
+		ui.log = make([]string, 0)
 	}
 
+	if len(ui.infolog) != 0 {
+		tm.Print("\n" +
+			tm.Color(tm.Bold("Build Log:"), tm.BLUE) + "\n")
+
+		for _, e := range ui.infolog { //e for entry
+			tm.Print(e + "\n")
+		}
+
+		ui.infolog = make([]string, 0)
+	}
+
+	tm.Flush()
+}
+
+func (ui *UI) showlog() {
+	tm.Clear()
+	tm.MoveCursor(1, 1)
+	tm.Print(tm.Color(tm.Bold("Build log:"), tm.BLUE) + "\n")
+
+	for _, e := range ui.infolog { //e for entry
+		tm.Print(e + "\n")
+	}
 	tm.Flush()
 }
 
@@ -112,14 +129,15 @@ func (ui *UI) Debugf(format string, a ...interface{}) {
 //Info logs helpfull information/warnings
 func (ui *UI) Info(err string) {
 	entry := tm.Color(tm.Bold("info "), tm.BLUE) + err
-	ui.log = append(ui.log, entry)
+	ui.infolog = append(ui.infolog, entry)
 	if ui.LogFile != nil {
 		if ui.PrettyLog {
-			ui.LogFile.Write([]byte(entry))
+			ui.LogFile.Write([]byte(entry + "\n"))
 			return
 		}
 		ui.LogFile.Write([]byte(err + "\n"))
 	}
+	ui.showlog()
 }
 
 //Infof logs helpfull information/warnings

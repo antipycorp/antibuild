@@ -52,7 +52,6 @@ type (
 	}
 
 	ui interface {
-		ShowCompiling()
 		ShowResult()
 	}
 

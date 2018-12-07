@@ -11,6 +11,9 @@ import (
 	"path/filepath"
 	"time"
 
+	"gitlab.com/antipy/antibuild/cli/modules/pipeline"
+
+	"github.com/jaicewizard/tt"
 	"gitlab.com/antipy/antibuild/cli/internal"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
 )
@@ -28,27 +31,31 @@ type (
 	Site struct {
 		Slug     string
 		Template string
-		Data     map[string]interface{}
+		Data     tt.Data
 	}
 
 	//FileLoader is a module that loads data
 	FileLoader interface {
 		Load(string) []byte
+		GetPipe(string) pipeline.Pipe
 	}
 
 	//FileParser is a module that parses loaded data
 	FileParser interface {
-		Parse([]byte, string) map[string]interface{}
+		Parse([]byte, string) tt.Data
+		GetPipe(string) pipeline.Pipe
 	}
 
 	//FPP is a function thats able to post-process data
 	FPP interface {
-		Process(map[string]interface{}, string) map[string]interface{}
+		Process(tt.Data, string) tt.Data
+		GetPipe(string) pipeline.Pipe
 	}
 
 	//SPP is a function thats able to post-process data
 	SPP interface {
 		Process([]*Site, string) []*Site
+		GetPipe(string) pipeline.Pipe
 	}
 )
 
@@ -173,15 +180,23 @@ func gatherData(site *Site, files []datafile) errors.Error {
 
 		//init data if it is empty
 		if site.Data == nil {
-			site.Data = make(map[string]interface{})
+			site.Data = make(tt.Data)
 		}
 
-		//load and parse data
-		file := FileLoaders[datafile.loader].Load(datafile.loaderArguments)
-		parsed := FileParsers[datafile.parser].Parse(file, datafile.parserArguments)
+		var data tt.Data
+
+		fPipe := FileLoaders[datafile.loader].GetPipe(datafile.loaderArguments)
+		pPipe := FileParsers[datafile.parser].GetPipe(datafile.parserArguments)
+
+		if fPipe != nil && pPipe != nil {
+			pipeline.ExecPipeline(nil, &data, fPipe, pPipe)
+		} else {
+			fileData := FileLoaders[datafile.loader].Load(datafile.loaderArguments)
+			data = FileParsers[datafile.parser].Parse(fileData, datafile.parserArguments)
+		}
 
 		//add the parsed data to the site data
-		for k, v := range parsed {
+		for k, v := range data {
 			site.Data[k] = v
 		}
 	}

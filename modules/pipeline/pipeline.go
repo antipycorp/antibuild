@@ -1,12 +1,14 @@
 package pipeline
 
 import (
+	"fmt"
+
 	"gitlab.com/antipy/antibuild/api/file"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
 )
 
 type (
-	//pip is a type used for pipes
+	//Pipe is a type used for pipes
 	Pipe func(string) errors.Error
 )
 
@@ -44,6 +46,7 @@ func ExecPipeline(data interface{}, retdata interface{}, pipes ...Pipe) errors.E
 	for _, pipe := range pipes {
 		err := pipe(fileName)
 		if err != nil {
+			fmt.Println(err, "THIS IS THE ERROR!!")
 			return ErrFailledExecPipe.SetRoot(err.GetRoot())
 		}
 	}

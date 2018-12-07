@@ -10,6 +10,9 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/jaicewizard/tt"
+	"gitlab.com/antipy/antibuild/cli/modules/pipeline"
 )
 
 type unfoldPair struct {
@@ -61,7 +64,7 @@ var unfoldTests = []unfoldPair{
 		out: []*Site{
 			&Site{
 				Slug: "/index.html",
-				Data: map[string]interface{}{
+				Data: tt.Data{
 					"data": "nothing",
 				},
 			},
@@ -75,9 +78,24 @@ var unfoldTests = []unfoldPair{
 func (l loader) Load(f string) []byte {
 	return l.data[f]
 }
-func (p fParser) Parse(data []byte, useless string) (ret map[string]interface{}) {
-	json.Unmarshal(data, &ret)
-	return
+
+func (l loader) GetPipe(variable string) pipeline.Pipe {
+	return nil
+}
+
+func (p fParser) Parse(data []byte, useless string) tt.Data {
+	var jsonData map[string]interface{}
+
+	json.Unmarshal(data, &jsonData)
+	var retData = make(tt.Data, len(jsonData))
+	for k, v := range jsonData {
+		retData[k] = v
+	}
+
+	return retData
+}
+func (p fParser) GetPipe(variable string) pipeline.Pipe {
+	return nil
 }
 
 //Testunfold doesnt test template parsing, if anything failled it will be done during execute

@@ -13,7 +13,6 @@ import (
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
 	"gitlab.com/antipy/antibuild/cli/modules"
 	"gitlab.com/antipy/antibuild/cli/net"
-	"gitlab.com/antipy/antibuild/cli/net/websocket"
 
 	UI "gitlab.com/antipy/antibuild/cli/ui"
 )
@@ -53,31 +52,33 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 			return
 		}
 		fmt.Println("started parsing")
-		startParse(cfg)
+
+		err := startParse(cfg)
+		if err != nil {
+			failledToRender(cfg)
+		} else {
+			cfg.UILogger.ShowResult()
+		}
 	}
 }
 
-func startParse(cfg *config.Config) {
-	defer func() {
-		websocket.SendUpdate()
-		cfg.UILogger.ShowResult()
-	}()
+func startParse(cfg *config.Config) errors.Error {
 
-	cfg.UILogger.ShowCompiling()
+	cfg.UILogger.Info("started compiling...")
 
 	mhost := modules.LoadModules(cfg.Folders.Modules, cfg.Modules.Dependencies, cfg.Modules.Config, cfg.UILogger)
 	if mhost != nil { // loadModules checks if modules are already loaded
 		cfg.ModuleHost = mhost
 	}
-	fmt.Println("loaded modules")
+	cfg.UILogger.Debug("loaded modules")
 	//actually run the template
 	templateErr := executeTemplate(cfg)
-	fmt.Println("ran the templates")
+	cfg.UILogger.Debug("ran the templates")
 	if templateErr != nil {
 		cfg.UILogger.Fatal("failed building templates:" + templateErr.Error())
-
-		failledToRender(cfg)
 	}
+	cfg.UILogger.Info("succesfully exported the templates")
+	return nil
 }
 
 //start the template execution

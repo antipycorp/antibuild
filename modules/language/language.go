@@ -23,12 +23,14 @@ func Start(in io.Reader, out io.Writer) {
 	module := abm.Register("language")
 
 	module.ConfigFunctionRegister(func(input map[string]interface{}) *errors.Error {
+		fmt.Println("DOING THE CONFIG")
 		var ok bool
 		var languagesInterface []interface{}
 
 		if languagesInterface, ok = input["languages"].([]interface{}); !ok {
 			return &abm.ErrInvalidInput
 		}
+		fmt.Println("DOING THE CONFIG")
 
 		for _, languageInterface := range languagesInterface {
 			if language, ok := languageInterface.(string); ok {
@@ -80,14 +82,14 @@ func languageProcess(w abm.SPPRequest, r abm.Response) {
 				slugLanguage = ""
 			}
 
-			var newData = make(map[string]interface{})
+			var newData = make(map[interface{}]interface{})
 			var ok bool
-			var langData map[string]interface{}
+			var langData map[interface{}]interface{}
 			var langDataINTF map[interface{}]interface{}
 
 			for i, v := range page.Data {
 				if i == language { //if this the language we asked for
-					if langData, ok = v.(map[string]interface{}); !ok {
+					if langData, ok = v.(map[interface{}]interface{}); !ok {
 
 						/* This is really shitty, but some serializers support non-strings as keys,
 						and after the first layer it will use whatever it finds cool.

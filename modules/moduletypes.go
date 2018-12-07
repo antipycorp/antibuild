@@ -3,6 +3,7 @@ package modules
 import (
 	"encoding/json"
 
+	"github.com/jaicewizard/tt"
 	"gitlab.com/antipy/antibuild/api/host"
 	"gitlab.com/antipy/antibuild/cli/builder/site"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
@@ -100,8 +101,8 @@ func getFileParser(command string, host *host.ModuleHost) *fileParser {
 	}
 }
 
-func (fp *fileParser) Parse(data []byte, variable string) map[string]interface{} {
-	var ret map[string]interface{}
+func (fp *fileParser) Parse(data []byte, variable string) tt.Data {
+	var ret tt.Data
 
 	pipe := fp.GetPipe(variable)
 	pipeline.ExecPipeline(data, &ret, pipe)
@@ -127,8 +128,8 @@ func getFilePostProcessor(command string, host *host.ModuleHost) *filePostProces
 	}
 }
 
-func (fpp *filePostProcessor) Process(data map[string]interface{}, variable string) map[string]interface{} {
-	var ret map[string]interface{}
+func (fpp *filePostProcessor) Process(data tt.Data, variable string) tt.Data {
+	var ret tt.Data
 
 	pipe := fpp.GetPipe(variable)
 	pipeline.ExecPipeline(data, &ret, pipe)

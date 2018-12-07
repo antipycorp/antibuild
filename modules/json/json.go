@@ -33,5 +33,9 @@ func parseJSON(w abm.FPRequest, r abm.Response) {
 		r.AddErr(err.Error())
 		return
 	}
-	r.AddData(jsonData)
+	var retData = make(map[interface{}]interface{}, len(jsonData))
+	for k, v := range jsonData {
+		retData[k] = v
+	}
+	r.AddData(retData)
 }

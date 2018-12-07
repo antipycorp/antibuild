@@ -57,7 +57,6 @@ var (
 
 //SendUpdate sends an update request to all the WS clients
 func SendUpdate() {
-	fmt.Println("update")
 	message := map[string]interface{}{
 		"status": "update",
 		"data":   nil,

@@ -5,7 +5,6 @@
 package builder
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -14,28 +13,31 @@ import (
 	"gitlab.com/antipy/antibuild/cli/builder/config"
 	"gitlab.com/antipy/antibuild/cli/internal"
 	"gitlab.com/antipy/antibuild/cli/net"
+	"gitlab.com/antipy/antibuild/cli/net/websocket"
 	UI "gitlab.com/antipy/antibuild/cli/ui"
 )
 
 //watches files and folders and rebuilds when things change
 func buildOnRefresh(cfg *config.Config, configLocation string, ui *UI.UI) {
-	ui.Debug("making a refresh")
 	if os.Getenv("STRESS") == "1" {
-		timeout := time.NewTimer(time.Second * 100).C
+		//timeout := time.NewTimer(time.Second * 100).C
 
 		for {
 			select {
-			case <-timeout:
-				<-make(chan int)
-			default:
-				ui.Info("new force build")
+			/* 			case <-timeout:
+			<-make(chan int)
+			*/default:
 				startParse(cfg)
 			}
 		}
 	}
-	ui.Infof("doing normal refresh: %s", os.Getenv("STRESS"))
 
-	startParse(cfg)
+	err := startParse(cfg)
+	if err != nil {
+		failledToRender(cfg)
+	} else {
+		cfg.UILogger.ShowResult()
+	}
 
 	shutdown := make(chan int, 10) // 10 is enough for some watcher to not get stuck on the chan
 	if cfg.Folders.Static != "" {
@@ -120,28 +122,34 @@ func watchBuild(cfg *config.Config, configloc string, shutdown chan int, ui *UI.
 				shutdown <- 0
 				return
 			}
-			fmt.Println(e.String())
 
 			if e.Op != fsnotify.Create && e.Op != fsnotify.Remove && e.Op != fsnotify.Rename && e.Op != fsnotify.Write {
 				break
 			}
-			ui.Debug("making a refresh")
-			fmt.Println(configloc)
+			ui.Info("making a refresh")
+			time.Sleep(10)
 			if e.Name == configloc {
+				ui.Infof("loaded new config location: %s", configloc)
 				ncfg, err := config.CleanConfig(configloc, ui)
 				if err != nil {
-					ui.Fatalf(err.Error())
 					ui.ShowResult()
 
-					fmt.Println(err)
 					failledToLoadConfig(ui, os.TempDir()+"/abm/public")
 					go net.HostLocally(os.TempDir()+"/abm/public", "8080")
+					continue
 				} else {
 					cfg = ncfg
 				}
 			}
 
 			startParse(cfg)
+			if err != nil {
+				failledToRender(cfg)
+			} else {
+				ui.Info("succesfully build the refresh version")
+				ui.ShowResult()
+				websocket.SendUpdate()
+			}
 
 		case err, ok := <-watcher.Errors:
 			if !ok {
