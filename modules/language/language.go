@@ -7,7 +7,6 @@ package language
 import (
 	"fmt"
 	"io"
-	"os"
 	"path/filepath"
 
 	abm "gitlab.com/antipy/antibuild/api/client"
@@ -85,24 +84,13 @@ func languageProcess(w abm.SPPRequest, r abm.Response) {
 			var newData = make(map[interface{}]interface{})
 			var ok bool
 			var langData map[interface{}]interface{}
-			var langDataINTF map[interface{}]interface{}
 
 			for i, v := range page.Data {
 				if i == language { //if this the language we asked for
 					if langData, ok = v.(map[interface{}]interface{}); !ok {
 
-						/* This is really shitty, but some serializers support non-strings as keys,
-						and after the first layer it will use whatever it finds cool.
-						hence we also chec if it can be converted to a string */
-
-						if langDataINTF, ok = v.(map[interface{}]interface{}); !ok {
-							fmt.Fprint(os.Stderr, v, "\n")
-							fmt.Fprint(os.Stderr, langDataINTF, "\n")
-							r.AddInvalid(abm.InvalidInput)
-							return
-						}
-						// Finaly converting the key to a string, I really hate this
-						for i, v := range langDataINTF {
+						// converting the key to a string, I really hate this
+						for i, v := range langData {
 							if k, ok := i.(string); ok {
 								newData[k] = v
 							} else {

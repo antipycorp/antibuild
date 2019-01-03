@@ -1,3 +1,5 @@
+// go build -gcflags -m
+
 // Copyright © 2018 Antipy V.O.F. info@antipy.com
 //
 // Licensed under the MIT License
@@ -5,7 +7,7 @@
 package builder
 
 import (
-	"fmt"
+	"io"
 	"os"
 
 	"gitlab.com/antipy/antibuild/cli/builder/config"
@@ -37,6 +39,8 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 			failledToLoadConfig(ui, os.TempDir()+"/abm/public")
 			net.HostLocally(os.TempDir()+"/abm/public", "8080")
 		}
+		ui.Fatalf("could not parse the config file:" + err.Error())
+		return
 	}
 
 	if isConfigSet {
@@ -51,9 +55,8 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 			buildOnRefresh(cfg, configLocation, ui)
 			return
 		}
-		fmt.Println("started parsing")
 
-		err := startParse(cfg)
+		err = startParse(cfg)
 		if err != nil {
 			failledToRender(cfg)
 		} else {
@@ -62,8 +65,23 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 	}
 }
 
-func startParse(cfg *config.Config) errors.Error {
+//HeadlesStart starts a headless parser which just parses one thing
+func HeadlesStart(configLocation string, output io.Writer) {
+	ui := &UI.UI{}
+	ui.SetLogfile(output)
+	ui.SetPrettyPrint(false)
 
+	cfg, err := config.CleanConfig(configLocation, ui)
+	if err != nil {
+		ui.Fatalf("could not parse the config file:" + err.Error())
+	}
+	err = startParse(cfg)
+	if err != nil {
+		ui.Fatalf("could not parse the files:" + err.Error())
+	}
+}
+
+func startParse(cfg *config.Config) errors.Error {
 	cfg.UILogger.Info("started compiling...")
 
 	mhost := modules.LoadModules(cfg.Folders.Modules, cfg.Modules.Dependencies, cfg.Modules.Config, cfg.UILogger)
@@ -73,7 +91,6 @@ func startParse(cfg *config.Config) errors.Error {
 	cfg.UILogger.Debug("loaded modules")
 	//actually run the template
 	templateErr := executeTemplate(cfg)
-	cfg.UILogger.Debug("ran the templates")
 	if templateErr != nil {
 		cfg.UILogger.Fatal("failed building templates:" + templateErr.Error())
 	}

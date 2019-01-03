@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 
 	tm "github.com/buger/goterm"
@@ -183,9 +184,16 @@ func (ui *UI) Fatalf(format string, a ...interface{}) {
 	ui.Fatal(fmt.Sprintf(format, a...))
 }
 
+//SetLogfile sets the output writer for the logger
 func (ui *UI) SetLogfile(file io.Writer) {
-	ui.LogFile = file
+	if file != nil {
+		ui.LogFile = file
+	} else {
+		ui.LogFile = ioutil.Discard
+	}
 }
+
+//SetPrettyPrint this sets the setting for pretty printing,
 func (ui *UI) SetPrettyPrint(enabled bool) {
 	ui.PrettyLog = enabled
 }

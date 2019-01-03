@@ -1,4 +1,5 @@
 // +build !module
+// go build -gcflags -m
 
 // Copyright © 2018 Antipy V.O.F. info@antipy.com
 //

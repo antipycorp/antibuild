@@ -125,6 +125,7 @@ func TestExecute(t *testing.T) {
 				t.FailNow()
 			}
 			if string(dat) != data {
+				fmt.Println(string(dat) + "vs" + data)
 				t.FailNow()
 			}
 		}
