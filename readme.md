@@ -1,5 +1,8 @@
 # Easy static site generator that uses go html templates and json files
 
+## WARNING
+this readme is 100% outdated
+
 ## Usage
 
 ### How to install
