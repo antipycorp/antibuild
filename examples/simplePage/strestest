@@ -1,3 +1,0 @@
-#!/bin/bash
-
-env GODEBUG=gctrace=1 DEBUG=1 make stress > /dev/null

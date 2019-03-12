@@ -32,10 +32,6 @@ build: $(binary) setup
 refresh: $(binary) setup
 	$(binary) $(templaterefresh)
 
-stress: export STRESS = 1
-stress: $(binary) setup 	
-	$(binary) $(templaterefresh)
-
 debug: $(binary) setup
 	dlv debug gitlab.com/antipy/antibuild/cli -- build
 

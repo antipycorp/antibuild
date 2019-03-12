@@ -20,22 +20,22 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"regexp"
 	"reflect"
+	"regexp"
+
 	"github.com/spf13/cobra"
 	"gitlab.com/antipy/antibuild/cli/internal"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
 	"gopkg.in/AlecAivazis/survey.v1"
 )
 
-var(
+var (
 	nameregex = regexp.MustCompile("[a-z-]{3,}")
 
-	//ErrInvalidInput is when the template failled building
+	//ErrInvalidInput is when the template failed building
 	ErrInvalidInput = errors.NewError("invalid input", 1)
 	//ErrInvalidName is for a faillure moving the static folder
-	ErrInvalidName= errors.NewError("name does not match the requirements", 2)	
-
+	ErrInvalidName = errors.NewError("name does not match the requirements", 2)
 )
 
 var newSurvey = []*survey.Question{
@@ -46,7 +46,7 @@ var newSurvey = []*survey.Question{
 			var in string
 			var ok bool
 			if in, ok = input.(string); !ok {
-				return ErrInvalidInput.SetRoot("input is of type "+reflect.TypeOf(input).String()+"not string")
+				return ErrInvalidInput.SetRoot("input is of type " + reflect.TypeOf(input).String() + "not string")
 			}
 
 			match := nameregex.MatchString(in)
@@ -61,8 +61,8 @@ var newSurvey = []*survey.Question{
 		Name: "template",
 		Prompt: &survey.Select{
 			Message: "Choose a starting template:",
-			Options: []string{"basic", "homepage", "newspage"},
-			Default: "homepage",
+			Options: []string{"basic"},
+			Default: "basic",
 		},
 	},
 	{
@@ -81,8 +81,8 @@ var newCMD = &cobra.Command{
 	Long:  `Generate a new antibuild project. To get started run "antibuild new" and follow the prompts.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		answers := struct {
-			Name           string   `survey:"name"`
-			Template       string   `survey:"template"`
+			Name string `survey:"name"`
+			//Template       string   `survey:"template"`
 			DefaultModules []string `survey:"default_modules"`
 		}{}
 
@@ -128,6 +128,6 @@ var newCMD = &cobra.Command{
 }
 
 //SetCommands sets the commands for this package to the cmd argument
-func SetCommands(cmd *cobra.Command){
+func SetCommands(cmd *cobra.Command) {
 	cmd.AddCommand(newCMD)
 }

@@ -1,53 +1,39 @@
 {
-    "folders": {
-        "templates": "templates/",
-        "output": "public/",
-        "modules": ".modules/",
-        "static": "static/"
-	},
-	"logfile":{
-		"file": "abm.log",
-		"prettyprint": true
-	},
-    "pages": {
-        "slug": "",
-		"templates": [
-            "layout.html",
-            "components/navbar.html"
-		],
-		"data": [
-            "[file:data/layout.json][json]"
-        ],
-        "sites": [
-            {
-                "slug": "/index.html",
-                "templates": [
-                    "home.html"
-                ],
-                "data": [
-                    "[file:data/home.yaml][yaml]"
-                ]
-			}
-        ]
-	},
-	"modules": {
-        "dependencies": {
-            "file": "0.0.1",
-            "json": "0.0.1",
-            "yaml": "0.0.1",
-            "language": "0.0.2"
-        },
-        "config": {
-            "language": {
-                "languages": [
-                    "en",
-                    "nl"
-                ],
-                "default": "en"
-            }
-        },
-        "spps": [
-            "language_language"
-        ]
-    }
+  "folders": {
+    "templates": "templates/",
+    "output": "public/",
+    "modules": ".modules/",
+    "static": "static/"
+  },
+  "logfile": {
+    "file": "abm.log",
+    "prettyprint": true
+  },
+  "pages": {
+    "slug": "",
+    "templates": ["layout.html", "components/navbar.html"],
+    "data": ["[file:data/layout.json][json]"],
+    "sites": [
+      {
+        "slug": "/index.html",
+        "templates": ["home.html"],
+        "data": ["[file:data/home.yaml][yaml]"]
+      }
+    ]
+  },
+  "modules": {
+    "dependencies": {
+      "file": "0.0.1",
+      "json": "0.0.1",
+      "yaml": "0.0.1",
+      "language": "0.0.2"
+    },
+    "config": {
+      "language": {
+        "languages": ["en", "nl"],
+        "default": "en"
+      }
+    },
+    "spps": ["language_language"]
+  }
 }
