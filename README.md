@@ -6,7 +6,7 @@ A fast and customizable static site builder for the modern web. More details on 
 
 ### Install
 
-You have two installation options. You can either download a precompiled binary from the https://build.antipy.com/install (install instructions there) or install the latest beta version using go, if you have it installed. If you want to install go visit [https://golang.org/doc/install](the Golang website).
+You have two installation options. You can either download a precompiled binary from the https://build.antipy.com/install (install instructions there) or install the latest beta version using go, if you have it installed. If you want to install go visit [the Golang website](https://golang.org/doc/install).
 
 If you want to install using go enter this command into your terminal.
 `go get -u -v https://github.com/antipy/antibuild`
