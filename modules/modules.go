@@ -11,10 +11,11 @@ import (
 
 	"gitlab.com/antipy/antibuild/api/host"
 	"gitlab.com/antipy/antibuild/cli/builder/site"
-	modFile "gitlab.com/antipy/antibuild/cli/modules/file"
-	modJSON "gitlab.com/antipy/antibuild/cli/modules/json"
-	modLang "gitlab.com/antipy/antibuild/cli/modules/language"
-	modNoESC "gitlab.com/antipy/antibuild/cli/modules/noescape"
+	mod_file "gitlab.com/antipy/antibuild/cli/modules/file"
+	mod_json "gitlab.com/antipy/antibuild/cli/modules/json"
+	mod_lang "gitlab.com/antipy/antibuild/cli/modules/language"
+	mod_noescape "gitlab.com/antipy/antibuild/cli/modules/noescape"
+	mod_yaml "gitlab.com/antipy/antibuild/cli/modules/yaml"
 )
 
 type (
@@ -41,22 +42,27 @@ var (
 		"file": internalMod{
 			version: "0.0.1",
 			name:    "file",
-			start:   modFile.Start,
+			start:   mod_file.Start,
 		},
 		"json": internalMod{
 			version: "0.0.1",
 			name:    "json",
-			start:   modJSON.Start,
+			start:   mod_json.Start,
 		},
 		"language": internalMod{
 			version: "0.0.2",
 			name:    "language",
-			start:   modLang.Start,
+			start:   mod_lang.Start,
 		},
 		"noescape": internalMod{
 			version: "0.0.1",
 			name:    "noescape",
-			start:   modNoESC.Start,
+			start:   mod_noescape.Start,
+		},
+		"yaml": internalMod{
+			version: "0.0.1",
+			name:    "yaml",
+			start:   mod_yaml.Start,
 		},
 	}
 

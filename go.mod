@@ -12,4 +12,5 @@ require (
 	gitlab.com/antipy/antibuild/api v0.3.1
 	golang.org/x/crypto v0.0.0-20181127143415-eb0de9b17e85 // indirect
 	gopkg.in/AlecAivazis/survey.v1 v1.7.0
+	gopkg.in/yaml.v2 v2.2.1
 )

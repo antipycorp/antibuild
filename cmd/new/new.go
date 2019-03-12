@@ -81,8 +81,8 @@ var newCMD = &cobra.Command{
 	Long:  `Generate a new antibuild project. To get started run "antibuild new" and follow the prompts.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		answers := struct {
-			Name string `survey:"name"`
-			//Template       string   `survey:"template"`
+			Name           string   `survey:"name"`
+			Template       string   `survey:"template"`
 			DefaultModules []string `survey:"default_modules"`
 		}{}
 
