@@ -11,11 +11,6 @@ import (
 
 	"gitlab.com/antipy/antibuild/api/host"
 	"gitlab.com/antipy/antibuild/cli/builder/site"
-	mod_file "gitlab.com/antipy/antibuild/cli/modules/file"
-	mod_json "gitlab.com/antipy/antibuild/cli/modules/json"
-	mod_lang "gitlab.com/antipy/antibuild/cli/modules/language"
-	mod_noescape "gitlab.com/antipy/antibuild/cli/modules/noescape"
-	mod_yaml "gitlab.com/antipy/antibuild/cli/modules/yaml"
 )
 
 type (
@@ -24,6 +19,7 @@ type (
 		start   func(io.Reader, io.Writer)
 		name    string
 	}
+
 	//ModuleConfig contains the config for modules
 	ModuleConfig struct {
 		Config map[string]interface{}
@@ -38,33 +34,7 @@ var (
 	filePostProcessors = &site.FilePostProcessors
 	sitePostProcessors = &site.SPPs
 
-	internalMods = map[string]internalMod{
-		"file": internalMod{
-			version: "0.0.1",
-			name:    "file",
-			start:   mod_file.Start,
-		},
-		"json": internalMod{
-			version: "0.0.1",
-			name:    "json",
-			start:   mod_json.Start,
-		},
-		"language": internalMod{
-			version: "0.0.2",
-			name:    "language",
-			start:   mod_lang.Start,
-		},
-		"noescape": internalMod{
-			version: "0.0.1",
-			name:    "noescape",
-			start:   mod_noescape.Start,
-		},
-		"yaml": internalMod{
-			version: "0.0.1",
-			name:    "yaml",
-			start:   mod_yaml.Start,
-		},
-	}
+	internalMods = map[string]internalMod{}
 
 	loadedModules = make(map[string]string)
 )

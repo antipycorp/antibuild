@@ -34,7 +34,7 @@ func buildOnRefresh(cfg *config.Config, configLocation string, ui *UI.UI) {
 
 	err := startParse(cfg)
 	if err != nil {
-		failledToRender(cfg)
+		failedToRender(cfg)
 	} else {
 		cfg.UILogger.ShowResult()
 	}
@@ -134,7 +134,7 @@ func watchBuild(cfg *config.Config, configloc string, shutdown chan int, ui *UI.
 				if err != nil {
 					ui.ShowResult()
 
-					failledToLoadConfig(ui, os.TempDir()+"/abm/public")
+					failedToLoadConfig(ui, os.TempDir()+"/abm/public")
 					go net.HostLocally(os.TempDir()+"/abm/public", "8080")
 					continue
 				} else {
@@ -144,7 +144,7 @@ func watchBuild(cfg *config.Config, configloc string, shutdown chan int, ui *UI.
 
 			startParse(cfg)
 			if err != nil {
-				failledToRender(cfg)
+				failedToRender(cfg)
 			} else {
 				ui.Info("succesfully build the refresh version")
 				ui.ShowResult()

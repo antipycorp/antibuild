@@ -98,7 +98,7 @@ func (p fParser) GetPipe(variable string) pipeline.Pipe {
 	return nil
 }
 
-//Testunfold doesnt test template parsing, if anything failled it will be done during execute
+//Testunfold doesnt test template parsing, if anything failed it will be done during execute
 func TestUnfold(t *testing.T) {
 	for _, test := range unfoldTests {
 		fmt.Println(test.in)

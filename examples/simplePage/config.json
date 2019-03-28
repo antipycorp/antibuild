@@ -1,39 +1,39 @@
 {
+  "logging": {
+    "file": "abm.log",
+    "pretty_print": true
+  },
   "folders": {
     "templates": "templates/",
+    "static": "static/",
     "output": "public/",
-    "modules": ".modules/",
-    "static": "static/"
+    "modules": ".modules/"
   },
-  "logfile": {
-    "file": "abm.log",
-    "prettyprint": true
+  "modules": {
+    "dependencies": {
+      "file": "https://build.antipy.com/dl/modules.json",
+      "json": "https://build.antipy.com/dl/modules.json",
+      "language": "https://build.antipy.com/dl/modules.json",
+      "yaml": "https://build.antipy.com/dl/modules.json"
+    },
+    "config": {
+      "language": {
+        "default": "en",
+        "languages": ["en", "nl"]
+      }
+    },
+    "spps": ["language_language"]
   },
   "pages": {
     "slug": "",
     "templates": ["layout.html", "components/navbar.html"],
-    "data": ["[file:data/layout.json][json]"],
+    "data": ["[file_file:data/layout.json][json_json]"],
     "sites": [
       {
         "slug": "/index.html",
         "templates": ["home.html"],
-        "data": ["[file:data/home.yaml][yaml]"]
+        "data": ["[file_file:data/home.yaml][yaml_yaml]"]
       }
     ]
-  },
-  "modules": {
-    "dependencies": {
-      "file": "0.0.1",
-      "json": "0.0.1",
-      "yaml": "0.0.1",
-      "language": "0.0.2"
-    },
-    "config": {
-      "language": {
-        "languages": ["en", "nl"],
-        "default": "en"
-      }
-    },
-    "spps": ["language_language"]
   }
 }

@@ -26,6 +26,11 @@ func (e ierror) Error() string {
 	if e.message == "" {
 		return e.RootCause
 	}
+
+	if e.RootCause == "" {
+		return e.message
+	}
+
 	return fmt.Sprintf("%s: %s", e.message, e.RootCause)
 }
 

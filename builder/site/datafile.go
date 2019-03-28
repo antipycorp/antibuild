@@ -20,18 +20,32 @@ type (
 )
 
 var (
-	//ErrNoFileLoaderFound is when the template failled building
+	//ErrNoFileLoaderFound is when the template failed building
 	ErrNoFileLoaderFound = errors.NewError("could not get file loader information", 1)
-	//ErrNoFileParserFound is for a faillure moving the static folder
+	//ErrNoFileParserFound is for a failure moving the static folder
 	ErrNoFileParserFound = errors.NewError("could not get file parser information", 2)
 )
 
 func (df *datafile) MarshalJSON() ([]byte, error) {
-	return []byte(df.String()), nil
+	return []byte("\"" + df.String() + "\""), nil
 }
 
 func (df *datafile) String() string {
-	return "[" + df.loader + ":" + df.loaderArguments + "][" + df.parser + ":" + df.parserArguments + "]"
+	out := ""
+
+	out += "[" + df.loader
+	if df.loaderArguments != "" {
+		out += ":" + df.loaderArguments
+	}
+	out += "]"
+
+	out += "[" + df.parser
+	if df.parserArguments != "" {
+		out += ":" + df.parserArguments
+	}
+	out += "]"
+
+	return out
 }
 
 func (df *datafile) UnmarshalJSON(data []byte) error {

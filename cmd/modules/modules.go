@@ -2,12 +2,16 @@ package modules
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"runtime"
+	"strings"
 
 	tm "github.com/buger/goterm"
 	"github.com/spf13/cobra"
 	"gitlab.com/antipy/antibuild/cli/builder/config"
+	cmdInternal "gitlab.com/antipy/antibuild/cli/cmd/internal"
 	"gitlab.com/antipy/antibuild/cli/internal"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
 	"gitlab.com/antipy/antibuild/cli/ui"
@@ -15,17 +19,29 @@ import (
 
 var fallbackUI = ui.UI{
 	HostingEnabled: false,
-	PrettyLog: true,
+	PrettyLog:      true,
 }
 
-var(
-		//ErrFailledDownload is when the template failled building
-		ErrFailledDownload = errors.NewError("failled downloading file", 1)
-		//ErrArchNotSupported is for a faillure moving the static folder
-		ErrArchNotSupported = errors.NewError("arch or os not supported", 2)	
+var moduleList = make(map[string]map[string]cmdInternal.ModuleRepositoryEntry)
+var moduleListLoaded = make(map[string]bool)
+
+var (
+	//ErrFailedModuleBinaryDownload means the module binary download failed
+	ErrFailedModuleBinaryDownload = errors.NewError("failed downloading module binary from repository server", 1)
+	//ErrFailedModuleRepositoryListDownload means the module repository list download failed
+	ErrFailedModuleRepositoryListDownload = errors.NewError("failed downloading the module repository list", 2)
+	//ErrUnknownModule means that the module could not be found in the module repository list
+	ErrUnknownModule = errors.NewError("module was not found in module repository list", 3)
+	//ErrUnkownSourceRepositoryType means that source repository type was not recognized
+	ErrUnkownSourceRepositoryType = errors.NewError("source repository code is unknown", 10)
+	//ErrFailedGitRepositoryDownload means that the git repository could not be cloned
+	ErrFailedGitRepositoryDownload = errors.NewError("failed to clone the git repository", 11)
+	//ErrFailedModuleBuild means that the module could not be built
+	ErrFailedModuleBuild = errors.NewError("failed to build the module from repository source", 21)
 )
 
 var configFile string
+var repositoryFile string
 
 // modulesCMD represents the modules command
 var modulesCMD = &cobra.Command{
@@ -48,30 +64,39 @@ var modulesAddCMD = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg, err := config.GetConfig(configFile)
-		if err != nil{
-			fallbackUI.Fatal("could not get the config")
-			fallbackUI.ShowResult()
+		if err != nil {
+			tm.Print(tm.Color("Config is not valid.", tm.RED) +
+				"This error message might help: " +
+				tm.Color(err.Error(), tm.WHITE) +
+				"\n \n")
+			tm.Flush()
 			return
 		}
 
 		newModule := args[0]
 
-		if cfg.Modules.Dependencies[newModule] != "" {
-			tm.Print(tm.Color(tm.Bold("The module "+newModule+" is already installed!"), tm.RED))
+		tm.Print(tm.Color("Downloading "+tm.Bold(newModule), tm.BLUE) + tm.Color(" from repository "+tm.Bold(repositoryFile), tm.BLUE) + "\n")
+		tm.Flush()
+
+		err = installModule(newModule, repositoryFile)
+		checkModuleErr(err)
+		if err != nil {
+			return
+		}
+
+		cfg.Modules.Dependencies[newModule] = repositoryFile
+
+		err = config.SaveConfig(configFile, cfg)
+		if err != nil {
+			tm.Print(tm.Color("Config could not be saved.", tm.RED) +
+				"This error message might help: " +
+				tm.Color(err.Error(), tm.WHITE) +
+				"\n \n")
 			tm.Flush()
 			return
 		}
 
-		cfg.Modules.Dependencies[newModule] = "0.0.1"
-
-		config.SaveConfig(configFile, cfg)
-
-		err = installModule(newModule)
-		checkModuleErr(err)
-		tm.Print(tm.Color(tm.Bold("Downloading "+newModule+" at version "+cfg.Modules.Dependencies[newModule]+"..."), tm.BLUE))
-		tm.Flush()
-
-		tm.Print(tm.Color(tm.Bold("Finished downloading "+newModule+"\n \n"), tm.GREEN))
+		tm.Print(tm.Color("Finished downloading "+tm.Bold(newModule), tm.GREEN) + "\n \n")
 		tm.Flush()
 
 		return
@@ -89,11 +114,15 @@ var modulesRemoveCMD = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg, err := config.GetConfig(configFile)
-		if err != nil{
-			fallbackUI.Fatal("could not get the config")
-			fallbackUI.ShowResult()
+		if err != nil {
+			tm.Print(tm.Color("Config is not valid.", tm.RED) +
+				"This error message might help: " +
+				tm.Color(err.Error(), tm.WHITE) +
+				"\n \n")
+			tm.Flush()
 			return
 		}
+
 		newModule := args[0]
 
 		if cfg.Modules.Dependencies[newModule] == "" {
@@ -104,15 +133,23 @@ var modulesRemoveCMD = &cobra.Command{
 
 		delete(cfg.Modules.Dependencies, newModule)
 
-		config.SaveConfig(configFile, cfg)
-
-		err = errors.Import(os.Remove(".modules/abm_" + newModule))
+		err = config.SaveConfig(configFile, cfg)
 		if err != nil {
-			fmt.Println(err.Error())
+			tm.Print(tm.Color("Config could not be saved.", tm.RED) +
+				"This error message might help: " +
+				tm.Color(err.Error(), tm.WHITE) +
+				"\n \n")
+			tm.Flush()
 			return
 		}
 
-		tm.Print(tm.Color(tm.Bold("Finished removing "+newModule+"\n \n"), tm.GREEN))
+		errDefault := os.Remove(".modules/abm_" + newModule)
+		if errDefault != nil {
+			fmt.Println(errors.Import(err).Error())
+			return
+		}
+
+		tm.Print(tm.Color("Removed the module "+tm.Bold(newModule), tm.GREEN) + "\n \n")
 		tm.Flush()
 
 		return
@@ -129,76 +166,163 @@ var modulesInstallCMD = &cobra.Command{
 	Long:  `Will install all modules defined in the config file at the right versions and OS/ARCH.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg, err := config.GetConfig(configFile)
-		if err != nil{
-			fallbackUI.Fatal("could not get the config")
-			fallbackUI.ShowResult()
+		if err != nil {
+			tm.Print(tm.Color("Config is not valid.", tm.RED) +
+				"This error message might help: " +
+				tm.Color(err.Error(), tm.WHITE) +
+				"\n \n")
+			tm.Flush()
 			return
 		}
 
-		for moduleName, version := range cfg.Modules.Dependencies {
-			tm.Print(tm.Color(tm.Bold("Downloading "+moduleName+" at version "+version+"..."), tm.BLUE))
+		for moduleName, moduleRepository := range cfg.Modules.Dependencies {
+			tm.Print(tm.Color("Downloading "+tm.Bold(moduleName), tm.BLUE) + tm.Color(" from repository "+tm.Bold(repositoryFile), tm.BLUE) + "\n")
 			tm.Flush()
 
-			err := installModule(moduleName)
+			err := installModule(moduleName, moduleRepository)
 			checkModuleErr(err)
 
-			tm.Print(tm.Color(tm.Bold("Finished downloading "+moduleName+"\n \n"), tm.GREEN))
+			tm.Print(tm.Color("Finished downloading "+tm.Bold(moduleName), tm.GREEN) + "\n \n")
 			tm.Flush()
 		}
 	},
 }
 
-func installModule(moduleName string) errors.Error {
-	os := runtime.GOOS
-	arch := runtime.GOARCH
+func installModule(moduleName string, moduleRepository string) errors.Error {
+	goos := runtime.GOOS
+	goarch := runtime.GOARCH
 	module := "abm_" + moduleName
 
-	if !((os == "linux" && (arch == "amd64" || arch == "arm" || arch == "arm64")) || (os == "darwin" && (arch == "amd64")) || (os == "windows" && (arch == "amd64"))) {
-		return ErrArchNotSupported.SetRoot("you are using an os/arch combination that isn't supported")
-	}
-
-	err := internal.DownloadFile(".modules/"+module, "https://build.antipy.com/cli/modules/"+os+"/"+arch+"/"+module, true)
+	err := updateModuleList(moduleRepository)
 	if err != nil {
-		return ErrFailledDownload.SetRoot(err.Error())
+		return ErrFailedModuleRepositoryListDownload.SetRoot(err.Error())
 	}
 
+	var moduleInfo cmdInternal.ModuleRepositoryEntry
+	var ok bool
+
+	if moduleInfo, ok = moduleList[moduleRepository][moduleName]; !ok {
+		return ErrUnknownModule.SetRoot("")
+	}
+
+	if _, ok := moduleInfo.Compiled[goos]; ok {
+		if _, ok := moduleInfo.Compiled[goos][goarch]; ok {
+			err := os.Mkdir(".modules/", 0755)
+			err = internal.DownloadFile(".modules/"+module, moduleInfo.Compiled[goos][goarch], true)
+			if err != nil {
+				fmt.Println(err.Error())
+				return ErrFailedModuleBinaryDownload.SetRoot(err.Error())
+			}
+
+			return nil
+		}
+	}
+
+	dir, err := ioutil.TempDir("", module)
+	if err != nil {
+		panic(err)
+	}
+
+	switch moduleInfo.Source.Type {
+	case "git":
+		err = internal.DownloadGit(dir, moduleInfo.Source.URL)
+		if err != nil {
+			return ErrFailedGitRepositoryDownload.SetRoot(err.Error())
+		}
+
+		dir = filepath.Join(dir, strings.Split(moduleInfo.Source.URL, "/")[len(strings.Split(moduleInfo.Source.URL, "/"))-1])
+
+		break
+	default:
+		return ErrUnkownSourceRepositoryType.SetRoot(moduleInfo.Source.Type + " is not a known source repository type")
+	}
+
+	dir = filepath.Join(dir, moduleInfo.Source.SubDirectory)
+	err = internal.CompileFromSource(dir, ".modules/"+module)
+	if err != nil {
+		fmt.Println(err.Error())
+		return ErrFailedModuleBuild.SetRoot(err.Error())
+	}
 	return nil
 }
 
 func checkModuleErr(err errors.Error) {
 	if err != nil {
 		switch err.GetCode() {
-		case ErrArchNotSupported.GetCode():
+		case ErrFailedModuleBinaryDownload.GetCode():
 			tm.Print("" +
-				tm.Color(tm.Bold("Failed to download modules."), tm.RED) + "\n" +
+				tm.Color(tm.Bold("Failed to download module."), tm.RED) + "\n" +
 				"\n" +
-				"   Your os or arch is not suppported. To learn how to compile a module for your os and arch visit " + tm.Color("https://build.antipy.com/documentation", tm.BLUE) + "\n" +
-				"")
-		case ErrFailledDownload.GetCode():
+				"   The module you are trying to download has a pre-built binary for your architecture and os but it failed to download. The server might be down. \n" +
+				"\n")
+		case ErrFailedModuleRepositoryListDownload.GetCode():
 			tm.Print("" +
-				tm.Color(tm.Bold("Failed to download modules."), tm.RED) + "\n" +
+				tm.Color(tm.Bold("Failed to download module repository list."), tm.RED) + "\n" +
 				"\n" +
-				"   The module you are trying to download does not exist in the repository. Please check on " + tm.Color("https://build.antipy.com/modules", tm.BLUE) + " if you got the right module.\n" +
-				"")
+				"   The module repository list could not be downloaded. The server might be down.\n" +
+				"\n")
+		case ErrUnknownModule.GetCode():
+			tm.Print("" +
+				tm.Color(tm.Bold("Module does not exist."), tm.RED) + "\n" +
+				"\n" +
+				"   The module you requested is not listed in the module repository list. Is the name of the module spelled correctly?\n" +
+				"\n")
+		case ErrUnkownSourceRepositoryType.GetCode():
+			tm.Print("" +
+				tm.Color(tm.Bold("Failed to download module."), tm.RED) + "\n" +
+				"\n" +
+				"   The repository type that was supplied in the module repository list is not valid. Are you using an old version of Antibuild?\n" +
+				"\n")
+		case ErrFailedGitRepositoryDownload.GetCode():
+			tm.Print("" +
+				tm.Color(tm.Bold("Failed to download git repository for module."), tm.RED) + "\n" +
+				"\n" +
+				"   The source code could not be cloned from repository the git repository. Do you have Git installed?\n" +
+				"\n")
+		case ErrFailedModuleBuild.GetCode():
+			tm.Print("" +
+				tm.Color(tm.Bold("Failed to build module form source."), tm.RED) + "\n" +
+				"\n" +
+				"   The module could not be built from repository source. Make sure you have Go installed.\n" +
+				"\n")
 		default:
 			tm.Print("" +
-				tm.Color(tm.Bold("Failed to download modules."), tm.RED) + "\n" +
+				tm.Color(tm.Bold("Unknown error."), tm.RED) + "\n" +
 				"\n" +
 				"We could not directly identify the error. Does this help?\n" +
-				"   " + err.Error() + "\n" +
+				"		" + err.Error() + "\n" +
 				"\n" +
 				"If that doesnt help please look on our site " + tm.Color("https://build.antipy.com/", tm.BLUE) + "\n" +
-				"")
+				"\n")
 		}
 
 		tm.Flush()
 	}
 }
 
+func updateModuleList(moduleRepository string) error {
+	if _, ok := moduleListLoaded[moduleRepository]; !ok {
+		moduleListLoaded[moduleRepository] = false
+	}
+
+	if !moduleListLoaded[moduleRepository] {
+		moduleListLoaded[moduleRepository] = true
+
+		var err error
+		moduleList[moduleRepository], err = cmdInternal.GetModuleRepository(moduleRepository)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 //SetCommands sets the commands for this package to the cmd argument
-func SetCommands(cmd *cobra.Command){
+func SetCommands(cmd *cobra.Command) {
 	modulesInstallCMD.Flags().StringVarP(&configFile, "config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
 	modulesAddCMD.Flags().StringVarP(&configFile, "config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
+	modulesAddCMD.Flags().StringVarP(&repositoryFile, "modules", "m", "https://build.antipy.com/dl/modules.json", "The module repository list file to use. Default is \"https://build.antipy.com/dl/modules.json\"")
 	modulesRemoveCMD.Flags().StringVarP(&configFile, "config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
 
 	modulesCMD.AddCommand(modulesInstallCMD)

@@ -36,7 +36,7 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 	cfg, err := config.CleanConfig(configLocation, ui)
 	if err != nil {
 		if isHost {
-			failledToLoadConfig(ui, os.TempDir()+"/abm/public")
+			failedToLoadConfig(ui, os.TempDir()+"/abm/public")
 			net.HostLocally(os.TempDir()+"/abm/public", "8080")
 		}
 		ui.Fatalf("could not parse the config file:" + err.Error())
@@ -58,7 +58,7 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 
 		err = startParse(cfg)
 		if err != nil {
-			failledToRender(cfg)
+			failedToRender(cfg)
 		} else {
 			cfg.UILogger.ShowResult()
 		}
@@ -84,7 +84,15 @@ func HeadlesStart(configLocation string, output io.Writer) {
 func startParse(cfg *config.Config) errors.Error {
 	cfg.UILogger.Info("started compiling...")
 
-	mhost := modules.LoadModules(cfg.Folders.Modules, cfg.Modules.Dependencies, cfg.Modules.Config, cfg.UILogger)
+	var moduleConfig = make(map[string]modules.ModuleConfig, len(cfg.Modules.Config))
+
+	for module, mConfig := range cfg.Modules.Config {
+		moduleConfig[module] = modules.ModuleConfig{
+			Config: mConfig,
+		}
+	}
+
+	mhost := modules.LoadModules(cfg.Folders.Modules, cfg.Modules.Dependencies, moduleConfig, cfg.UILogger)
 	if mhost != nil { // loadModules checks if modules are already loaded
 		cfg.ModuleHost = mhost
 	}

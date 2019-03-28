@@ -6,12 +6,10 @@ package config
 
 import (
 	"encoding/json"
-	"io"
 	"os"
 
 	"gitlab.com/antipy/antibuild/api/host"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
-	"gitlab.com/antipy/antibuild/cli/modules"
 
 	"gitlab.com/antipy/antibuild/cli/builder/site"
 )
@@ -19,12 +17,12 @@ import (
 type (
 	//Config is the config struct
 	Config struct {
-		LogConfig  log              `json:"logfile"`
-		Folders    Folder           `json:"folders"`
-		Modules    Modules          `json:"modules"`
-		Pages      *site.ConfigSite `json:"pages"`
-		ModuleHost map[string]*host.ModuleHost
-		UILogger   UIlogger
+		LogConfig  log                         `json:"logging"`
+		Folders    Folder                      `json:"folders"`
+		Modules    Modules                     `json:"modules"`
+		Pages      *site.ConfigSite            `json:"pages"`
+		ModuleHost map[string]*host.ModuleHost `json:"-"`
+		UILogger   UIlogger                    `json:"-"`
 	}
 	//Folder is the part of the config file that handles folders
 	Folder struct {
@@ -36,57 +34,61 @@ type (
 
 	//Modules is the part of the config file that handles modules
 	Modules struct {
-		Dependencies map[string]string               `json:"dependencies"`
-		Config       map[string]modules.ModuleConfig `json:"config"`
-		SPPs         []string                        `json:"spps"`
+		Dependencies map[string]string                 `json:"dependencies"`
+		Config       map[string]map[string]interface{} `json:"config,omitempty"`
+		SPPs         []string                          `json:"spps,omitempty"`
 	}
 )
 
 var (
-	//ErrFailledOpen is when the template failled building
-	ErrFailledOpen = errors.NewError("could not open the config file", 1)
-	//ErrFailledParse is for a faillure moving the static folder
-	ErrFailledParse = errors.NewError("could not parse the config file", 2)
-	//ErrFailledWrite is for a faillure in gathering files.
-	ErrFailledWrite = errors.NewError("could not write the config file", 3)
-	//ErrNoTemplateFolder is for a faillure in gathering files.
+	//ErrFailedOpen is when the template failed building
+	ErrFailedOpen = errors.NewError("could not open the config file", 1)
+	//ErrFailedParse is for a failure moving the static folder
+	ErrFailedParse = errors.NewError("could not parse the config file", 2)
+	//ErrFailedWrite is for a failure in gathering files.
+	ErrFailedWrite = errors.NewError("could not write the config file", 3)
+	//ErrNoTemplateFolder is for a failure in gathering files.
 	ErrNoTemplateFolder = errors.NewError("template folder not set", 4)
-	//ErrNoOutputFolder is for a faillure in gathering files.
+	//ErrNoOutputFolder is for a failure in gathering files.
 	ErrNoOutputFolder = errors.NewError("output folder not set", 5)
-	//ErrFailledCreateLog is for a faillure in gathering files.
-	ErrFailledCreateLog = errors.NewError("could not open log file", 6)
+	//ErrFailedCreateLog is for a failure in gathering files.
+	ErrFailedCreateLog = errors.NewError("could not open log file", 6)
 )
 
 //GetConfig gets the config file. DOES NOT CHECK FOR MISSING INFORMATION!!
 func GetConfig(configLocation string) (cfg *Config, reterr errors.Error) {
-	configFile, err := os.Open(configLocation)
-	defer configFile.Close()
+	file, err := os.Open(configLocation)
+	defer file.Close()
 	if err != nil {
-		return nil, ErrFailledOpen.SetRoot(err.Error())
+		return nil, ErrFailedOpen.SetRoot(err.Error())
 	}
-	io.Copy(os.Stdout, configFile)
-	configFile.Seek(0, 0)
-	dec := json.NewDecoder(configFile)
+	defer file.Close()
+
+	file.Seek(0, 0)
+	dec := json.NewDecoder(file)
 	err = dec.Decode(&cfg)
 	if err != nil {
-		return cfg, ErrFailledParse.SetRoot(err.Error())
+		return cfg, ErrFailedParse.SetRoot(err.Error())
 	}
 	return
 }
 
 //SaveConfig saves the config file
 func SaveConfig(configLocation string, cfg *Config) errors.Error {
-	file, err := os.Create(configLocation)
+	file, err := os.Create(configLocation + ".new")
 	if err != nil {
-		return ErrFailledOpen.SetRoot(err.Error())
+		return ErrFailedOpen.SetRoot(err.Error())
 	}
+	defer file.Close()
 
 	encoder := json.NewEncoder(file)
-	encoder.SetIndent("", "    ")
+	encoder.SetIndent("", "  ")
 	err = encoder.Encode(cfg)
 	if err != nil {
-		return ErrFailledWrite.SetRoot(err.Error())
+		return ErrFailedWrite.SetRoot(err.Error())
 	}
+
+	os.Rename(configLocation+".new", configLocation)
 
 	return nil
 }
@@ -95,12 +97,12 @@ func SaveConfig(configLocation string, cfg *Config) errors.Error {
 func CleanConfig(configLocation string, ui uiLoggerSetter) (*Config, errors.Error) {
 	cfg, configErr := ParseConfig(configLocation)
 	if configErr != nil {
-		return nil, ErrFailledParse.SetRoot(configErr.GetRoot())
+		return nil, ErrFailedParse.SetRoot(configErr.GetRoot())
 	}
 
 	file, err := os.OpenFile(cfg.LogConfig.File, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0660)
 	if err != nil {
-		return nil, ErrFailledCreateLog.SetRoot(err.Error())
+		return nil, ErrFailedCreateLog.SetRoot(err.Error())
 	}
 	file.Seek(0, 0)
 	ui.SetLogfile(file)
@@ -114,7 +116,7 @@ func CleanConfig(configLocation string, ui uiLoggerSetter) (*Config, errors.Erro
 func ParseConfig(configLocation string) (*Config, errors.Error) {
 	cfg, err := GetConfig(configLocation)
 	if err != nil {
-		return cfg, ErrFailledParse.SetRoot(err.GetRoot())
+		return cfg, ErrFailedParse.SetRoot(err.GetRoot())
 	}
 
 	if cfg.Folders.Templates == "" {
@@ -133,7 +135,7 @@ func (l *log) UnmarshalJSON(data []byte) error {
 	case '{': //if it starts with a { its and object and thus should be parsable as a whole
 		cfgl := struct {
 			File        string `json:"file"`
-			PrettyPrint bool   `json:"prettyprint"`
+			PrettyPrint bool   `json:"pretty_print"`
 		}{}
 
 		if err := json.Unmarshal(data, &cfgl); err != nil {

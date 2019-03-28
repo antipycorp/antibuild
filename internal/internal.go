@@ -2,11 +2,13 @@ package internal
 
 import (
 	"archive/zip"
+	"encoding/json"
 	"errors"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 )
 
@@ -154,5 +156,49 @@ func DirCopy(srcdir, destdir string, info os.FileInfo) error {
 			return err
 		}
 	}
+	return nil
+}
+
+// DownloadJSON file from the internet to a data object
+func DownloadJSON(url string, data interface{}) error {
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+
+	err = json.NewDecoder(resp.Body).Decode(&data)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// DownloadGit clones a git repo
+func DownloadGit(path string, url string) error {
+	err := os.MkdirAll(path, 0755)
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command("git", "clone", url)
+	cmd.Dir = path
+	err = cmd.Run()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// CompileFromSource compiles a go program
+func CompileFromSource(path string, outFile string) error {
+	cmd := exec.Command("go", "build", "-o", outFile, filepath.Join(path, "main.go"))
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

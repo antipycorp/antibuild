@@ -13,29 +13,29 @@ import (
 )
 
 var (
-	failledtoloadconfig = []byte(
+	failedtoloadconfig = []byte(
 		"<html>\n" +
-			"failled to load the config file, probably json syntax error :P <br/> more info avaiable in the console output\n" +
+			"failed to load the config file, probably json syntax error :P <br/> more info avaiable in the console output\n" +
 			"</html>")
-	failledtorender = []byte(
+	failedtorender = []byte(
 		"<html>\n" +
-			"failled to render any part of the file, report bugs and suggestions for better error messages at gitlab/github :P <br/> more info avaiable in the console output\n" +
+			"failed to render any part of the file, report bugs and suggestions for better error messages at gitlab/github :P <br/> more info avaiable in the console output\n" +
 			"</html>")
 )
 
-func failledToLoadConfig(log config.Logger, output string) {
+func failedToLoadConfig(log config.Logger, output string) {
 	var err error
 	err = os.MkdirAll(output, 0700)
 	if err != nil {
 		log.Fatalf("could not place error file in place: %s", err.Error())
 	}
-	err = ioutil.WriteFile(output+"/index.html", failledtoloadconfig, 0700)
+	err = ioutil.WriteFile(output+"/index.html", failedtoloadconfig, 0700)
 	if err != nil {
 		log.Fatalf("could not place error file in place: %s", err.Error())
 	}
 }
 
-func failledToRender(cfg *config.Config) {
+func failedToRender(cfg *config.Config) {
 	var err error
 	if cfg.Folders.Output == "" {
 		cfg.UILogger.Fatal("output folder not set:")
@@ -51,7 +51,7 @@ func failledToRender(cfg *config.Config) {
 		log.Fatalf("could not place error file in place: %s", err.Error())
 	}
 
-	err = ioutil.WriteFile(cfg.Folders.Output+"/index.html", failledtorender, 0644)
+	err = ioutil.WriteFile(cfg.Folders.Output+"/index.html", failedtorender, 0644)
 	if err != nil {
 		cfg.UILogger.Fatalf("could not place error file in place: %s", err.Error())
 	}

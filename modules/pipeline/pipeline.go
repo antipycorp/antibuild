@@ -13,10 +13,10 @@ type (
 )
 
 var (
-	//ErrFailledCreateFile is for the pipeline failled at creating a new file
-	ErrFailledCreateFile = errors.NewError("Failled to create a new temporary file", 0)
-	//ErrFailledExecPipe is for the pipeline failled at one of the pipes
-	ErrFailledExecPipe = errors.NewError("Failled to execute a pipe in the pipeline", 1)
+	//ErrFailedCreateFile is for the pipeline failed at creating a new file
+	ErrFailedCreateFile = errors.NewError("Failed to create a new temporary file", 0)
+	//ErrFailedExecPipe is for the pipeline failed at one of the pipes
+	ErrFailedExecPipe = errors.NewError("Failed to execute a pipe in the pipeline", 1)
 )
 
 // ExecPipeline is a pipeline executer, data is the input data into the first function,
@@ -32,13 +32,13 @@ func ExecPipeline(data interface{}, retdata interface{}, pipes ...Pipe) errors.E
 		var err error
 		f, err = file.NewFile([]byte(""))
 		if err != nil {
-			return ErrFailledCreateFile.SetRoot(err.Error())
+			return ErrFailedCreateFile.SetRoot(err.Error())
 		}
 	} else {
 		var err error
 		f, err = file.NewFile(data)
 		if err != nil {
-			return ErrFailledCreateFile.SetRoot(err.Error())
+			return ErrFailedCreateFile.SetRoot(err.Error())
 		}
 	}
 	defer f.Cleanup()
@@ -47,7 +47,7 @@ func ExecPipeline(data interface{}, retdata interface{}, pipes ...Pipe) errors.E
 		err := pipe(fileName)
 		if err != nil {
 			fmt.Println(err, "THIS IS THE ERROR!!")
-			return ErrFailledExecPipe.SetRoot(err.GetRoot())
+			return ErrFailedExecPipe.SetRoot(err.GetRoot())
 		}
 	}
 

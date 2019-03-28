@@ -5,8 +5,9 @@ import "io"
 type (
 	log struct {
 		File        string `json:"file"`
-		PrettyPrint bool   `json:"prettyprint"`
+		PrettyPrint bool   `json:"pretty_print"`
 	}
+	
 	//UIlogger combines a UI and a logger
 	UIlogger interface {
 		ui
