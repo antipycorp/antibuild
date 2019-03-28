@@ -47,20 +47,13 @@ func getTemplateFunction(command string, host *host.ModuleHost) *templateFunctio
 	}
 }
 
-func (tf *templateFunction) Load(data ...interface{}) []byte {
+func (tf *templateFunction) Run(data ...interface{}) interface{} {
 	output, err := tf.host.ExcecuteMethod("templateFunctions_"+tf.command, data)
 	if err != nil {
 		panic("execute methods: " + err.Error())
 	}
 
-	//check if return type is correct
-	var outputFinal []byte
-	var ok bool
-	if outputFinal, ok = output.([]byte); ok != true {
-		panic("fileLoader_" + tf.command + " did not return a []byte")
-	}
-
-	return outputFinal
+	return output
 }
 
 /*

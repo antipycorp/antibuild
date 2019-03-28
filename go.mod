@@ -11,7 +11,7 @@ require (
 	github.com/otiai10/copy v1.0.1
 	github.com/spf13/cobra v0.0.3
 	github.com/stretchr/testify v1.3.0 // indirect
-	gitlab.com/antipy/antibuild/api v0.3.1
+	gitlab.com/antipy/antibuild/api v0.8.0
 	golang.org/x/crypto v0.0.0-20181127143415-eb0de9b17e85 // indirect
 	gopkg.in/AlecAivazis/survey.v1 v1.7.0
 )

@@ -149,7 +149,7 @@ func setupModule(identifier string, moduleHost *host.ModuleHost, config ModuleCo
 
 	//registers all functions modules can possibly suply
 	for _, function := range methods["templateFunctions"] {
-		templateFunctions[identifier+"_"+function] = getTemplateFunction(function, moduleHost)
+		templateFunctions[identifier+"_"+function] = getTemplateFunction(function, moduleHost).Run
 	}
 
 	for _, function := range methods["fileLoaders"] {
