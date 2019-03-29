@@ -21,10 +21,11 @@ import (
 type (
 	//ConfigSite is the way a site is defined in the config file
 	ConfigSite struct {
-		Slug      string        `json:"slug,omitempty"`
-		Templates []string      `json:"templates,omitempty"`
-		Data      []datafile    `json:"data,omitempty"`
-		Sites     []*ConfigSite `json:"sites,omitempty"`
+		Iterators map[string]iterator `json:"iterators,omitempty"`
+		Slug      string              `json:"slug,omitempty"`
+		Templates []string            `json:"templates,omitempty"`
+		Data      []datafile          `json:"data,omitempty"`
+		Sites     []*ConfigSite       `json:"sites,omitempty"`
 	}
 
 	//Site is the way a site is defined after all of its data and templates have been collected
@@ -110,11 +111,13 @@ func Unfold(configSite *ConfigSite, spps []string) ([]*Site, errors.Error) {
 	if err != nil {
 		return sites, err
 	}
+
 	for _, spp := range spps {
 		if k, ok := SPPs[spp]; ok {
 			sites = k.Process(sites, "")
 		}
 	}
+
 	return sites, nil
 }
 
@@ -137,6 +140,7 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]*Site) (err errors.E
 		if err != nil {
 			return ErrFailedGather.SetRoot(err.Error())
 		}
+
 		//append site to the list of sites that will be executed
 		*sites = append(*sites, site)
 		return nil
