@@ -19,7 +19,9 @@ build_darwin:
 build_linux:
 	export GOOS=linux; \
 		make build_amd64;  \
-		make build_386;
+		make build_386;  \
+		make build_arm64;  \
+		make build_arm;
 
 build_windows:
 	export GOOS=windows; \
@@ -32,6 +34,14 @@ build_amd64:
 
 build_386:
 	export GOARCH=386; \
+		make build_internal;
+
+build_arm64:
+	export GOARCH=amd64; \
+		make build_internal;
+
+build_arm:
+	export GOARCH=amd64; \
 		make build_internal;
 
 build_internal:
