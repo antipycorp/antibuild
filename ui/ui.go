@@ -83,8 +83,8 @@ func (ui *UI) ShowResult() {
 }
 
 func (ui *UI) showlog() {
-	tm.Clear()
-	tm.MoveCursor(1, 1)
+	//tm.Clear()
+	//tm.MoveCursor(1, 1)
 	tm.Print(tm.Color(tm.Bold("Build log:"), tm.BLUE) + "\n")
 
 	for _, e := range ui.infolog { //e for entry

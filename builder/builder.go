@@ -24,10 +24,10 @@ var (
 	ErrFailedUnfold = errors.NewError("failed to unfold", 1)
 	//ErrFailedExport is for a failure moving the static folder
 	ErrFailedExport = errors.NewError("failed to export the template files", 2)
-	//ErrNoOutpuSpecified is for a failure in gathering files.
-	ErrNoOutpuSpecified = errors.NewError("no output folder specified", 3)
+	//ErrNoOutputSpecified is for a failure in gathering files.
+	ErrNoOutputSpecified = errors.NewError("no output folder specified", 3)
 	//ErrFailedRemoveFile is for a failure in gathering files.
-	ErrFailedRemoveFile = errors.NewError("failed removing filles", 4)
+	ErrFailedRemoveFile = errors.NewError("failed removing files", 4)
 )
 
 //Start the build process
@@ -110,12 +110,9 @@ func startParse(cfg *config.Config) errors.Error {
 func executeTemplate(cfg *config.Config) errors.Error {
 	//check if the output folder is there and delete its contents
 	if cfg.Folders.Output != "" {
-		err := os.RemoveAll(cfg.Folders.Output)
-		if err != nil {
-			return ErrFailedRemoveFile.SetRoot(err.Error())
-		}
+		os.RemoveAll(cfg.Folders.Output)
 	} else {
-		return ErrNoOutpuSpecified
+		return ErrNoOutputSpecified
 	}
 	sites := cfg.Pages
 

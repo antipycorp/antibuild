@@ -36,4 +36,8 @@ build_386:
 
 build_internal:
 	echo "Building antibuild for ${GOOS}/${GOARCH}";
-	go build -o ./dist/${GOOS}/${GOARCH}/antibuild main.go;
+	go build -o ./dist/${GOOS}/${GOARCH}/antibuild main.go
+
+bin:
+	go build -o antibuild main.go
+	mv antibuild ~/bin
