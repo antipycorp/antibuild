@@ -1,0 +1,11 @@
+stages:
+  - build
+
+build:
+  stage: build
+  image: circleci/golang:1.12-stretch
+  artifacts:
+    paths:
+      - dist/
+  script:
+    - make build

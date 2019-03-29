@@ -5,3 +5,4 @@ antibuild
 main
 test
 .vscode/launch.json
+dist
