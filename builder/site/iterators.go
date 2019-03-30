@@ -49,7 +49,7 @@ func (i *iterator) UnmarshalJSON(data []byte) error {
 		//get all the arguments for the loader
 		sep := bytes.Split(iteratorData, []byte(":"))
 		if len(sep) == 0 {
-			return ErrNoFileLoaderFound.SetRoot(string(iteratorData))
+			return ErrNoIteratorFound.SetRoot(string(iteratorData))
 		}
 		var loader = make([]byte, len(sep[0]))
 		copy(loader, sep[0])
