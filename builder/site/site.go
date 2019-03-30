@@ -5,7 +5,6 @@
 package site
 
 import (
-	"fmt"
 	"html/template"
 	"math/rand"
 	"os"
@@ -48,8 +47,8 @@ type (
 		GetPipe(string) pipeline.Pipe
 	}
 
-	//FPP is a function thats able to post-process data
-	FPP interface {
+	//DPP is a function thats able to post-process data
+	DPP interface {
 		Process(tt.Data, string) tt.Data
 		GetPipe(string) pipeline.Pipe
 	}
@@ -70,7 +69,7 @@ var (
 	//DataParsers are all the module file parsers
 	DataParsers = make(map[string]DataParser)
 	//DataPostProcessors are all the module data post processors
-	DataPostProcessors = make(map[string]FPP)
+	DataPostProcessors = make(map[string]DPP)
 	//SPPs are all the module data post processors
 	SPPs = make(map[string]SPP)
 
@@ -190,8 +189,6 @@ func gatherData(site *Site, files []data) errors.Error {
 
 		var data tt.Data
 
-		fmt.Println(DataLoaders)
-
 		fPipe := DataLoaders[d.loader].GetPipe(d.loaderArguments)
 		pPipe := DataParsers[d.parser].GetPipe(d.parserArguments)
 		var ppPipes []pipeline.Pipe
@@ -203,15 +200,23 @@ func gatherData(site *Site, files []data) errors.Error {
 			}
 		}
 
-		if fPipe != nil && pPipe != nil {
-			pipeline.ExecPipeline(nil, &data, fPipe, pPipe)
+		if fPipe != nil && pPipe != nil && len(ppPipes) == validPPPipes {
+			var pipes = []pipeline.Pipe{
+				fPipe,
+				pPipe,
+			}
+
+			for _, dpp := range ppPipes {
+				pipes = append(pipes, dpp)
+			}
+
+			pipeline.ExecPipeline(nil, &data, pipes...)
 		} else {
 			fileData := DataLoaders[d.loader].Load(d.loaderArguments)
 			data = DataParsers[d.parser].Parse(fileData, d.parserArguments)
-		}
-
-		for _, dpp := range d.postProcessors {
-			DataPostProcessors[dpp.postProcessor].Process(data, dpp.postProcessorArguments)
+			for _, dpp := range d.postProcessors {
+				data = DataPostProcessors[dpp.postProcessor].Process(data, dpp.postProcessorArguments)
+			}
 		}
 
 		//add the parsed data to the site data
