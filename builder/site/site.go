@@ -5,6 +5,7 @@
 package site
 
 import (
+	"fmt"
 	"html/template"
 	"math/rand"
 	"os"
@@ -24,7 +25,7 @@ type (
 		Iterators map[string]iterator `json:"iterators,omitempty"`
 		Slug      string              `json:"slug,omitempty"`
 		Templates []string            `json:"templates,omitempty"`
-		Data      []datafile          `json:"data,omitempty"`
+		Data      []data              `json:"data,omitempty"`
 		Sites     []*ConfigSite       `json:"sites,omitempty"`
 	}
 
@@ -35,14 +36,14 @@ type (
 		Data     tt.Data
 	}
 
-	//FileLoader is a module that loads data
-	FileLoader interface {
+	//DataLoader is a module that loads data
+	DataLoader interface {
 		Load(string) []byte
 		GetPipe(string) pipeline.Pipe
 	}
 
-	//FileParser is a module that parses loaded data
-	FileParser interface {
+	//DataParser is a module that parses loaded data
+	DataParser interface {
 		Parse([]byte, string) tt.Data
 		GetPipe(string) pipeline.Pipe
 	}
@@ -64,12 +65,12 @@ var (
 	//TemplateFunctions are all the template functions defined by modules
 	TemplateFunctions = template.FuncMap{}
 
-	//FileLoaders are all the module file loaders
-	FileLoaders = make(map[string]FileLoader)
-	//FileParsers are all the module file parsers
-	FileParsers = make(map[string]FileParser)
-	//FilePostProcessors are all the module data post processors
-	FilePostProcessors = make(map[string]FPP)
+	//DataLoaders are all the module data loaders
+	DataLoaders = make(map[string]DataLoader)
+	//DataParsers are all the module file parsers
+	DataParsers = make(map[string]DataParser)
+	//DataPostProcessors are all the module data post processors
+	DataPostProcessors = make(map[string]FPP)
 	//SPPs are all the module data post processors
 	SPPs = make(map[string]SPP)
 
@@ -161,7 +162,7 @@ func mergeConfigSite(dst *ConfigSite, src *ConfigSite) {
 	if dst.Data != nil {
 		dst.Data = append(src.Data, dst.Data...) // just append
 	} else {
-		dst.Data = make([]datafile, len(src.Data)) // or make a new one and fill it
+		dst.Data = make([]data, len(src.Data)) // or make a new one and fill it
 		for i, s := range src.Data {
 			dst.Data[i] = s
 		}
@@ -179,8 +180,8 @@ func mergeConfigSite(dst *ConfigSite, src *ConfigSite) {
 }
 
 //collect data objects from modules
-func gatherData(site *Site, files []datafile) errors.Error {
-	for _, datafile := range files {
+func gatherData(site *Site, files []data) errors.Error {
+	for _, d := range files {
 
 		//init data if it is empty
 		if site.Data == nil {
@@ -189,14 +190,28 @@ func gatherData(site *Site, files []datafile) errors.Error {
 
 		var data tt.Data
 
-		fPipe := FileLoaders[datafile.loader].GetPipe(datafile.loaderArguments)
-		pPipe := FileParsers[datafile.parser].GetPipe(datafile.parserArguments)
+		fmt.Println(DataLoaders)
+
+		fPipe := DataLoaders[d.loader].GetPipe(d.loaderArguments)
+		pPipe := DataParsers[d.parser].GetPipe(d.parserArguments)
+		var ppPipes []pipeline.Pipe
+		var validPPPipes = 0
+		for _, dpp := range d.postProcessors {
+			ppPipes = append(ppPipes, DataPostProcessors[dpp.postProcessor].GetPipe(dpp.postProcessorArguments))
+			if ppPipes != nil {
+				validPPPipes++
+			}
+		}
 
 		if fPipe != nil && pPipe != nil {
 			pipeline.ExecPipeline(nil, &data, fPipe, pPipe)
 		} else {
-			fileData := FileLoaders[datafile.loader].Load(datafile.loaderArguments)
-			data = FileParsers[datafile.parser].Parse(fileData, datafile.parserArguments)
+			fileData := DataLoaders[d.loader].Load(d.loaderArguments)
+			data = DataParsers[d.parser].Parse(fileData, d.parserArguments)
+		}
+
+		for _, dpp := range d.postProcessors {
+			DataPostProcessors[dpp.postProcessor].Process(data, dpp.postProcessorArguments)
 		}
 
 		//add the parsed data to the site data

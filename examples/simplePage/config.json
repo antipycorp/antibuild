@@ -14,7 +14,8 @@
       "file": "https://build.antipy.com/dl/modules.json",
       "json": "https://build.antipy.com/dl/modules.json",
       "language": "https://build.antipy.com/dl/modules.json",
-      "yaml": "https://build.antipy.com/dl/modules.json"
+      "yaml": "https://build.antipy.com/dl/modules.json",
+      "util": "https://build.antipy.com/dl/modules.json"
     },
     "config": {
       "language": {
@@ -32,7 +33,10 @@
       {
         "slug": "/index.html",
         "templates": ["home.html"],
-        "data": ["[file_file:data/home.yaml][yaml_yaml]"]
+        "data": [
+          "[file_file:data/home.yaml][yaml_yaml]",
+          "[file_file:data/test.yaml][yaml_yaml][util_prefix:test]"
+        ]
       }
     ]
   }

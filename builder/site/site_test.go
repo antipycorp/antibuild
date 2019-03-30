@@ -31,8 +31,8 @@ type fParser struct{}
 func init() {
 	files := make(map[string][]byte)
 	files["1"] = []byte(`{"data":"nothing"}`)
-	FileLoaders["l"] = loader{data: files}
-	FileParsers["p"] = fParser{}
+	DataLoaders["l"] = loader{data: files}
+	DataParsers["p"] = fParser{}
 	OutputFolder = "/tmp/templates/out/"
 	TemplateFolder = "/tmp/templates/"
 	err := os.MkdirAll("/tmp/templates/", 0777)

@@ -18,8 +18,8 @@ type (
 )
 
 var (
-	//ErrNoIteratorFound is when the template failed building
-	ErrNoIteratorFound = errors.NewError("could not get iterator information", 3)
+	//ErrNoIteratorFound means an iterator does not have a function
+	ErrNoIteratorFound = errors.NewError("could not get iterator information", 11)
 )
 
 func (i *iterator) MarshalJSON() ([]byte, error) {
@@ -39,7 +39,7 @@ func (i *iterator) String() string {
 }
 
 func (i *iterator) UnmarshalJSON(data []byte) error {
-	//get the data from for the fileLoader
+	//get the data from for the dataLoader
 	i1 := bytes.Index(data, []byte("["))
 	i2 := bytes.Index(data, []byte("]"))
 

@@ -31,17 +31,13 @@
             ],
             "sites": [
               {
-                "slug": "/index.html",
-                "templates": ["article.html"]
-              },
-              {
                 "iterators": {
                   "comment": "[file_iterator:data/articles/{{article}}/comments]"
                 },
-                "slug": "/comment/{{comment}}/index.html",
+                "slug": "/index.html",
                 "templates": ["article_comment.html"],
                 "data": [
-                  "[file_file:data/articles/{{article}}/comments/{{comment}}.yaml][yaml_yaml]"
+                  "[range:comment][file_file:data/articles/{{article}}/comments/{{comment}}.yaml][yaml_yaml][prefix_prefix:{{comment}}][prefix_prefix:comments]"
                 ]
               }
             ]
