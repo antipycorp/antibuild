@@ -18,9 +18,9 @@ build_darwin:
 
 build_linux:
 	export GOOS=linux; \
-		make build_amd64;  \
-		make build_386;  \
-		make build_arm64;  \
+		make build_amd64; \
+		make build_386; \
+		make build_arm64; \
 		make build_arm;
 
 build_windows:
