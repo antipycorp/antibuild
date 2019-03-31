@@ -34,6 +34,8 @@ var (
 	dataPostProcessors = &site.DataPostProcessors
 	sitePostProcessors = &site.SPPs
 
+	iterators = &site.Iterators
+
 	internalMods = map[string]internalMod{}
 
 	loadedModules = make(map[string]string)
@@ -166,6 +168,10 @@ func setupModule(identifier string, moduleHost *host.ModuleHost, config ModuleCo
 
 	for _, function := range methods["sitePostProcessors"] {
 		(*sitePostProcessors)[identifier+"_"+function] = getSitePostProcessor(function, moduleHost)
+	}
+
+	for _, function := range methods["iterators"] {
+		(*iterators)[identifier+"_"+function] = getIterator(function, moduleHost)
 	}
 
 	if config.Config != nil {

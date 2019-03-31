@@ -1,0 +1,27 @@
+{
+  "slug": "/",
+  "templates": ["layout.html"],
+  "sites": [
+    {
+      "iterators": {
+        "article": "[file_all:data/articles]"
+      },
+      "slug": "/article/{{article}}",
+      "data": [
+        "[file_file:data/articles/{{article}}/meta.yaml][yaml_yaml]"
+      ],
+      "sites": [
+        {
+          "iterators": {
+            "comment": "[file_all:data/articles/{{article}}/comments]"
+          },
+          "slug": "/index.html",
+          "templates": ["article_comment.html"],
+          "data": [
+            "[range:comment][file_file:data/articles/{{article}}/comments/{{comment}}.yaml][yaml_yaml][prefix_prefix:{{comment}}][prefix_prefix:comments]"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -35,10 +35,15 @@ type (
 		host    *host.ModuleHost
 		command string
 	}
+
+	iterator struct {
+		host    *host.ModuleHost
+		command string
+	}
 )
 
 /*
-	templaate function
+	template function
 */
 func getTemplateFunction(command string, host *host.ModuleHost) *templateFunction {
 	return &templateFunction{
@@ -54,6 +59,36 @@ func (tf *templateFunction) Run(data ...interface{}) interface{} {
 	}
 
 	return output
+}
+
+/*
+	iterators
+*/
+func getIterator(command string, host *host.ModuleHost) *iterator {
+	return &iterator{
+		host:    host,
+		command: command,
+	}
+}
+
+func (it *iterator) Get(variable string) []string {
+	var ret []string
+
+	pipe := it.GetPipe(variable)
+	pipeline.ExecPipeline(nil, &ret, pipe)
+
+	return ret
+}
+
+func (it *iterator) GetPipe(variable string) pipeline.Pipe {
+	pipe := func(fileLoc string) errors.Error {
+		_, err := it.host.ExcecuteMethod("iterators_"+it.command, []interface{}{fileLoc, variable})
+		if err != nil {
+			return errors.Import(err)
+		}
+		return nil
+	}
+	return pipe
 }
 
 /*
@@ -168,7 +203,7 @@ func (spp *sitePostProcessor) GetPipe(variable string) pipeline.Pipe {
 	return pipe
 }
 
-//UnmarshalJSON unmarschals the json into a moduleconfig
+//UnmarshalJSON unmarshals the json into a module config
 func (mc *ModuleConfig) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &mc.Config); err != nil {
 		return err

@@ -6,3 +6,5 @@ main
 test
 .vscode/launch.json
 dist
+
+.DS_Store

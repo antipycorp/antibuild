@@ -13,6 +13,7 @@ import (
 
 type (
 	data struct {
+		shouldRange     string
 		loader          string
 		loaderArguments string
 		parser          string
@@ -33,6 +34,8 @@ var (
 	ErrNoDataParserFound = errors.NewError("could not get data parser information", 2)
 	//ErrNoDataPostProcessorFound means a data post processor does not have a function
 	ErrNoDataPostProcessorFound = errors.NewError("could not get data post processor information", 3)
+	//ErrNoRangeVariable means a data range attribute does not specify a variable
+	ErrNoRangeVariable = errors.NewError("could not get variable for range", 3)
 )
 
 func (df *data) MarshalJSON() ([]byte, error) {
@@ -72,10 +75,32 @@ func (df *data) UnmarshalJSON(data []byte) error {
 	i1 := bytes.Index(data, []byte("["))
 	i2 := bytes.Index(data, []byte("]"))
 
-	fmt.Println(string(data))
 	loaderData := data[i1+1 : i2]
 	data = data[i2+1:] //data is used for parser
-	fmt.Println(string(data))
+
+	{
+		//get all the arguments for the loader
+		sep := bytes.Split(loaderData, []byte(":"))
+		if len(sep) == 0 {
+			return ErrNoDataLoaderFound.SetRoot(string(loaderData))
+		}
+
+		if string(sep[0]) == "range" {
+			if len(sep) < 2 { //only if bigger than 2 this is available
+				return ErrNoRangeVariable.SetRoot(string(loaderData))
+			}
+
+			df.shouldRange = string(sep[1])
+
+			//get the data from for the dataLoader
+			i1 := bytes.Index(data, []byte("["))
+			i2 := bytes.Index(data, []byte("]"))
+
+			loaderData = data[i1+1 : i2]
+			data = data[i2+1:] //data is used for parser
+		}
+	}
+
 	{
 		//get all the arguments for the loader
 		sep := bytes.Split(loaderData, []byte(":"))
@@ -102,6 +127,7 @@ func (df *data) UnmarshalJSON(data []byte) error {
 
 	parserData := data[i1+1 : i2]
 	data = data[i2+1:] //keep this in place for potential fututre extentions
+
 	fmt.Println(string(data))
 	{
 		//get all the arguments for the dataParser
@@ -164,4 +190,8 @@ func (df *data) UnmarshalJSON(data []byte) error {
 	}
 
 	return nil
+}
+
+func getLine() {
+
 }

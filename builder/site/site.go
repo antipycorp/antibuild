@@ -5,6 +5,7 @@
 package site
 
 import (
+	"fmt"
 	"html/template"
 	"math/rand"
 	"os"
@@ -21,11 +22,12 @@ import (
 type (
 	//ConfigSite is the way a site is defined in the config file
 	ConfigSite struct {
-		Iterators map[string]iterator `json:"iterators,omitempty"`
-		Slug      string              `json:"slug,omitempty"`
-		Templates []string            `json:"templates,omitempty"`
-		Data      []data              `json:"data,omitempty"`
-		Sites     []*ConfigSite       `json:"sites,omitempty"`
+		Iterators      map[string]iterator `json:"iterators,omitempty"`
+		Slug           string              `json:"slug,omitempty"`
+		Templates      []string            `json:"templates,omitempty"`
+		Data           []data              `json:"data,omitempty"`
+		Sites          []*ConfigSite       `json:"sites,omitempty"`
+		IteratorValues map[string]string   `json:"-"`
 	}
 
 	//Site is the way a site is defined after all of its data and templates have been collected
@@ -58,6 +60,12 @@ type (
 		Process([]*Site, string) []*Site
 		GetPipe(string) pipeline.Pipe
 	}
+
+	//Iterator is a function thats able to post-process data
+	Iterator interface {
+		Get(string) []string
+		GetPipe(string) pipeline.Pipe
+	}
 )
 
 var (
@@ -70,8 +78,11 @@ var (
 	DataParsers = make(map[string]DataParser)
 	//DataPostProcessors are all the module data post processors
 	DataPostProcessors = make(map[string]DPP)
-	//SPPs are all the module data post processors
+	//SPPs are all the module site post processors
 	SPPs = make(map[string]SPP)
+
+	//Iterators are all the module iterators
+	Iterators = make(map[string]Iterator)
 
 	//TemplateFolder is the folder all templates are stored
 	TemplateFolder string
@@ -125,6 +136,13 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]*Site) (err errors.E
 	if parent != nil {
 		mergeConfigSite(cSite, parent)
 	}
+
+	didIterators, err := doIterators(cSite, sites)
+
+	if didIterators == true || err != nil {
+		return err
+	}
+
 	//If this is the last in the chain, add it to the list of return values
 	if len(cSite.Sites) == 0 {
 		site := &Site{
@@ -166,6 +184,7 @@ func mergeConfigSite(dst *ConfigSite, src *ConfigSite) {
 			dst.Data[i] = s
 		}
 	}
+
 	if dst.Templates != nil {
 		dst.Templates = append(src.Templates, dst.Templates...) // just append
 	} else {
@@ -175,7 +194,45 @@ func mergeConfigSite(dst *ConfigSite, src *ConfigSite) {
 		}
 	}
 
+	if dst.Iterators == nil {
+		dst.Iterators = make(map[string]iterator, len(src.Iterators)) // or make a new one and fill it
+	}
+
+	for i, s := range src.Iterators {
+		dst.Iterators[i] = s
+	}
+
+	if dst.IteratorValues == nil {
+		dst.IteratorValues = make(map[string]string, len(src.IteratorValues)) // or make a new one and fill it
+	}
+
+	for i, s := range src.IteratorValues {
+		dst.IteratorValues[i] = s
+	}
+
 	dst.Slug = src.Slug + dst.Slug
+}
+
+//collect iterators from modules
+func gatherIterators(iterators map[string]iterator) errors.Error {
+	for n, i := range iterators {
+		if len(i.list) == 0 {
+			var data []string
+
+			iPipe := Iterators[i.iterator].GetPipe(i.iteratorArguments)
+
+			if iPipe != nil {
+				pipeline.ExecPipeline(nil, &data, iPipe)
+			} else {
+				data = Iterators[i.iterator].Get(i.iteratorArguments)
+			}
+
+			i.list = data
+			iterators[n] = i
+		}
+	}
+
+	return nil
 }
 
 //collect data objects from modules
@@ -188,6 +245,8 @@ func gatherData(site *Site, files []data) errors.Error {
 		}
 
 		var data tt.Data
+
+		fmt.Println(DataLoaders, d)
 
 		fPipe := DataLoaders[d.loader].GetPipe(d.loaderArguments)
 		pPipe := DataParsers[d.parser].GetPipe(d.parserArguments)
