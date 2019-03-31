@@ -5,6 +5,7 @@
 package site
 
 import (
+	"fmt"
 	"html/template"
 	"math/rand"
 	"os"
@@ -21,10 +22,12 @@ import (
 type (
 	//ConfigSite is the way a site is defined in the config file
 	ConfigSite struct {
-		Slug      string        `json:"slug,omitempty"`
-		Templates []string      `json:"templates,omitempty"`
-		Data      []datafile    `json:"data,omitempty"`
-		Sites     []*ConfigSite `json:"sites,omitempty"`
+		Iterators      map[string]iterator `json:"iterators,omitempty"`
+		Slug           string              `json:"slug,omitempty"`
+		Templates      []string            `json:"templates,omitempty"`
+		Data           []data              `json:"data,omitempty"`
+		Sites          []*ConfigSite       `json:"sites,omitempty"`
+		IteratorValues map[string]string   `json:"-"`
 	}
 
 	//Site is the way a site is defined after all of its data and templates have been collected
@@ -34,20 +37,20 @@ type (
 		Data     tt.Data
 	}
 
-	//FileLoader is a module that loads data
-	FileLoader interface {
+	//DataLoader is a module that loads data
+	DataLoader interface {
 		Load(string) []byte
 		GetPipe(string) pipeline.Pipe
 	}
 
-	//FileParser is a module that parses loaded data
-	FileParser interface {
+	//DataParser is a module that parses loaded data
+	DataParser interface {
 		Parse([]byte, string) tt.Data
 		GetPipe(string) pipeline.Pipe
 	}
 
-	//FPP is a function thats able to post-process data
-	FPP interface {
+	//DPP is a function thats able to post-process data
+	DPP interface {
 		Process(tt.Data, string) tt.Data
 		GetPipe(string) pipeline.Pipe
 	}
@@ -57,20 +60,29 @@ type (
 		Process([]*Site, string) []*Site
 		GetPipe(string) pipeline.Pipe
 	}
+
+	//Iterator is a function thats able to post-process data
+	Iterator interface {
+		Get(string) []string
+		GetPipe(string) pipeline.Pipe
+	}
 )
 
 var (
 	//TemplateFunctions are all the template functions defined by modules
 	TemplateFunctions = template.FuncMap{}
 
-	//FileLoaders are all the module file loaders
-	FileLoaders = make(map[string]FileLoader)
-	//FileParsers are all the module file parsers
-	FileParsers = make(map[string]FileParser)
-	//FilePostProcessors are all the module data post processors
-	FilePostProcessors = make(map[string]FPP)
-	//SPPs are all the module data post processors
+	//DataLoaders are all the module data loaders
+	DataLoaders = make(map[string]DataLoader)
+	//DataParsers are all the module file parsers
+	DataParsers = make(map[string]DataParser)
+	//DataPostProcessors are all the module data post processors
+	DataPostProcessors = make(map[string]DPP)
+	//SPPs are all the module site post processors
 	SPPs = make(map[string]SPP)
+
+	//Iterators are all the module iterators
+	Iterators = make(map[string]Iterator)
 
 	//TemplateFolder is the folder all templates are stored
 	TemplateFolder string
@@ -110,11 +122,13 @@ func Unfold(configSite *ConfigSite, spps []string) ([]*Site, errors.Error) {
 	if err != nil {
 		return sites, err
 	}
+
 	for _, spp := range spps {
 		if k, ok := SPPs[spp]; ok {
 			sites = k.Process(sites, "")
 		}
 	}
+
 	return sites, nil
 }
 
@@ -122,6 +136,13 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]*Site) (err errors.E
 	if parent != nil {
 		mergeConfigSite(cSite, parent)
 	}
+
+	didIterators, err := doIterators(cSite, sites)
+
+	if didIterators == true || err != nil {
+		return err
+	}
+
 	//If this is the last in the chain, add it to the list of return values
 	if len(cSite.Sites) == 0 {
 		site := &Site{
@@ -137,6 +158,7 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]*Site) (err errors.E
 		if err != nil {
 			return ErrFailedGather.SetRoot(err.Error())
 		}
+
 		//append site to the list of sites that will be executed
 		*sites = append(*sites, site)
 		return nil
@@ -157,11 +179,12 @@ func mergeConfigSite(dst *ConfigSite, src *ConfigSite) {
 	if dst.Data != nil {
 		dst.Data = append(src.Data, dst.Data...) // just append
 	} else {
-		dst.Data = make([]datafile, len(src.Data)) // or make a new one and fill it
+		dst.Data = make([]data, len(src.Data)) // or make a new one and fill it
 		for i, s := range src.Data {
 			dst.Data[i] = s
 		}
 	}
+
 	if dst.Templates != nil {
 		dst.Templates = append(src.Templates, dst.Templates...) // just append
 	} else {
@@ -171,12 +194,50 @@ func mergeConfigSite(dst *ConfigSite, src *ConfigSite) {
 		}
 	}
 
+	if dst.Iterators == nil {
+		dst.Iterators = make(map[string]iterator, len(src.Iterators)) // or make a new one and fill it
+	}
+
+	for i, s := range src.Iterators {
+		dst.Iterators[i] = s
+	}
+
+	if dst.IteratorValues == nil {
+		dst.IteratorValues = make(map[string]string, len(src.IteratorValues)) // or make a new one and fill it
+	}
+
+	for i, s := range src.IteratorValues {
+		dst.IteratorValues[i] = s
+	}
+
 	dst.Slug = src.Slug + dst.Slug
 }
 
+//collect iterators from modules
+func gatherIterators(iterators map[string]iterator) errors.Error {
+	for n, i := range iterators {
+		if len(i.list) == 0 {
+			var data []string
+
+			iPipe := Iterators[i.iterator].GetPipe(i.iteratorArguments)
+
+			if iPipe != nil {
+				pipeline.ExecPipeline(nil, &data, iPipe)
+			} else {
+				data = Iterators[i.iterator].Get(i.iteratorArguments)
+			}
+
+			i.list = data
+			iterators[n] = i
+		}
+	}
+
+	return nil
+}
+
 //collect data objects from modules
-func gatherData(site *Site, files []datafile) errors.Error {
-	for _, datafile := range files {
+func gatherData(site *Site, files []data) errors.Error {
+	for _, d := range files {
 
 		//init data if it is empty
 		if site.Data == nil {
@@ -185,14 +246,36 @@ func gatherData(site *Site, files []datafile) errors.Error {
 
 		var data tt.Data
 
-		fPipe := FileLoaders[datafile.loader].GetPipe(datafile.loaderArguments)
-		pPipe := FileParsers[datafile.parser].GetPipe(datafile.parserArguments)
+		fmt.Println(DataLoaders, d)
 
-		if fPipe != nil && pPipe != nil {
-			pipeline.ExecPipeline(nil, &data, fPipe, pPipe)
+		fPipe := DataLoaders[d.loader].GetPipe(d.loaderArguments)
+		pPipe := DataParsers[d.parser].GetPipe(d.parserArguments)
+		var ppPipes []pipeline.Pipe
+		var validPPPipes = 0
+		for _, dpp := range d.postProcessors {
+			ppPipes = append(ppPipes, DataPostProcessors[dpp.postProcessor].GetPipe(dpp.postProcessorArguments))
+			if ppPipes != nil {
+				validPPPipes++
+			}
+		}
+
+		if fPipe != nil && pPipe != nil && len(ppPipes) == validPPPipes {
+			var pipes = []pipeline.Pipe{
+				fPipe,
+				pPipe,
+			}
+
+			for _, dpp := range ppPipes {
+				pipes = append(pipes, dpp)
+			}
+
+			pipeline.ExecPipeline(nil, &data, pipes...)
 		} else {
-			fileData := FileLoaders[datafile.loader].Load(datafile.loaderArguments)
-			data = FileParsers[datafile.parser].Parse(fileData, datafile.parserArguments)
+			fileData := DataLoaders[d.loader].Load(d.loaderArguments)
+			data = DataParsers[d.parser].Parse(fileData, d.parserArguments)
+			for _, dpp := range d.postProcessors {
+				data = DataPostProcessors[dpp.postProcessor].Process(data, dpp.postProcessorArguments)
+			}
 		}
 
 		//add the parsed data to the site data

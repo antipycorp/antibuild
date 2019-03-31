@@ -23,11 +23,11 @@ var (
 	//ErrFailedUnfold is when the template failed building
 	ErrFailedUnfold = errors.NewError("failed to unfold", 1)
 	//ErrFailedExport is for a failure moving the static folder
-	ErrFailedExport = errors.NewError("failed to export the template files", 2)
+	ErrFailedExport = errors.NewError("failed to export the output files", 2)
 	//ErrNoOutputSpecified is for a failure in gathering files.
 	ErrNoOutputSpecified = errors.NewError("no output folder specified", 3)
 	//ErrFailedRemoveFile is for a failure in gathering files.
-	ErrFailedRemoveFile = errors.NewError("failed removing files", 4)
+	ErrFailedRemoveFile = errors.NewError("failed removing output folder", 4)
 )
 
 //Start the build process
@@ -39,7 +39,7 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 			failedToLoadConfig(ui, os.TempDir()+"/abm/public")
 			net.HostLocally(os.TempDir()+"/abm/public", "8080")
 		}
-		ui.Fatalf("could not parse the config file:" + err.Error())
+		ui.Fatalf("could not parse the config file: " + err.Error())
 		return
 	}
 
@@ -48,6 +48,7 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 		ui.Port = port
 
 		if isHost {
+			//cfg.Folders.Output, _ = ioutil.TempDir("", "antibuild_hosting")
 			go net.HostLocally(cfg.Folders.Output, port) //still continues running, hosting doesnt actually build
 		}
 
@@ -73,16 +74,16 @@ func HeadlesStart(configLocation string, output io.Writer) {
 
 	cfg, err := config.CleanConfig(configLocation, ui)
 	if err != nil {
-		ui.Fatalf("could not parse the config file:" + err.Error())
+		ui.Fatalf("could not parse the config file: " + err.Error())
 	}
 	err = startParse(cfg)
 	if err != nil {
-		ui.Fatalf("could not parse the files:" + err.Error())
+		ui.Fatalf("could not parse the files: " + err.Error())
 	}
 }
 
 func startParse(cfg *config.Config) errors.Error {
-	cfg.UILogger.Info("started compiling...")
+	cfg.UILogger.Info("Start compiling...")
 
 	var moduleConfig = make(map[string]modules.ModuleConfig, len(cfg.Modules.Config))
 
@@ -96,13 +97,13 @@ func startParse(cfg *config.Config) errors.Error {
 	if mhost != nil { // loadModules checks if modules are already loaded
 		cfg.ModuleHost = mhost
 	}
-	cfg.UILogger.Debug("loaded modules")
+	cfg.UILogger.Debug("Loaded modules...")
 	//actually run the template
 	templateErr := executeTemplate(cfg)
 	if templateErr != nil {
-		cfg.UILogger.Fatal("failed building templates:" + templateErr.Error())
+		cfg.UILogger.Fatal("Failed to build output files: " + templateErr.Error())
 	}
-	cfg.UILogger.Info("succesfully exported the templates")
+	cfg.UILogger.Info("Exported output files...")
 	return nil
 }
 

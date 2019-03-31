@@ -1,0 +1,50 @@
+{
+  "logging": {
+    "file": "antibuild.log",
+    "pretty_print": false
+  },
+  "folders": {
+    "templates": "templates/",
+    "static": "static/",
+    "output": "public/",
+    "modules": ".modules/"
+  },
+  "modules": {
+    "dependencies": {
+      "file": "https://build.antipy.com/dl/modules.json",
+      "yaml": "https://build.antipy.com/dl/modules.json",
+      "util": ""
+    }
+  },
+  "pages": {
+    "sites": [
+      {
+        "slug": "",
+        "templates": ["layout.html"],
+        "sites": [
+          {
+            "iterators": {
+              "article": "[file_all:data/articles]"
+            },
+            "slug": "/article/{{article}}",
+            "data": [
+              "[file_file:data/articles/{{article}}/meta.yaml][yaml_yaml]"
+            ],
+            "sites": [
+              {
+                "iterators": {
+                  "comment": "[file_all:data/articles/{{article}}/comments]"
+                },
+                "slug": "/index.html",
+                "templates": ["article_comment.html"],
+                "data": [
+                  "[range:comment][file_file:data/articles/{{article}}/comments/{{comment}}][yaml_yaml][util_prefix:{{comment}}]"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

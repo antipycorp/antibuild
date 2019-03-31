@@ -38,12 +38,12 @@ func failedToLoadConfig(log config.Logger, output string) {
 func failedToRender(cfg *config.Config) {
 	var err error
 	if cfg.Folders.Output == "" {
-		cfg.UILogger.Fatal("output folder not set:")
+		cfg.UILogger.Fatal("Output folder is not set.")
 
 	}
 	err = os.RemoveAll(cfg.Folders.Output)
 	if err != nil {
-		cfg.UILogger.Fatalf("could not remove old files: %s", err.Error())
+		cfg.UILogger.Fatalf("Could not remove old files. %s", err.Error())
 	}
 
 	err = os.MkdirAll(cfg.Folders.Output, 0700)
@@ -53,6 +53,6 @@ func failedToRender(cfg *config.Config) {
 
 	err = ioutil.WriteFile(cfg.Folders.Output+"/index.html", failedtorender, 0644)
 	if err != nil {
-		cfg.UILogger.Fatalf("could not place error file in place: %s", err.Error())
+		cfg.UILogger.Fatalf("Could not place the 'error' file %s", err.Error())
 	}
 }

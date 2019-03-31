@@ -29,10 +29,12 @@ type (
 var (
 	templateFunctions = site.TemplateFunctions
 
-	fileLoaders        = &site.FileLoaders
-	fileParsers        = &site.FileParsers
-	filePostProcessors = &site.FilePostProcessors
+	dataLoaders        = &site.DataLoaders
+	dataParsers        = &site.DataParsers
+	dataPostProcessors = &site.DataPostProcessors
 	sitePostProcessors = &site.SPPs
+
+	iterators = &site.Iterators
 
 	internalMods = map[string]internalMod{}
 
@@ -152,20 +154,24 @@ func setupModule(identifier string, moduleHost *host.ModuleHost, config ModuleCo
 		templateFunctions[identifier+"_"+function] = getTemplateFunction(function, moduleHost).Run
 	}
 
-	for _, function := range methods["fileLoaders"] {
-		(*fileLoaders)[identifier+"_"+function] = getFileLoader(function, moduleHost)
+	for _, function := range methods["dataLoaders"] {
+		(*dataLoaders)[identifier+"_"+function] = getDataLoader(function, moduleHost)
 	}
 
-	for _, function := range methods["fileParsers"] {
-		(*fileParsers)[identifier+"_"+function] = getFileParser(function, moduleHost)
+	for _, function := range methods["dataParsers"] {
+		(*dataParsers)[identifier+"_"+function] = getDataParser(function, moduleHost)
 	}
 
-	for _, function := range methods["filePostProcessors"] {
-		(*filePostProcessors)[identifier+"_"+function] = getFilePostProcessor(function, moduleHost)
+	for _, function := range methods["dataPostProcessors"] {
+		(*dataPostProcessors)[identifier+"_"+function] = getDataPostProcessor(function, moduleHost)
 	}
 
 	for _, function := range methods["sitePostProcessors"] {
 		(*sitePostProcessors)[identifier+"_"+function] = getSitePostProcessor(function, moduleHost)
+	}
+
+	for _, function := range methods["iterators"] {
+		(*iterators)[identifier+"_"+function] = getIterator(function, moduleHost)
 	}
 
 	if config.Config != nil {

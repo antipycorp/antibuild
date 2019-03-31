@@ -11,17 +11,17 @@ import (
 )
 
 type (
-	fileLoader struct {
+	dataLoader struct {
 		host    *host.ModuleHost
 		command string
 	}
 
-	fileParser struct {
+	dataParser struct {
 		host    *host.ModuleHost
 		command string
 	}
 
-	filePostProcessor struct {
+	dataPostProcessor struct {
 		host    *host.ModuleHost
 		command string
 	}
@@ -35,10 +35,15 @@ type (
 		host    *host.ModuleHost
 		command string
 	}
+
+	iterator struct {
+		host    *host.ModuleHost
+		command string
+	}
 )
 
 /*
-	templaate function
+	template function
 */
 func getTemplateFunction(command string, host *host.ModuleHost) *templateFunction {
 	return &templateFunction{
@@ -57,17 +62,47 @@ func (tf *templateFunction) Run(data ...interface{}) interface{} {
 }
 
 /*
-	file loaders and post processors
-	all of these are pipe-only.
+	iterators
 */
-func getFileLoader(command string, host *host.ModuleHost) *fileLoader {
-	return &fileLoader{
+func getIterator(command string, host *host.ModuleHost) *iterator {
+	return &iterator{
 		host:    host,
 		command: command,
 	}
 }
 
-func (fl *fileLoader) Load(variable string) []byte {
+func (it *iterator) Get(variable string) []string {
+	var ret []string
+
+	pipe := it.GetPipe(variable)
+	pipeline.ExecPipeline(nil, &ret, pipe)
+
+	return ret
+}
+
+func (it *iterator) GetPipe(variable string) pipeline.Pipe {
+	pipe := func(fileLoc string) errors.Error {
+		_, err := it.host.ExcecuteMethod("iterators_"+it.command, []interface{}{fileLoc, variable})
+		if err != nil {
+			return errors.Import(err)
+		}
+		return nil
+	}
+	return pipe
+}
+
+/*
+	data loaders and post processors
+	all of these are pipe-only.
+*/
+func getDataLoader(command string, host *host.ModuleHost) *dataLoader {
+	return &dataLoader{
+		host:    host,
+		command: command,
+	}
+}
+
+func (fl *dataLoader) Load(variable string) []byte {
 	var ret []byte
 
 	pipe := fl.GetPipe(variable)
@@ -76,9 +111,9 @@ func (fl *fileLoader) Load(variable string) []byte {
 	return ret
 }
 
-func (fl *fileLoader) GetPipe(variable string) pipeline.Pipe {
+func (fl *dataLoader) GetPipe(variable string) pipeline.Pipe {
 	pipe := func(fileLoc string) errors.Error {
-		_, err := fl.host.ExcecuteMethod("fileLoaders_"+fl.command, []interface{}{fileLoc, variable})
+		_, err := fl.host.ExcecuteMethod("dataLoaders_"+fl.command, []interface{}{fileLoc, variable})
 		if err != nil {
 			return errors.Import(err)
 		}
@@ -87,14 +122,14 @@ func (fl *fileLoader) GetPipe(variable string) pipeline.Pipe {
 	return pipe
 }
 
-func getFileParser(command string, host *host.ModuleHost) *fileParser {
-	return &fileParser{
+func getDataParser(command string, host *host.ModuleHost) *dataParser {
+	return &dataParser{
 		host:    host,
 		command: command,
 	}
 }
 
-func (fp *fileParser) Parse(data []byte, variable string) tt.Data {
+func (fp *dataParser) Parse(data []byte, variable string) tt.Data {
 	var ret tt.Data
 
 	pipe := fp.GetPipe(variable)
@@ -103,9 +138,9 @@ func (fp *fileParser) Parse(data []byte, variable string) tt.Data {
 	return ret
 }
 
-func (fp *fileParser) GetPipe(variable string) pipeline.Pipe {
+func (fp *dataParser) GetPipe(variable string) pipeline.Pipe {
 	pipe := func(fileLoc string) errors.Error {
-		_, err := fp.host.ExcecuteMethod("fileParsers_"+fp.command, []interface{}{fileLoc, variable})
+		_, err := fp.host.ExcecuteMethod("dataParsers_"+fp.command, []interface{}{fileLoc, variable})
 		if err != nil {
 			return errors.Import(err)
 		}
@@ -114,25 +149,25 @@ func (fp *fileParser) GetPipe(variable string) pipeline.Pipe {
 	return pipe
 }
 
-func getFilePostProcessor(command string, host *host.ModuleHost) *filePostProcessor {
-	return &filePostProcessor{
+func getDataPostProcessor(command string, host *host.ModuleHost) *dataPostProcessor {
+	return &dataPostProcessor{
 		host:    host,
 		command: command,
 	}
 }
 
-func (fpp *filePostProcessor) Process(data tt.Data, variable string) tt.Data {
+func (dpp *dataPostProcessor) Process(data tt.Data, variable string) tt.Data {
 	var ret tt.Data
 
-	pipe := fpp.GetPipe(variable)
+	pipe := dpp.GetPipe(variable)
 	pipeline.ExecPipeline(data, &ret, pipe)
 
 	return ret
 }
 
-func (fpp *filePostProcessor) GetPipe(variable string) pipeline.Pipe {
+func (dpp *dataPostProcessor) GetPipe(variable string) pipeline.Pipe {
 	pipe := func(fileLoc string) errors.Error {
-		_, err := fpp.host.ExcecuteMethod("filePostProcessors_"+fpp.command, []interface{}{fileLoc, variable})
+		_, err := dpp.host.ExcecuteMethod("dataPostProcessors_"+dpp.command, []interface{}{fileLoc, variable})
 		if err != nil {
 			return errors.Import(err)
 		}
@@ -168,7 +203,7 @@ func (spp *sitePostProcessor) GetPipe(variable string) pipeline.Pipe {
 	return pipe
 }
 
-//UnmarshalJSON unmarschals the json into a moduleconfig
+//UnmarshalJSON unmarshals the json into a module config
 func (mc *ModuleConfig) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &mc.Config); err != nil {
 		return err
