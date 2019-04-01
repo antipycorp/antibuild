@@ -5,6 +5,7 @@ require (
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/gorilla/websocket v1.4.0
 	github.com/jaicewizard/tt v0.5.1
+	github.com/mattn/go-isatty v0.0.7 // indirect
 	github.com/otiai10/copy v1.0.1
 	github.com/spf13/cobra v0.0.3
 	gitlab.com/antipy/antibuild/api v0.9.0
