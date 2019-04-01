@@ -26,7 +26,6 @@ var (
 // and return a pipe. At the start of the pipe the provided data is put in, at the end the data is read
 // from the same file.
 func ExecPipeline(data interface{}, retdata interface{}, pipes ...Pipe) errors.Error {
-
 	var f file.File
 	if data == nil {
 		var err error

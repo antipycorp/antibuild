@@ -4,13 +4,13 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 
 	"gitlab.com/antipy/antibuild/api/host"
 	"gitlab.com/antipy/antibuild/cli/builder/site"
+	"gitlab.com/antipy/antibuild/cli/internal/errors"
 )
 
 type (
@@ -39,15 +39,25 @@ var (
 	internalMods = map[string]internalMod{}
 
 	loadedModules = make(map[string]string)
+
+	//ErrModuleFailedStarting means a module failed to start
+	ErrModuleFailedStarting = errors.NewError("module failed to start", 1)
+	//ErrModuleFailedObtainStdin means we could not obtain stdin
+	ErrModuleFailedObtainStdin = errors.NewError("failed to obtain stdin", 2)
+	//ErrModuleFailedObtainStdout means we could not obtain stdout
+	ErrModuleFailedObtainStdout = errors.NewError("failed to obtain stdout", 3)
+	//ErrModuleFailedObtainFunctions means we could not obtain the registered functions
+	ErrModuleFailedObtainFunctions = errors.NewError("failed to obtain registered functions", 4)
+	//ErrModuleFailedConfigure means we could not configure module
+	ErrModuleFailedConfigure = errors.NewError("failed to configure module", 5)
 )
 
 //LoadModules communicates with modules to load them.
 //Although this should be used for initial setup, for hoatloading modules use LoadModule.
-func LoadModules(moduleRoot string, deps map[string]string, configs map[string]ModuleConfig, log host.Logger) (moduleHost map[string]*host.ModuleHost) {
+func LoadModules(moduleRoot string, deps map[string]string, configs map[string]ModuleConfig, log host.Logger) (moduleHost map[string]*host.ModuleHost, err errors.Error) {
 	moduleHost = make(map[string]*host.ModuleHost, len(deps))
 
 	for identifier, version := range deps {
-
 		if _, ok := loadedModules[identifier]; ok { //check if the module is still loaded,
 			if loadedModules[identifier] == version { //if the version is the same leave it be
 				continue
@@ -55,15 +65,17 @@ func LoadModules(moduleRoot string, deps map[string]string, configs map[string]M
 			remModule(identifier, moduleHost) //else remove the old version and continue with loading the new version
 		}
 
-		stdout, stdin := loadModule(identifier, version, moduleRoot)
-		if stdout == nil || stdin == nil {
-			return
-		}
-		var err error
-		moduleHost[identifier], err = host.Start(stdout, stdin, log)
+		stdout, stdin, err := loadModule(identifier, version, moduleRoot)
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
+
+		var errr error
+		moduleHost[identifier], errr = host.Start(stdout, stdin, log)
+		if errr != nil {
+			return nil, ErrModuleFailedStarting.SetRoot(errr.Error())
+		}
+
 		setupModule(identifier, moduleHost[identifier], configs[identifier])
 		loadedModules[identifier] = version
 	}
@@ -72,10 +84,10 @@ func LoadModules(moduleRoot string, deps map[string]string, configs map[string]M
 
 //LoadModule Loads a specific module and is menth for hotloading, this
 //should not be used for initial setup. For initial setup use LoadModules.
-func LoadModule(moduleRoot string, identifier string, version string, moduleHost map[string]*host.ModuleHost, config ModuleConfig, log host.Logger) {
+func LoadModule(moduleRoot string, identifier string, version string, moduleHost map[string]*host.ModuleHost, config ModuleConfig, log host.Logger) errors.Error {
 	if _, ok := loadedModules[identifier]; ok {
 		if loadedModules[identifier] == version {
-			return
+			return nil
 		}
 		remModule(identifier, moduleHost)
 	}
@@ -84,17 +96,21 @@ func LoadModule(moduleRoot string, identifier string, version string, moduleHost
 		loadedModules[identifier] = version
 	}()
 
-	stdout, stdin := loadModule(identifier, version, moduleRoot)
-	if stdout == nil || stdin == nil {
-		return
-	}
-	var err error
-	moduleHost[identifier], err = host.Start(stdout, stdin, log)
+	stdout, stdin, err := loadModule(identifier, version, moduleRoot)
 	if err != nil {
-		panic(err)
+		return err
 	}
+
+	var errr error
+	moduleHost[identifier], errr = host.Start(stdout, stdin, log)
+	if errr != nil {
+		return ErrModuleFailedStarting.SetRoot(errr.Error())
+	}
+
 	setupModule(identifier, moduleHost[identifier], config)
 	loadedModules[identifier] = version
+
+	return nil
 }
 
 func remModule(identifier string, hosts map[string]*host.ModuleHost) {
@@ -102,8 +118,7 @@ func remModule(identifier string, hosts map[string]*host.ModuleHost) {
 	delete(hosts, identifier)
 }
 
-func loadModule(name, version, path string) (io.Reader, io.Writer) {
-
+func loadModule(name, version, path string) (io.Reader, io.Writer, errors.Error) {
 	fmt.Printf("Loading module: %s@%s\n", name, version)
 
 	if v, ok := internalMods[name]; ok {
@@ -117,7 +132,7 @@ func loadModule(name, version, path string) (io.Reader, io.Writer) {
 
 			go v.start(in2, out)
 
-			return stdout2, stdin
+			return stdout2, stdin, nil
 		}
 	}
 
@@ -126,27 +141,27 @@ func loadModule(name, version, path string) (io.Reader, io.Writer) {
 
 	stdin, err := module.StdinPipe()
 	if nil != err {
-		log.Fatalf("Error obtaining stdin: %s", err.Error())
+		return nil, nil, ErrModuleFailedObtainStdin.SetRoot(err.Error())
 	}
 
 	stdout, err := module.StdoutPipe()
 	if nil != err {
-		log.Fatalf("Error obtaining stdout: %s", err.Error())
+		return nil, nil, ErrModuleFailedObtainStdout.SetRoot(err.Error())
 	}
 
 	module.Stderr = os.Stderr
 
 	//start module and initaite connection
-	if err := module.Start(); err != nil {
-		panic(err)
+	if errr := module.Start(); errr != nil {
+		return nil, nil, ErrModuleFailedStarting.SetRoot(errr.Error())
 	}
-	return stdout, stdin
+	return stdout, stdin, nil
 }
 
-func setupModule(identifier string, moduleHost *host.ModuleHost, config ModuleConfig) {
-	methods, err := moduleHost.AskMethods()
-	if err != nil {
-		panic(err)
+func setupModule(identifier string, moduleHost *host.ModuleHost, config ModuleConfig) errors.Error {
+	methods, errr := moduleHost.AskMethods()
+	if errr != nil {
+		return ErrModuleFailedObtainFunctions.SetRoot(errr.Error())
 	}
 
 	//registers all functions modules can possibly suply
@@ -179,7 +194,9 @@ func setupModule(identifier string, moduleHost *host.ModuleHost, config ModuleCo
 			config.Config,
 		})
 		if err != nil || output != "module: ready" {
-			panic("couldnt send config: " + err.Error())
+			return ErrModuleFailedConfigure.SetRoot(errr.Error())
 		}
 	}
+
+	return nil
 }

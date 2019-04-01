@@ -6,7 +6,6 @@ package site
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -101,7 +100,6 @@ func (p fParser) GetPipe(variable string) pipeline.Pipe {
 //Testunfold doesnt test template parsing, if anything failed it will be done during execute
 func TestUnfold(t *testing.T) {
 	for _, test := range unfoldTests {
-		fmt.Println(test.in)
 		dat, _ := (Unfold(&test.in, nil))
 		test.res = dat
 		if dat[0].Slug != test.out[0].Slug {
@@ -125,7 +123,6 @@ func TestExecute(t *testing.T) {
 				t.FailNow()
 			}
 			if string(dat) != data {
-				fmt.Println(string(dat) + "vs" + data)
 				t.FailNow()
 			}
 		}

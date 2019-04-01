@@ -5,7 +5,6 @@
 package site
 
 import (
-	"fmt"
 	"html/template"
 	"math/rand"
 	"os"
@@ -17,6 +16,7 @@ import (
 	"github.com/jaicewizard/tt"
 	"gitlab.com/antipy/antibuild/cli/internal"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
+	"gitlab.com/antipy/antibuild/cli/ui"
 )
 
 type (
@@ -114,11 +114,11 @@ var (
 */
 
 //Unfold the ConfigSite into a []ConfigSite
-func Unfold(configSite *ConfigSite, spps []string) ([]*Site, errors.Error) {
+func Unfold(configSite *ConfigSite, spps []string, log *ui.UI) ([]*Site, errors.Error) {
 	sites := make([]*Site, 0, len(configSite.Sites)*2)
 	globalTemplates = make(map[string]*template.Template, len(sites))
 
-	err := unfold(configSite, nil, &sites)
+	err := unfold(configSite, nil, &sites, log)
 	if err != nil {
 		return sites, err
 	}
@@ -132,12 +132,15 @@ func Unfold(configSite *ConfigSite, spps []string) ([]*Site, errors.Error) {
 	return sites, nil
 }
 
-func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]*Site) (err errors.Error) {
+func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]*Site, log *ui.UI) (err errors.Error) {
 	if parent != nil {
+		log.Debugf("Unfolding child %s of parent %s", cSite.Slug, parent.Slug)
 		mergeConfigSite(cSite, parent)
+	} else {
+		log.Debugf("Unfolding %s", cSite.Slug)
 	}
 
-	didIterators, err := doIterators(cSite, sites)
+	didIterators, err := doIterators(cSite, sites, log)
 
 	if didIterators == true || err != nil {
 		return err
@@ -145,6 +148,9 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]*Site) (err errors.E
 
 	//If this is the last in the chain, add it to the list of return values
 	if len(cSite.Sites) == 0 {
+		log.Debugf("Gathering information for %s", cSite.Slug)
+		log.Debugf("Site data: %v", cSite)
+
 		site := &Site{
 			Slug: cSite.Slug,
 		}
@@ -161,11 +167,13 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]*Site) (err errors.E
 
 		//append site to the list of sites that will be executed
 		*sites = append(*sites, site)
+		log.Debugf("Finished gathering for %s", cSite.Slug)
+
 		return nil
 	}
 
 	for _, childSite := range cSite.Sites {
-		err = unfold(childSite, cSite, sites)
+		err = unfold(childSite, cSite, sites, log)
 		if err != nil {
 			return err
 		}
@@ -245,9 +253,6 @@ func gatherData(site *Site, files []data) errors.Error {
 		}
 
 		var data tt.Data
-
-		fmt.Println(DataLoaders, d)
-
 		fPipe := DataLoaders[d.loader].GetPipe(d.loaderArguments)
 		pPipe := DataParsers[d.parser].GetPipe(d.parserArguments)
 		var ppPipes []pipeline.Pipe
@@ -317,12 +322,15 @@ func gatherTemplates(site *Site, templates []string) errors.Error {
 */
 
 //Execute the templates of a []Site into the final files
-func Execute(sites []*Site) errors.Error {
-	return execute(sites)
+func Execute(sites []*Site, log *ui.UI) errors.Error {
+	return execute(sites, log)
 }
-func execute(sites []*Site) errors.Error {
-	//move static folder
+
+func execute(sites []*Site, log *ui.UI) errors.Error {
+	// copy static folder
 	if StaticFolder != "" && OutputFolder != "" {
+		log.Debug("Copying static folder")
+
 		info, err := os.Lstat(StaticFolder)
 		if err != nil {
 			return ErrFailedStatic.SetRoot(err.Error())
@@ -332,10 +340,14 @@ func execute(sites []*Site) errors.Error {
 		if err != nil {
 			return ErrFailedStatic.SetRoot(err.Error())
 		}
+
+		log.Debug("Finished copying static folder")
 	}
 
 	//export every template
 	for _, site := range sites {
+		log.Debugf("Building page for %s", site.Slug)
+
 		err := site.executeTemplate()
 		if err != nil {
 			return err

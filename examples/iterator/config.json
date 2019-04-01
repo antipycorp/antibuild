@@ -1,7 +1,7 @@
 {
   "logging": {
     "file": "antibuild.log",
-    "pretty_print": false
+    "pretty_print": true
   },
   "folders": {
     "templates": "templates/",
@@ -13,7 +13,7 @@
     "dependencies": {
       "file": "https://build.antipy.com/dl/modules.json",
       "yaml": "https://build.antipy.com/dl/modules.json",
-      "util": ""
+      "util": "https://build.antipy.com/dl/modules.json"
     }
   },
   "pages": {

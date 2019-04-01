@@ -35,9 +35,11 @@ type (
 		prettylogSetter
 		UIlogger
 	}
+	
 	logfileSetter interface {
 		SetLogfile(io.Writer)
 	}
+
 	prettylogSetter interface {
 		SetPrettyPrint(bool)
 	}

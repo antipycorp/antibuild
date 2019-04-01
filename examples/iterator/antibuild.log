@@ -1,3 +1,28 @@
-Start compiling...
-Loaded modules...
-Exported output files...
+[37m[1mdebug [0m[0mInitalizing module config
+[37m[1mdebug [0m[0mLoading modules
+[37m[1mdebug [0m[0mFinished loading modules
+[37m[1mdebug [0m[0mUnfolding sites
+[37m[1mdebug [0m[0mUnfolding 
+[37m[1mdebug [0m[0mUnfolding child  of parent 
+[37m[1mdebug [0m[0mUnfolding child  of parent 
+[37m[1mdebug [0m[0mUnfolding child /article/{{article}} of parent 
+[37m[1mdebug [0m[0mGenerating sub-sites with vars [article]
+[37m[1mdebug [0m[0mUnfolding child /index.html of parent /article/test1
+[37m[1mdebug [0m[0mApplying existing iterator variables: map[article:test1]
+[37m[1mdebug [0m[0mDoing data iterator ranging for variable comment
+[37m[1mdebug [0m[0mGathering information for /article/test1/index.html
+[37m[1mdebug [0m[0mSite data: &{map[article:{file_all data/articles [test1 test2]} comment:{file_all data/articles/test1/comments [1.yaml 2.yaml]}] /article/test1/index.html [layout.html article_comment.html] [{ file_file data/articles/test1/meta.yaml yaml_yaml  []} { file_file data/articles/test1/comments/1.yaml yaml_yaml  [{util_prefix 1.yaml}]} { file_file data/articles/test1/comments/2.yaml yaml_yaml  [{util_prefix 1.yaml}]}] [] map[article:test1]}
+[37m[1mdebug [0m[0mFinished gathering for /article/test1/index.html
+[37m[1mdebug [0m[0mUnfolding child /article/test1/index.html of parent /article/test2
+[37m[1mdebug [0m[0mApplying existing iterator variables: map[article:test2]
+[37m[1mdebug [0m[0mGathering information for /article/test2/article/test1/index.html
+[37m[1mdebug [0m[0mSite data: &{map[article:{file_all data/articles [test1 test2]} comment:{file_all data/articles/test1/comments [1.yaml 2.yaml]}] /article/test2/article/test1/index.html [layout.html layout.html article_comment.html] [{ file_file data/articles/test2/meta.yaml yaml_yaml  []} { file_file data/articles/test1/meta.yaml yaml_yaml  []} { file_file data/articles/test1/comments/1.yaml yaml_yaml  [{util_prefix 1.yaml}]} { file_file data/articles/test1/comments/2.yaml yaml_yaml  [{util_prefix 1.yaml}]}] [] map[article:test2]}
+[37m[1mdebug [0m[0mFinished gathering for /article/test2/article/test1/index.html
+[37m[1mdebug [0m[0mFinished unfolding sites
+[37m[1mdebug [0m[0mStarted building
+[37m[1mdebug [0m[0mCopying static folder
+[37m[1mdebug [0m[0mFinished copying static folder
+[37m[1mdebug [0m[0mBuilding page for /article/test1/index.html
+[37m[1mdebug [0m[0mBuilding page for /article/test2/article/test1/index.html
+[34m[1minfo [0m[0mBuilt 2 pages
+[34m[1minfo [0m[0mDone

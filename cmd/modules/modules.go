@@ -1,7 +1,6 @@
 package modules
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -145,7 +144,6 @@ var modulesRemoveCMD = &cobra.Command{
 
 		errDefault := os.Remove(".modules/abm_" + newModule)
 		if errDefault != nil {
-			fmt.Println(errors.Import(err).Error())
 			return
 		}
 
@@ -210,7 +208,6 @@ func installModule(moduleName string, moduleRepository string) errors.Error {
 			err := os.Mkdir(".modules/", 0755)
 			err = internal.DownloadFile(".modules/"+module, moduleInfo.Compiled[goos][goarch], true)
 			if err != nil {
-				fmt.Println(err.Error())
 				return ErrFailedModuleBinaryDownload.SetRoot(err.Error())
 			}
 
@@ -240,7 +237,6 @@ func installModule(moduleName string, moduleRepository string) errors.Error {
 	dir = filepath.Join(dir, moduleInfo.Source.SubDirectory)
 	err = internal.CompileFromSource(dir, ".modules/"+module)
 	if err != nil {
-		fmt.Println(err.Error())
 		return ErrFailedModuleBuild.SetRoot(err.Error())
 	}
 	return nil

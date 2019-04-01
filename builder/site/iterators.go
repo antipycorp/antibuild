@@ -5,8 +5,8 @@
 package site
 
 import (
+	"gitlab.com/antipy/antibuild/cli/ui"
 	"bytes"
-	"fmt"
 	"strings"
 
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
@@ -164,10 +164,10 @@ func getReplacers(vars []string, cSite *ConfigSite) ([]map[string]string, errors
 	return replacers, nil
 }
 
-func doIterators(cSite *ConfigSite, sites *[]*Site) (bool, errors.Error) {
-	fmt.Println("!!!!!!!!!!", cSite)
-
+func doIterators(cSite *ConfigSite, sites *[]*Site, log *ui.UI) (bool, errors.Error) {
 	if len(cSite.IteratorValues) > 0 {
+		log.Debugf("Applying existing iterator variables: %v", cSite.IteratorValues)
+
 		for variable, value := range cSite.IteratorValues {
 			cSite.Slug = replaceVar(cSite.Slug, variable, value)
 
@@ -181,13 +181,9 @@ func doIterators(cSite *ConfigSite, sites *[]*Site) (bool, errors.Error) {
 				}
 			}
 
-			fmt.Println("a", cSite.IteratorValues)
-			fmt.Println("b", cSite.Iterators)
 			for x := range cSite.Iterators {
 				cSite.Iterators[x] = replaceVarIterator(cSite.Iterators[x], variable, value)
 			}
-			fmt.Println("c", cSite.Iterators)
-
 		}
 	}
 
@@ -197,6 +193,7 @@ func doIterators(cSite *ConfigSite, sites *[]*Site) (bool, errors.Error) {
 	slugVars := includedVars(cSite.Slug)
 
 	if len(slugVars) > 0 {
+		log.Debugf("Generating sub-sites with vars %v", slugVars)
 		replacers, err := getReplacers(slugVars, cSite)
 		if err != nil {
 			return false, err
@@ -248,8 +245,6 @@ func doIterators(cSite *ConfigSite, sites *[]*Site) (bool, errors.Error) {
 					newSite.IteratorValues[variable] = value
 				}
 
-				fmt.Printf("t %v \n", newSite.IteratorValues)
-
 				newSite.Sites = cSite.Sites
 
 				newSites = append(newSites, newSite)
@@ -264,8 +259,9 @@ func doIterators(cSite *ConfigSite, sites *[]*Site) (bool, errors.Error) {
 		var additionalData []data
 
 		for x, d := range currentSite.Data {
-
 			if d.shouldRange != "" {
+				log.Debugf("Doing data iterator ranging for variable %s", d.shouldRange)
+
 				variable := d.shouldRange
 
 				d.shouldRange = ""
@@ -286,21 +282,15 @@ func doIterators(cSite *ConfigSite, sites *[]*Site) (bool, errors.Error) {
 					additionalData = append(additionalData, newD)
 				}
 
-				fmt.Println("??????????", currentSite.Data)
 				currentSite.Data = remove(currentSite.Data, x)
-				fmt.Println("??????????", currentSite.Data)
 			}
 		}
 
-		fmt.Println("??????????", currentSite.Data)
-		fmt.Println("??????????", additionalData)
 		currentSite.Data = append(currentSite.Data, additionalData...)
-		fmt.Println("??????????", currentSite.Data)
 
 		if slugSitesChanged {
 			for _, childSite := range currentSite.Sites {
-				fmt.Println("xxx", childSite)
-				unfold(childSite, &currentSite, sites)
+				unfold(childSite, &currentSite, sites, log)
 			}
 		} else {
 			cSite.Data = currentSite.Data

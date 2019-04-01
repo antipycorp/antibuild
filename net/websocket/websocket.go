@@ -1,7 +1,6 @@
 package websocket
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 
@@ -61,9 +60,8 @@ func SendUpdate() {
 		"status": "update",
 		"data":   nil,
 	}
-	for k, v := range cons {
+	for _, v := range cons {
 		err := v.encode(message)
-		fmt.Println("updated:", k)
 		if err != nil {
 			panic(err) //TODO: make it return error and handle it later
 		}

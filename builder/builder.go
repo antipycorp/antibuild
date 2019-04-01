@@ -39,7 +39,7 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 			failedToLoadConfig(ui, os.TempDir()+"/abm/public")
 			net.HostLocally(os.TempDir()+"/abm/public", "8080")
 		}
-		ui.Fatalf("could not parse the config file: " + err.Error())
+		ui.Fatalf("could not parse the config file " + err.Error())
 		return
 	}
 
@@ -74,17 +74,22 @@ func HeadlesStart(configLocation string, output io.Writer) {
 
 	cfg, err := config.CleanConfig(configLocation, ui)
 	if err != nil {
-		ui.Fatalf("could not parse the config file: " + err.Error())
+		ui.Fatalf("could not parse the config file: %s", err.Error())
+		return
 	}
+
+	cfg.UILogger.Info("Config is parsed and valid")
+	cfg.UILogger.Debugf("Parsed Config: %s", cfg)
+
 	err = startParse(cfg)
 	if err != nil {
-		ui.Fatalf("could not parse the files: " + err.Error())
+		cfg.UILogger.Fatalf(err.Error())
+		return
 	}
 }
 
 func startParse(cfg *config.Config) errors.Error {
-	cfg.UILogger.Info("Start compiling...")
-
+	cfg.UILogger.Debug("Initalizing module config")
 	var moduleConfig = make(map[string]modules.ModuleConfig, len(cfg.Modules.Config))
 
 	for module, mConfig := range cfg.Modules.Config {
@@ -93,17 +98,27 @@ func startParse(cfg *config.Config) errors.Error {
 		}
 	}
 
-	mhost := modules.LoadModules(cfg.Folders.Modules, cfg.Modules.Dependencies, moduleConfig, cfg.UILogger)
-	if mhost != nil { // loadModules checks if modules are already loaded
+	cfg.UILogger.Debug("Loading modules")
+	mhost, err := modules.LoadModules(cfg.Folders.Modules, cfg.Modules.Dependencies, moduleConfig, cfg.UILogger)
+	if err != nil {
+		cfg.UILogger.Fatal(err.Error())
+		return nil
+	}
+
+	if mhost != nil {
 		cfg.ModuleHost = mhost
 	}
-	cfg.UILogger.Debug("Loaded modules...")
-	//actually run the template
+
+	cfg.UILogger.Debug("Finished loading modules")
+
 	templateErr := executeTemplate(cfg)
 	if templateErr != nil {
-		cfg.UILogger.Fatal("Failed to build output files: " + templateErr.Error())
+		cfg.UILogger.Fatal(templateErr.Error())
+		return nil
 	}
-	cfg.UILogger.Info("Exported output files...")
+
+	cfg.UILogger.Info("Done")
+
 	return nil
 }
 
@@ -125,14 +140,23 @@ func executeTemplate(cfg *config.Config) errors.Error {
 	site.TemplateFolder = cfg.Folders.Templates
 	site.StaticFolder = cfg.Folders.Static
 
-	pages, err := site.Unfold(cfg.Pages, cfg.Modules.SPPs)
+	cfg.UILogger.Debug("Unfolding sites")
+
+	pages, err := site.Unfold(cfg.Pages, cfg.Modules.SPPs, cfg.UILogger.(*UI.UI))
 	if err != nil {
-		return ErrFailedUnfold.SetRoot(err.GetRoot())
+		return err
 	}
 
-	err = site.Execute(pages)
+	cfg.UILogger.Debug("Finished unfolding sites")
+
+	cfg.UILogger.Debug("Started building")
+
+	err = site.Execute(pages, cfg.UILogger.(*UI.UI))
 	if err != nil {
-		return ErrFailedExport.SetRoot(err.GetRoot())
+		return err
 	}
+
+	cfg.UILogger.Infof("Built %d pages", len(pages))
+
 	return nil
 }

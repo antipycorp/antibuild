@@ -6,7 +6,6 @@ package site
 
 import (
 	"bytes"
-	"fmt"
 
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
 )
@@ -128,7 +127,6 @@ func (df *data) UnmarshalJSON(data []byte) error {
 	parserData := data[i1+1 : i2]
 	data = data[i2+1:] //keep this in place for potential fututre extentions
 
-	fmt.Println(string(data))
 	{
 		//get all the arguments for the dataParser
 		sep := bytes.Split(parserData, []byte(":"))
@@ -158,8 +156,6 @@ func (df *data) UnmarshalJSON(data []byte) error {
 
 		postProcessorData := data[i1+1 : i2]
 		data = data[i2+1:] //keep this in place for potential fututre extentions
-
-		fmt.Println(string(data))
 
 		{
 			var dpp = dataPostProcessor{}

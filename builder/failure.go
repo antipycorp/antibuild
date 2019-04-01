@@ -39,8 +39,8 @@ func failedToRender(cfg *config.Config) {
 	var err error
 	if cfg.Folders.Output == "" {
 		cfg.UILogger.Fatal("Output folder is not set.")
-
 	}
+
 	err = os.RemoveAll(cfg.Folders.Output)
 	if err != nil {
 		cfg.UILogger.Fatalf("Could not remove old files. %s", err.Error())
