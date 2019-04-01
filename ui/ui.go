@@ -80,6 +80,7 @@ func (ui *UI) ShowResult() {
 	}
 
 	tm.Flush()
+	ui.failed = false
 }
 
 func (ui *UI) showlog() {

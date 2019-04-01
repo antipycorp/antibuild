@@ -1,8 +1,6 @@
 package pipeline
 
 import (
-	"fmt"
-
 	"gitlab.com/antipy/antibuild/api/file"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
 )
@@ -40,13 +38,13 @@ func ExecPipeline(data interface{}, retdata interface{}, pipes ...Pipe) errors.E
 			return ErrFailedCreateFile.SetRoot(err.Error())
 		}
 	}
+
 	defer f.Cleanup()
 	fileName := f.GetRef()
 	for _, pipe := range pipes {
 		err := pipe(fileName)
 		if err != nil {
-			fmt.Println(err, "THIS IS THE ERROR!!")
-			return ErrFailedExecPipe.SetRoot(err.GetRoot())
+			return err
 		}
 	}
 

@@ -12,6 +12,7 @@
   "modules": {
     "dependencies": {
       "file": "https://build.antipy.com/dl/modules.json",
+      "markdown": "https://build.antipy.com/dl/modules.json",
       "yaml": "https://build.antipy.com/dl/modules.json",
       "util": "https://build.antipy.com/dl/modules.json"
     }
@@ -28,7 +29,8 @@
             },
             "slug": "/article/{{article}}",
             "data": [
-              "[file_file:data/articles/{{article}}/meta.yaml][yaml_yaml]"
+              "[file_file:data/articles/{{article}}/meta.yaml][yaml_yaml]",
+              "[file_file:data/articles/{{article}}/test.md][markdown_read:g]"
             ],
             "sites": [
               {

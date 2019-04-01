@@ -9,6 +9,7 @@ package builder
 import (
 	"io"
 	"os"
+	"time"
 
 	"gitlab.com/antipy/antibuild/cli/builder/config"
 	"gitlab.com/antipy/antibuild/cli/builder/site"
@@ -89,6 +90,8 @@ func HeadlesStart(configLocation string, output io.Writer) {
 }
 
 func startParse(cfg *config.Config) errors.Error {
+	start := time.Now()
+
 	cfg.UILogger.Debug("Initalizing module config")
 	var moduleConfig = make(map[string]modules.ModuleConfig, len(cfg.Modules.Config))
 
@@ -117,7 +120,7 @@ func startParse(cfg *config.Config) errors.Error {
 		return nil
 	}
 
-	cfg.UILogger.Info("Done")
+	cfg.UILogger.Infof("Completed in %s", time.Since(start).String())
 
 	return nil
 }

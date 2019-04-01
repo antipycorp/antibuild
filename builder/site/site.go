@@ -14,6 +14,7 @@ import (
 	"gitlab.com/antipy/antibuild/cli/modules/pipeline"
 
 	"github.com/jaicewizard/tt"
+	"gitlab.com/antipy/antibuild/api/site"
 	"gitlab.com/antipy/antibuild/cli/internal"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
 	"gitlab.com/antipy/antibuild/cli/ui"
@@ -28,13 +29,6 @@ type (
 		Data           []data              `json:"data,omitempty"`
 		Sites          []*ConfigSite       `json:"sites,omitempty"`
 		IteratorValues map[string]string   `json:"-"`
-	}
-
-	//Site is the way a site is defined after all of its data and templates have been collected
-	Site struct {
-		Slug     string
-		Template string
-		Data     tt.Data
 	}
 
 	//DataLoader is a module that loads data
@@ -57,7 +51,7 @@ type (
 
 	//SPP is a function thats able to post-process data
 	SPP interface {
-		Process([]*Site, string) []*Site
+		Process([]*site.Site, string) []*site.Site
 		GetPipe(string) pipeline.Pipe
 	}
 
@@ -101,6 +95,8 @@ var (
 	ErrFailedGather = errors.NewError("failed to gather files", 3)
 	//ErrFailedCreateFS is for a failure in gathering files.
 	ErrFailedCreateFS = errors.NewError("couldn't create directory/file", 4)
+	//ErrUsingUnknownModule is when a user uses a module that is not registered.
+	ErrUsingUnknownModule = errors.NewError("module is used but not registered", 5)
 )
 
 /*
@@ -114,8 +110,8 @@ var (
 */
 
 //Unfold the ConfigSite into a []ConfigSite
-func Unfold(configSite *ConfigSite, spps []string, log *ui.UI) ([]*Site, errors.Error) {
-	sites := make([]*Site, 0, len(configSite.Sites)*2)
+func Unfold(configSite *ConfigSite, spps []string, log *ui.UI) ([]*site.Site, errors.Error) {
+	sites := make([]*site.Site, 0, len(configSite.Sites)*2)
 	globalTemplates = make(map[string]*template.Template, len(sites))
 
 	err := unfold(configSite, nil, &sites, log)
@@ -132,7 +128,7 @@ func Unfold(configSite *ConfigSite, spps []string, log *ui.UI) ([]*Site, errors.
 	return sites, nil
 }
 
-func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]*Site, log *ui.UI) (err errors.Error) {
+func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]*site.Site, log *ui.UI) (err errors.Error) {
 	if parent != nil {
 		log.Debugf("Unfolding child %s of parent %s", cSite.Slug, parent.Slug)
 		mergeConfigSite(cSite, parent)
@@ -151,7 +147,7 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]*Site, log *ui.UI) (
 		log.Debugf("Gathering information for %s", cSite.Slug)
 		log.Debugf("Site data: %v", cSite)
 
-		site := &Site{
+		site := &site.Site{
 			Slug: cSite.Slug,
 		}
 
@@ -227,6 +223,10 @@ func gatherIterators(iterators map[string]iterator) errors.Error {
 		if len(i.list) == 0 {
 			var data []string
 
+			if _, ok := Iterators[i.iterator]; !ok {
+				return ErrUsingUnknownModule.SetRoot(i.iterator)
+			}
+
 			iPipe := Iterators[i.iterator].GetPipe(i.iteratorArguments)
 
 			if iPipe != nil {
@@ -244,7 +244,7 @@ func gatherIterators(iterators map[string]iterator) errors.Error {
 }
 
 //collect data objects from modules
-func gatherData(site *Site, files []data) errors.Error {
+func gatherData(site *site.Site, files []data) errors.Error {
 	for _, d := range files {
 
 		//init data if it is empty
@@ -253,11 +253,24 @@ func gatherData(site *Site, files []data) errors.Error {
 		}
 
 		var data tt.Data
+
+		if _, ok := DataLoaders[d.loader]; !ok {
+			return ErrUsingUnknownModule.SetRoot(d.loader)
+		}
+
+		if _, ok := DataParsers[d.parser]; !ok {
+			return ErrUsingUnknownModule.SetRoot(d.parser)
+		}
+
 		fPipe := DataLoaders[d.loader].GetPipe(d.loaderArguments)
 		pPipe := DataParsers[d.parser].GetPipe(d.parserArguments)
 		var ppPipes []pipeline.Pipe
 		var validPPPipes = 0
 		for _, dpp := range d.postProcessors {
+			if _, ok := DataPostProcessors[dpp.postProcessor]; !ok {
+				return ErrUsingUnknownModule.SetRoot(dpp.postProcessor)
+			}
+
 			ppPipes = append(ppPipes, DataPostProcessors[dpp.postProcessor].GetPipe(dpp.postProcessorArguments))
 			if ppPipes != nil {
 				validPPPipes++
@@ -293,7 +306,7 @@ func gatherData(site *Site, files []data) errors.Error {
 }
 
 //TODO optimize the SHIT out od this.
-func gatherTemplates(site *Site, templates []string) errors.Error {
+func gatherTemplates(site *site.Site, templates []string) errors.Error {
 	var newTemplates = make([]string, len(templates))
 	for i, template := range templates {
 		//prefix the templates with the TemplateFolder
@@ -322,11 +335,11 @@ func gatherTemplates(site *Site, templates []string) errors.Error {
 */
 
 //Execute the templates of a []Site into the final files
-func Execute(sites []*Site, log *ui.UI) errors.Error {
+func Execute(sites []*site.Site, log *ui.UI) errors.Error {
 	return execute(sites, log)
 }
 
-func execute(sites []*Site, log *ui.UI) errors.Error {
+func execute(sites []*site.Site, log *ui.UI) errors.Error {
 	// copy static folder
 	if StaticFolder != "" && OutputFolder != "" {
 		log.Debug("Copying static folder")
@@ -348,7 +361,7 @@ func execute(sites []*Site, log *ui.UI) errors.Error {
 	for _, site := range sites {
 		log.Debugf("Building page for %s", site.Slug)
 
-		err := site.executeTemplate()
+		err := executeTemplate(site)
 		if err != nil {
 			return err
 		}
@@ -356,7 +369,7 @@ func execute(sites []*Site, log *ui.UI) errors.Error {
 	return nil
 }
 
-func (site *Site) executeTemplate() errors.Error {
+func executeTemplate(site *site.Site) errors.Error {
 	//prefix the slug with the output folder
 	fileLocation := filepath.Join(OutputFolder, site.Slug)
 

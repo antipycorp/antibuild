@@ -194,7 +194,7 @@ func setupModule(identifier string, moduleHost *host.ModuleHost, config ModuleCo
 			config.Config,
 		})
 		if err != nil || output != "module: ready" {
-			return ErrModuleFailedConfigure.SetRoot(errr.Error())
+			return ErrModuleFailedConfigure.SetRoot(err.Error())
 		}
 	}
 

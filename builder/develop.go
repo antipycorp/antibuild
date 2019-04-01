@@ -126,10 +126,12 @@ func watchBuild(cfg *config.Config, configloc string, shutdown chan int, ui *UI.
 			if e.Op != fsnotify.Create && e.Op != fsnotify.Remove && e.Op != fsnotify.Rename && e.Op != fsnotify.Write {
 				break
 			}
-			ui.Info("making a refresh")
+
+			ui.Infof("Refreshing because of page %s", e.Name)
+
 			time.Sleep(10)
 			if e.Name == configloc {
-				ui.Infof("loaded new config location: %s", configloc)
+				ui.Info("Changed file is config. Reloading...")
 				ncfg, err := config.CleanConfig(configloc, ui)
 				if err != nil {
 					ui.ShowResult()
@@ -143,10 +145,10 @@ func watchBuild(cfg *config.Config, configloc string, shutdown chan int, ui *UI.
 			}
 
 			startParse(cfg)
+			
 			if err != nil {
 				failedToRender(cfg)
 			} else {
-				ui.Info("succesfully build the refresh version")
 				ui.ShowResult()
 				websocket.SendUpdate()
 			}
@@ -156,7 +158,7 @@ func watchBuild(cfg *config.Config, configloc string, shutdown chan int, ui *UI.
 				shutdown <- 0
 				return
 			}
-			ui.Errorf("error: %s", err.Error())
+			ui.Errorf("Error during watch... %s", err.Error())
 		case <-shutdown:
 			shutdown <- 0
 			return

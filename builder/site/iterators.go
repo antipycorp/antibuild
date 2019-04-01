@@ -5,10 +5,12 @@
 package site
 
 import (
-	"gitlab.com/antipy/antibuild/cli/ui"
 	"bytes"
 	"strings"
 
+	"gitlab.com/antipy/antibuild/cli/ui"
+
+	"gitlab.com/antipy/antibuild/api/site"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
 )
 
@@ -164,7 +166,7 @@ func getReplacers(vars []string, cSite *ConfigSite) ([]map[string]string, errors
 	return replacers, nil
 }
 
-func doIterators(cSite *ConfigSite, sites *[]*Site, log *ui.UI) (bool, errors.Error) {
+func doIterators(cSite *ConfigSite, sites *[]*site.Site, log *ui.UI) (bool, errors.Error) {
 	if len(cSite.IteratorValues) > 0 {
 		log.Debugf("Applying existing iterator variables: %v", cSite.IteratorValues)
 
@@ -290,7 +292,10 @@ func doIterators(cSite *ConfigSite, sites *[]*Site, log *ui.UI) (bool, errors.Er
 
 		if slugSitesChanged {
 			for _, childSite := range currentSite.Sites {
-				unfold(childSite, &currentSite, sites, log)
+				err := unfold(childSite, &currentSite, sites, log)
+				if err != nil {
+					return false, err
+				}
 			}
 		} else {
 			cSite.Data = currentSite.Data
