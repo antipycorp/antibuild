@@ -36,7 +36,7 @@ type iterator struct{}
 
 var (
 	testUI = &ui.UI{
-		LogFile:   os.Stdout,
+		LogFile:   nil,
 		PrettyLog: false,
 	}
 )
@@ -118,7 +118,7 @@ func (p parser) GetPipe(variable string) pipeline.Pipe {
 }
 
 func (i iterator) GetIterations(location string) []string {
-	files, err := ioutil.ReadDir(location)
+	/*files, err := ioutil.ReadDir(location)
 	if err != nil {
 		panic(err)
 	}
@@ -126,7 +126,12 @@ func (i iterator) GetIterations(location string) []string {
 	for i, f := range files {
 		retFiles[i] = f.Name()
 	}
-	return retFiles
+	return retFiles*/
+
+	return []string{
+		"hello",
+		"world",
+	}
 }
 
 func (i iterator) GetPipe(variable string) pipeline.Pipe {

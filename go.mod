@@ -16,5 +16,6 @@ require (
 	github.com/spf13/pflag v1.0.3 // indirect
 	gitlab.com/antipy/antibuild/api v0.9.1
 	golang.org/x/crypto v0.0.0-20190325154230-a5d413f7728c // indirect
+	golang.org/x/tools v0.0.0-20190404132500-923d25813098 // indirect
 	gopkg.in/AlecAivazis/survey.v1 v1.7.0
 )
