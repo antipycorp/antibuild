@@ -55,8 +55,11 @@ bin:
 test:
 	go test ./...	
 
-bench:
+bench: benchcmp
 	go test ./... -run=xxx -bench=. > newBench.txt
 	wget https://gitlab.com/antipy/antibuild/cli/-/jobs/artifacts/iterator/raw/bench.txt?job=bench
 	benchcmp bench.txt newBench.txt > benchcmp
 	mv newBench.txt bench.txt
+
+benchcmp:
+	go get golang.org/x/tools/cmd/benchcmp 
