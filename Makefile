@@ -56,7 +56,7 @@ test:
 	go test ./...	
 
 bench:
-	go test ./.. -run=xxx -bench=. > newBench.txt
+	go test ./... -run=xxx -bench=. > newBench.txt
 	wget https://gitlab.com/antipy/antibuild/cli/-/jobs/artifacts/iterators/raw/bench.txt?job=bench
 	benchcmp bench.txt newBench.txt > benchcmp
 	mv newBench.txt bench.txt
