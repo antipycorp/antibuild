@@ -23,7 +23,6 @@ import (
 	"reflect"
 	"regexp"
 
-	"github.com/otiai10/copy"
 	"github.com/spf13/cobra"
 	"gitlab.com/antipy/antibuild/cli/builder/config"
 	cmdInternal "gitlab.com/antipy/antibuild/cli/cmd/internal"
@@ -161,6 +160,8 @@ func downloadTemplate(templateRepository map[string]cmdInternal.TemplateReposito
 	}
 
 	defer os.RemoveAll(dir)
+	
+	var src string
 
 	switch t.Source.Type {
 	case "zip":
@@ -175,9 +176,7 @@ func downloadTemplate(templateRepository map[string]cmdInternal.TemplateReposito
 		if err != nil {
 			log.Fatal(err)
 		}
-
-		err = copy.Copy(filepath.Join(dir, filepath.Join("unzip", t.Source.SubDirectory)), outPath)
-
+		src = filepath.Join(dir, filepath.Join("unzip", t.Source.SubDirectory))
 		break
 	case "git":
 		err = internal.DownloadGit(dir, t.Source.URL)
@@ -189,14 +188,19 @@ func downloadTemplate(templateRepository map[string]cmdInternal.TemplateReposito
 		if err != nil {
 			log.Fatal(err)
 		}
-
-		err = copy.Copy(filepath.Join(dir, t.Source.SubDirectory), outPath)
-		if err != nil {
-			log.Fatal(err)
-		}
-
+		src = filepath.Join(dir, t.Source.SubDirectory)
 		break
 	}
+
+	info, err := os.Lstat(src)
+	if err != nil {
+		log.Fatal(err)
+	}
+	internal.DirCopy(src, outPath,info)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 
 	fmt.Println("Downloaded template.")
 	return true
