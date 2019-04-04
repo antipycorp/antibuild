@@ -1,10 +1,17 @@
+image: golang:1.12
+
+cache:
+  paths:
+    - /apt-cache
+    - /go/src/github.com
+    - /go/src/gopkg.in
+
 stages:
   - bench
   - build
 
 build:
   stage: build
-  image: circleci/golang:1.12-stretch
   artifacts:
     paths:
       - dist/
@@ -12,7 +19,6 @@ build:
     - make build
 bench:
   stage: bench
-  image: circleci/golang:1.12-stretch
   artifacts:
     paths:
       - bench.txt
