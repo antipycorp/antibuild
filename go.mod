@@ -12,8 +12,6 @@ require (
 	github.com/mattn/go-colorable v0.1.1 // indirect
 	github.com/mattn/go-isatty v0.0.7 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
-	github.com/otiai10/copy v1.0.1
-	github.com/otiai10/curr v0.0.0-20150429015615-9b4961190c95 // indirect
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/pflag v1.0.3 // indirect
 	gitlab.com/antipy/antibuild/api v0.9.1
