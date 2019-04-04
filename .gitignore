@@ -8,3 +8,7 @@ test
 dist
 
 .DS_Store
+
+test.txt
+benchmark.txt
+benchmark_change.txt

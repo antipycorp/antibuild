@@ -12,7 +12,7 @@ test:
   image: circleci/golang:1.12-stretch
   artifacts:
     paths:
-      - /tmp/test.txt
+      - test.txt
   script:
     - make test
 
@@ -21,8 +21,8 @@ benchmark:
   image: circleci/golang:1.12-stretch
   artifacts:
     paths:
-      - /tmp/benchmark.txt
-      - /tmp/benchmark_change.txt
+      - benchmark.txt
+      - benchmark_change.txt
   script:
     - make benchmark
 
