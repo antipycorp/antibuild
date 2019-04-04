@@ -23,12 +23,12 @@ import (
 type (
 	//ConfigSite is the way a site is defined in the config file
 	ConfigSite struct {
-		Iterators      map[string]iterator `json:"iterators,omitempty"`
-		Slug           string              `json:"slug,omitempty"`
-		Templates      []string            `json:"templates,omitempty"`
-		Data           []data              `json:"data,omitempty"`
-		Sites          []*ConfigSite       `json:"sites,omitempty"`
-		IteratorValues map[string]string   `json:"-"`
+		Iterators      map[string]IteratorData `json:"iterators,omitempty"`
+		Slug           string                  `json:"slug,omitempty"`
+		Templates      []string                `json:"templates,omitempty"`
+		Data           []Data                  `json:"data,omitempty"`
+		Sites          []*ConfigSite           `json:"sites,omitempty"`
+		IteratorValues map[string]string       `json:"-"`
 	}
 
 	//DataLoader is a module that loads data
@@ -57,7 +57,7 @@ type (
 
 	//Iterator is a function thats able to post-process data
 	Iterator interface {
-		Get(string) []string
+		GetIterations(string) []string
 		GetPipe(string) pipeline.Pipe
 	}
 )
@@ -136,10 +136,11 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]*site.Site, log *ui.
 		log.Debugf("Unfolding %s", cSite.Slug)
 	}
 
-	didIterators, err := doIterators(cSite, sites, log)
-
-	if didIterators == true || err != nil {
-		return err
+	if len(cSite.Iterators) != 0 {
+		err := doIterators(cSite, sites, log)
+		if err != nil {
+			return err
+		}
 	}
 
 	//If this is the last in the chain, add it to the list of return values
@@ -183,7 +184,7 @@ func mergeConfigSite(dst *ConfigSite, src *ConfigSite) {
 	if dst.Data != nil {
 		dst.Data = append(src.Data, dst.Data...) // just append
 	} else {
-		dst.Data = make([]data, len(src.Data)) // or make a new one and fill it
+		dst.Data = make([]Data, len(src.Data)) // or make a new one and fill it
 		for i, s := range src.Data {
 			dst.Data[i] = s
 		}
@@ -199,7 +200,7 @@ func mergeConfigSite(dst *ConfigSite, src *ConfigSite) {
 	}
 
 	if dst.Iterators == nil {
-		dst.Iterators = make(map[string]iterator, len(src.Iterators)) // or make a new one and fill it
+		dst.Iterators = make(map[string]IteratorData, len(src.Iterators)) // or make a new one and fill it
 	}
 
 	for i, s := range src.Iterators {
@@ -218,24 +219,24 @@ func mergeConfigSite(dst *ConfigSite, src *ConfigSite) {
 }
 
 //collect iterators from modules
-func gatherIterators(iterators map[string]iterator) errors.Error {
+func gatherIterators(iterators map[string]IteratorData) errors.Error {
 	for n, i := range iterators {
-		if len(i.list) == 0 {
+		if len(i.List) == 0 {
 			var data []string
 
-			if _, ok := Iterators[i.iterator]; !ok {
-				return ErrUsingUnknownModule.SetRoot(i.iterator)
+			if _, ok := Iterators[i.Iterator]; !ok {
+				return ErrUsingUnknownModule.SetRoot(i.Iterator)
 			}
 
-			iPipe := Iterators[i.iterator].GetPipe(i.iteratorArguments)
+			iPipe := Iterators[i.Iterator].GetPipe(i.IteratorArguments)
 
 			if iPipe != nil {
 				pipeline.ExecPipeline(nil, &data, iPipe)
 			} else {
-				data = Iterators[i.iterator].Get(i.iteratorArguments)
+				data = Iterators[i.Iterator].GetIterations(i.IteratorArguments)
 			}
 
-			i.list = data
+			i.List = data
 			iterators[n] = i
 		}
 	}
@@ -244,7 +245,7 @@ func gatherIterators(iterators map[string]iterator) errors.Error {
 }
 
 //collect data objects from modules
-func gatherData(site *site.Site, files []data) errors.Error {
+func gatherData(site *site.Site, files []Data) errors.Error {
 	for _, d := range files {
 
 		//init data if it is empty
@@ -254,24 +255,24 @@ func gatherData(site *site.Site, files []data) errors.Error {
 
 		var data tt.Data
 
-		if _, ok := DataLoaders[d.loader]; !ok {
-			return ErrUsingUnknownModule.SetRoot(d.loader)
+		if _, ok := DataLoaders[d.Loader]; !ok {
+			return ErrUsingUnknownModule.SetRoot(d.Loader)
 		}
 
-		if _, ok := DataParsers[d.parser]; !ok {
-			return ErrUsingUnknownModule.SetRoot(d.parser)
+		if _, ok := DataParsers[d.Parser]; !ok {
+			return ErrUsingUnknownModule.SetRoot(d.Parser)
 		}
 
-		fPipe := DataLoaders[d.loader].GetPipe(d.loaderArguments)
-		pPipe := DataParsers[d.parser].GetPipe(d.parserArguments)
+		fPipe := DataLoaders[d.Loader].GetPipe(d.LoaderArguments)
+		pPipe := DataParsers[d.Parser].GetPipe(d.ParserArguments)
 		var ppPipes []pipeline.Pipe
 		var validPPPipes = 0
-		for _, dpp := range d.postProcessors {
-			if _, ok := DataPostProcessors[dpp.postProcessor]; !ok {
-				return ErrUsingUnknownModule.SetRoot(dpp.postProcessor)
+		for _, dpp := range d.PostProcessors {
+			if _, ok := DataPostProcessors[dpp.PostProcessor]; !ok {
+				return ErrUsingUnknownModule.SetRoot(dpp.PostProcessor)
 			}
 
-			ppPipes = append(ppPipes, DataPostProcessors[dpp.postProcessor].GetPipe(dpp.postProcessorArguments))
+			ppPipes = append(ppPipes, DataPostProcessors[dpp.PostProcessor].GetPipe(dpp.PostProcessorArguments))
 			if ppPipes != nil {
 				validPPPipes++
 			}
@@ -289,10 +290,10 @@ func gatherData(site *site.Site, files []data) errors.Error {
 
 			pipeline.ExecPipeline(nil, &data, pipes...)
 		} else {
-			fileData := DataLoaders[d.loader].Load(d.loaderArguments)
-			data = DataParsers[d.parser].Parse(fileData, d.parserArguments)
-			for _, dpp := range d.postProcessors {
-				data = DataPostProcessors[dpp.postProcessor].Process(data, dpp.postProcessorArguments)
+			fileData := DataLoaders[d.Loader].Load(d.LoaderArguments)
+			data = DataParsers[d.Parser].Parse(fileData, d.ParserArguments)
+			for _, dpp := range d.PostProcessors {
+				data = DataPostProcessors[dpp.PostProcessor].Process(data, dpp.PostProcessorArguments)
 			}
 		}
 

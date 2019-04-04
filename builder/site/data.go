@@ -11,18 +11,20 @@ import (
 )
 
 type (
-	data struct {
-		shouldRange     string
-		loader          string
-		loaderArguments string
-		parser          string
-		parserArguments string
-		postProcessors  []dataPostProcessor
+	// Data is info about data from the config
+	Data struct {
+		ShouldRange     string
+		Loader          string
+		LoaderArguments string
+		Parser          string
+		ParserArguments string
+		PostProcessors  []DataPostProcessor
 	}
 
-	dataPostProcessor struct {
-		postProcessor          string
-		postProcessorArguments string
+	// DataPostProcessor is info about a data post processor from the config
+	DataPostProcessor struct {
+		PostProcessor          string
+		PostProcessorArguments string
 	}
 )
 
@@ -37,29 +39,30 @@ var (
 	ErrNoRangeVariable = errors.NewError("could not get variable for range", 3)
 )
 
-func (df *data) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshalls the data
+func (df *Data) MarshalJSON() ([]byte, error) {
 	return []byte("\"" + df.String() + "\""), nil
 }
 
-func (df *data) String() string {
+func (df *Data) String() string {
 	out := ""
 
-	out += "[" + df.loader
-	if df.loaderArguments != "" {
-		out += ":" + df.loaderArguments
+	out += "[" + df.Loader
+	if df.LoaderArguments != "" {
+		out += ":" + df.LoaderArguments
 	}
 	out += "]"
 
-	out += "[" + df.parser
-	if df.parserArguments != "" {
-		out += ":" + df.parserArguments
+	out += "[" + df.Parser
+	if df.ParserArguments != "" {
+		out += ":" + df.ParserArguments
 	}
 	out += "]"
 
-	for _, dpp := range df.postProcessors {
-		out += "[" + dpp.postProcessor
-		if dpp.postProcessorArguments != "" {
-			out += ":" + dpp.postProcessorArguments
+	for _, dpp := range df.PostProcessors {
+		out += "[" + dpp.PostProcessor
+		if dpp.PostProcessorArguments != "" {
+			out += ":" + dpp.PostProcessorArguments
 		}
 		out += "]"
 	}
@@ -67,7 +70,8 @@ func (df *data) String() string {
 	return out
 }
 
-func (df *data) UnmarshalJSON(data []byte) error {
+// UnmarshalJSON unmarshalls the data
+func (df *Data) UnmarshalJSON(data []byte) error {
 	data = data[1 : len(data)-1]
 
 	//get the data from for the dataLoader
@@ -89,7 +93,7 @@ func (df *data) UnmarshalJSON(data []byte) error {
 				return ErrNoRangeVariable.SetRoot(string(loaderData))
 			}
 
-			df.shouldRange = string(sep[1])
+			df.ShouldRange = string(sep[1])
 
 			//get the data from for the dataLoader
 			i1 := bytes.Index(data, []byte("["))
@@ -112,11 +116,11 @@ func (df *data) UnmarshalJSON(data []byte) error {
 		if len(bytes.Split(sep[0], []byte("_"))) == 1 {
 			loader = append(sep[0], append([]byte("_"), sep[0]...)...)
 		}
-		df.loader = string(loader)
-		df.loaderArguments = ""
+		df.Loader = string(loader)
+		df.LoaderArguments = ""
 
 		if len(sep) >= 2 { //only if bigger than 2 this is available
-			df.loaderArguments = string(sep[1])
+			df.LoaderArguments = string(sep[1])
 		}
 	}
 
@@ -142,11 +146,11 @@ func (df *data) UnmarshalJSON(data []byte) error {
 			parser = append(parser, append([]byte("_"), parser...)...)
 		}
 
-		df.parser = string(parser)
-		df.parserArguments = ""
+		df.Parser = string(parser)
+		df.ParserArguments = ""
 
 		if len(sep) >= 2 { //only if bigger than 2 this is available
-			df.parserArguments = string(sep[1])
+			df.ParserArguments = string(sep[1])
 		}
 	}
 
@@ -158,7 +162,7 @@ func (df *data) UnmarshalJSON(data []byte) error {
 		data = data[i2+1:] //keep this in place for potential fututre extentions
 
 		{
-			var dpp = dataPostProcessor{}
+			var dpp = DataPostProcessor{}
 
 			//get all the arguments for the dataPostProcessor
 			sep := bytes.Split(postProcessorData, []byte(":"))
@@ -174,14 +178,14 @@ func (df *data) UnmarshalJSON(data []byte) error {
 				postProcessor = append(postProcessor, append([]byte("_"), postProcessor...)...)
 			}
 
-			dpp.postProcessor = string(postProcessor)
-			dpp.postProcessorArguments = ""
+			dpp.PostProcessor = string(postProcessor)
+			dpp.PostProcessorArguments = ""
 
 			if len(sep) >= 2 { //only if bigger than 2 this is available
-				dpp.postProcessorArguments = string(sep[1])
+				dpp.PostProcessorArguments = string(sep[1])
 			}
 
-			df.postProcessors = append(df.postProcessors, dpp)
+			df.PostProcessors = append(df.PostProcessors, dpp)
 		}
 	}
 

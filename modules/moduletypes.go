@@ -71,7 +71,7 @@ func getIterator(command string, host *host.ModuleHost) *iterator {
 	}
 }
 
-func (it *iterator) Get(variable string) []string {
+func (it *iterator) GetIterations(variable string) []string {
 	var ret []string
 
 	pipe := it.GetPipe(variable)
