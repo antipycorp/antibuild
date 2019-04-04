@@ -5,7 +5,6 @@
 package site
 
 import (
-	"fmt"
 	"html/template"
 	"math/rand"
 	"os"
@@ -63,7 +62,7 @@ type (
 
 	//Iterator is a function thats able to post-process data
 	Iterator interface {
-		Get(string) []string
+		GetIterations(string) []string
 		GetPipe(string) pipeline.Pipe
 	}
 )
@@ -136,11 +135,11 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]*Site) (err errors.E
 	if parent != nil {
 		mergeConfigSite(cSite, parent)
 	}
-
-	didIterators, err := doIterators(cSite, sites)
-
-	if didIterators == true || err != nil {
-		return err
+	if len(cSite.Iterators) != 0 {
+		err := doIterators(cSite, sites)
+		if err != nil {
+			return err
+		}
 	}
 
 	//If this is the last in the chain, add it to the list of return values
@@ -224,7 +223,7 @@ func gatherIterators(iterators map[string]iterator) errors.Error {
 			if iPipe != nil {
 				pipeline.ExecPipeline(nil, &data, iPipe)
 			} else {
-				data = Iterators[i.iterator].Get(i.iteratorArguments)
+				data = Iterators[i.iterator].GetIterations(i.iteratorArguments)
 			}
 
 			i.list = data
@@ -245,8 +244,6 @@ func gatherData(site *Site, files []data) errors.Error {
 		}
 
 		var data tt.Data
-
-		fmt.Println(DataLoaders, d)
 
 		fPipe := DataLoaders[d.loader].GetPipe(d.loaderArguments)
 		pPipe := DataParsers[d.parser].GetPipe(d.parserArguments)

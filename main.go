@@ -8,8 +8,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 	"gitlab.com/antipy/antibuild/cli/cmd"
 )
@@ -30,7 +28,7 @@ Antibuild is written in Golang and can be extended by modules written in Golang.
 		Use:   "version",
 		Short: "Prints the version of antibuild and exits succesfully.",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println(version)
+			println(version)
 			return
 		},
 	}

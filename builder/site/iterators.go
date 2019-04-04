@@ -6,7 +6,6 @@ package site
 
 import (
 	"bytes"
-	"fmt"
 	"strings"
 
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
@@ -51,7 +50,7 @@ func (i *iterator) UnmarshalJSON(data []byte) error {
 	{
 		//get all the arguments for the loader
 		sep := bytes.Split(iteratorData, []byte(":"))
-		if len(sep) == 0 {
+		if len(sep) < 2 {
 			return ErrNoIteratorFound.SetRoot(string(iteratorData))
 		}
 		var loader = make([]byte, len(sep[0]))
@@ -62,11 +61,8 @@ func (i *iterator) UnmarshalJSON(data []byte) error {
 		}
 
 		i.iterator = string(loader)
-		i.iteratorArguments = ""
+		i.iteratorArguments = string(sep[1])
 
-		if len(sep) >= 2 { //only if bigger than 2 this is available
-			i.iteratorArguments = string(sep[1])
-		}
 	}
 
 	return nil
@@ -164,42 +160,33 @@ func getReplacers(vars []string, cSite *ConfigSite) ([]map[string]string, errors
 	return replacers, nil
 }
 
-func doIterators(cSite *ConfigSite, sites *[]*Site) (bool, errors.Error) {
-	fmt.Println("!!!!!!!!!!", cSite)
+func doIterators(cSite *ConfigSite, sites *[]*Site) errors.Error {
+	for variable, value := range cSite.IteratorValues {
+		cSite.Slug = replaceVar(cSite.Slug, variable, value)
 
-	if len(cSite.IteratorValues) > 0 {
-		for variable, value := range cSite.IteratorValues {
-			cSite.Slug = replaceVar(cSite.Slug, variable, value)
+		for x := range cSite.Templates {
+			cSite.Templates[x] = replaceVar(cSite.Templates[x], variable, value)
+		}
 
-			for x := range cSite.Templates {
-				cSite.Templates[x] = replaceVar(cSite.Templates[x], variable, value)
+		for x := range cSite.Data {
+			if cSite.Data[x].shouldRange != variable {
+				cSite.Data[x] = replaceVarData(cSite.Data[x], variable, value)
 			}
+		}
 
-			for x := range cSite.Data {
-				if cSite.Data[x].shouldRange != variable {
-					cSite.Data[x] = replaceVarData(cSite.Data[x], variable, value)
-				}
-			}
-
-			fmt.Println("a", cSite.IteratorValues)
-			fmt.Println("b", cSite.Iterators)
-			for x := range cSite.Iterators {
-				cSite.Iterators[x] = replaceVarIterator(cSite.Iterators[x], variable, value)
-			}
-			fmt.Println("c", cSite.Iterators)
-
+		for x := range cSite.Iterators {
+			cSite.Iterators[x] = replaceVarIterator(cSite.Iterators[x], variable, value)
 		}
 	}
 
 	var newSites []ConfigSite
-	var slugSitesChanged = true
 
 	slugVars := includedVars(cSite.Slug)
 
 	if len(slugVars) > 0 {
 		replacers, err := getReplacers(slugVars, cSite)
 		if err != nil {
-			return false, err
+			return err
 		}
 
 		if len(replacers) > 0 {
@@ -248,15 +235,12 @@ func doIterators(cSite *ConfigSite, sites *[]*Site) (bool, errors.Error) {
 					newSite.IteratorValues[variable] = value
 				}
 
-				fmt.Printf("t %v \n", newSite.IteratorValues)
-
 				newSite.Sites = cSite.Sites
 
 				newSites = append(newSites, newSite)
 			}
 		}
 	} else {
-		slugSitesChanged = false
 		newSites = append(newSites, *cSite)
 	}
 
@@ -272,13 +256,13 @@ func doIterators(cSite *ConfigSite, sites *[]*Site) (bool, errors.Error) {
 
 				err := gatherIterators(currentSite.Iterators)
 				if err != nil {
-					return false, ErrFailedGather.SetRoot(err.Error())
+					return ErrFailedGather.SetRoot(err.Error())
 				}
 
 				var i iterator
 				var ok bool
 				if i, ok = currentSite.Iterators[variable]; !ok {
-					return false, ErrFailedGather.SetRoot("no iterator defined for " + variable)
+					return ErrFailedGather.SetRoot("no iterator defined for " + variable)
 				}
 
 				for _, v := range i.list {
@@ -286,28 +270,17 @@ func doIterators(cSite *ConfigSite, sites *[]*Site) (bool, errors.Error) {
 					additionalData = append(additionalData, newD)
 				}
 
-				fmt.Println("??????????", currentSite.Data)
 				currentSite.Data = remove(currentSite.Data, x)
-				fmt.Println("??????????", currentSite.Data)
 			}
 		}
-
-		fmt.Println("??????????", currentSite.Data)
-		fmt.Println("??????????", additionalData)
 		currentSite.Data = append(currentSite.Data, additionalData...)
-		fmt.Println("??????????", currentSite.Data)
 
-		if slugSitesChanged {
-			for _, childSite := range currentSite.Sites {
-				fmt.Println("xxx", childSite)
-				unfold(childSite, &currentSite, sites)
-			}
-		} else {
-			cSite.Data = currentSite.Data
+		for _, childSite := range currentSite.Sites {
+			unfold(childSite, &currentSite, sites)
 		}
 	}
 
-	return slugSitesChanged, nil
+	return nil
 }
 
 func remove(s []data, i int) []data {

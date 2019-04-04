@@ -1,6 +1,7 @@
 module gitlab.com/antipy/antibuild/cli
 
 require (
+	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/buger/goterm v0.0.0-20181115115552-c206103e1f37
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/gorilla/websocket v1.4.0
