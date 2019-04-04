@@ -51,3 +51,10 @@ build_internal:
 bin:
 	go build -o antibuild main.go
 	mv antibuild ~/bin
+
+test:
+	go test ./...	
+
+bench:
+	go test ./.. -run=xxx -bench=. > newBench.txt
+
