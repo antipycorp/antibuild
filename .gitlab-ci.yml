@@ -1,5 +1,6 @@
 stages:
   - build
+  - bench
 
 build:
   stage: build
@@ -9,3 +10,8 @@ build:
       - dist/
   script:
     - make build
+bench:
+  stage: bench
+  image: circleci/golang:1.12-stretch
+  script:
+    - make bench
