@@ -60,5 +60,5 @@ install_benchcmp:
 
 benchmark: install_benchcmp
 	go test ./... -run=xxx -bench=. -test.benchmem=true > benchmark.txt
-	-wget "https://gitlab.com/antipy/antibuild/cli/-/jobs/artifacts/${CI_COMMIT_BEFORE_SHA}/raw/bench.txt?job=bench" -O benchmark_before.txt; true
+	-wget "https://gitlab.com/antipy/antibuild/cli/-/jobs/artifacts/${CI_COMMIT_BEFORE_SHA}/raw/bench.txt?job=benchmark" -O benchmark_before.txt; true
 	-benchcmp benchmark_before.txt benchmark.txt > benchmark_change.txt; true
