@@ -16,6 +16,6 @@ bench:
   artifacts:
     paths:
       - bench.txt
-      - benchcmp
+      #- benchcmp
   script:
     - make bench
