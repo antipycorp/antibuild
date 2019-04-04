@@ -15,6 +15,7 @@ bench:
   image: circleci/golang:1.12-stretch
   artifacts:
     paths:
-      - newBench.txt
+      - bench.txt
+      - benchcmp
   script:
     - make bench
