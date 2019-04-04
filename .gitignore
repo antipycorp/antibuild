@@ -1,6 +1,4 @@
 vendor
-go.sum
-TODO
 antibuild
 main
 test
