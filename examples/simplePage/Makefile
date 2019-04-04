@@ -3,9 +3,8 @@ output = public/
 templateargs = build
 templaterefresh = develop
 
-modulebuild = go build
-examplessource = gitlab.com/antipy/antibuild/api/examples
-modulesfolder = .modules
+$(binary):  ../../main.go ../../site/site.go
+	go build -o $(binary) ../../main.go
 
 yaml = /abm_yaml
 yamlargs = -o $(modulesfolder)$(yaml) $(examplessource)$(yaml)
