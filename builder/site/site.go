@@ -5,6 +5,8 @@
 package site
 
 import (
+	"crypto/md5"
+	"encoding/json"
 	"html/template"
 	"math/rand"
 	"os"
@@ -110,8 +112,8 @@ var (
 */
 
 //Unfold the ConfigSite into a []ConfigSite
-func Unfold(configSite *ConfigSite, spps []string, log *ui.UI) ([]*site.Site, errors.Error) {
-	sites := make([]*site.Site, 0, len(configSite.Sites)*2)
+func Unfold(configSite *ConfigSite, log *ui.UI) (map[string]*ConfigSite, errors.Error) {
+	var sites = make(map[string]*ConfigSite)
 	globalTemplates = make(map[string]*template.Template, len(sites))
 
 	err := unfold(configSite, nil, &sites, log)
@@ -119,16 +121,10 @@ func Unfold(configSite *ConfigSite, spps []string, log *ui.UI) ([]*site.Site, er
 		return sites, err
 	}
 
-	for _, spp := range spps {
-		if k, ok := SPPs[spp]; ok {
-			sites = k.Process(sites, "")
-		}
-	}
-
 	return sites, nil
 }
 
-func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]*site.Site, log *ui.UI) (err errors.Error) {
+func unfold(cSite *ConfigSite, parent *ConfigSite, sites *map[string]*ConfigSite, log *ui.UI) (err errors.Error) {
 	if parent != nil {
 		log.Debugf("Unfolding child %s of parent %s", cSite.Slug, parent.Slug)
 		mergeConfigSite(cSite, parent)
@@ -145,26 +141,10 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]*site.Site, log *ui.
 
 	//If this is the last in the chain, add it to the list of return values
 	if len(cSite.Sites) == 0 {
-		log.Debugf("Gathering information for %s", cSite.Slug)
-		log.Debugf("Site data: %v", cSite)
-
-		site := &site.Site{
-			Slug: cSite.Slug,
-		}
-
-		err := gatherData(site, cSite.Data)
-		if err != nil {
-			return ErrFailedGather.SetRoot(err.Error())
-		}
-
-		err = gatherTemplates(site, cSite.Templates)
-		if err != nil {
-			return ErrFailedGather.SetRoot(err.Error())
-		}
-
 		//append site to the list of sites that will be executed
-		*sites = append(*sites, site)
-		log.Debugf("Finished gathering for %s", cSite.Slug)
+		(*sites)[string(hashConfigSite(cSite))] = cSite
+
+		log.Debugf("Unfolded to %s", cSite.Slug)
 
 		return nil
 	}
@@ -242,6 +222,30 @@ func gatherIterators(iterators map[string]IteratorData) errors.Error {
 	}
 
 	return nil
+}
+
+// Gather after unfolding
+func Gather(cSite *ConfigSite, log *ui.UI) (*site.Site, errors.Error) {
+	log.Debugf("Gathering information for %s", cSite.Slug)
+	log.Debugf("Site data: %v", cSite)
+
+	site := &site.Site{
+		Slug: cSite.Slug,
+	}
+
+	err := gatherData(site, cSite.Data)
+	if err != nil {
+		return nil, ErrFailedGather.SetRoot(err.Error())
+	}
+
+	err = gatherTemplates(site, cSite.Templates)
+	if err != nil {
+		return nil, ErrFailedGather.SetRoot(err.Error())
+	}
+
+	log.Debugf("Finished gathering for %s", cSite.Slug)
+
+	return site, nil
 }
 
 //collect data objects from modules
@@ -325,6 +329,17 @@ func gatherTemplates(site *site.Site, templates []string) errors.Error {
 
 	globalTemplates[id] = template
 	site.Template = id
+
+	return nil
+}
+
+// PostProcess all sites
+func PostProcess(sites *[]*site.Site, spps []string, log *ui.UI) errors.Error {
+	for _, spp := range spps {
+		if k, ok := SPPs[spp]; ok {
+			*sites = k.Process(*sites, "")
+		}
+	}
 
 	return nil
 }
@@ -426,4 +441,10 @@ func randString(n int) string {
 	}
 
 	return string(b)
+}
+
+func hashConfigSite(c *ConfigSite) []byte {
+	jsonBytes, _ := json.Marshal(c)
+	hash := md5.Sum(jsonBytes)
+	return hash[:]
 }

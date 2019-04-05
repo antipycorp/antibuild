@@ -7,7 +7,11 @@ package builder
 import (
 	"os"
 	"path/filepath"
-	"time"
+	"strings"
+
+	siteAPI "gitlab.com/antipy/antibuild/api/site"
+	"gitlab.com/antipy/antibuild/cli/builder/site"
+	"gitlab.com/antipy/antibuild/cli/modules"
 
 	"github.com/fsnotify/fsnotify"
 	"gitlab.com/antipy/antibuild/cli/builder/config"
@@ -17,22 +21,21 @@ import (
 	UI "gitlab.com/antipy/antibuild/cli/ui"
 )
 
+type cache struct {
+	config        *config.Config
+	moduleConfig  map[string]modules.ModuleConfig
+	configChanged bool
+
+	cSites       map[string]*site.ConfigSite
+	shouldUnfold bool
+
+	sites              map[string]*siteAPI.Site
+	templatesToRebuild []string
+}
+
 //watches files and folders and rebuilds when things change
 func buildOnRefresh(cfg *config.Config, configLocation string, ui *UI.UI) {
-	if os.Getenv("STRESS") == "1" {
-		//timeout := time.NewTimer(time.Second * 100).C
-
-		for {
-			select {
-			/* 			case <-timeout:
-			<-make(chan int)
-			*/default:
-				startParse(cfg)
-			}
-		}
-	}
-
-	err := startParse(cfg)
+	cache, err := startParse(cfg)
 	if err != nil {
 		failedToRender(cfg)
 	} else {
@@ -43,7 +46,8 @@ func buildOnRefresh(cfg *config.Config, configLocation string, ui *UI.UI) {
 	if cfg.Folders.Static != "" {
 		go staticWatch(cfg.Folders.Static, cfg.Folders.Output, shutdown, ui)
 	}
-	watchBuild(cfg, configLocation, shutdown, ui)
+
+	watchBuild(cache, configLocation, shutdown, ui)
 }
 
 func staticWatch(src, dst string, shutdown chan int, log config.UIlogger) {
@@ -92,7 +96,7 @@ func staticWatch(src, dst string, shutdown chan int, log config.UIlogger) {
 }
 
 //! modules will not be able to call a refresh and thus we can only use the (local) templates as a source
-func watchBuild(cfg *config.Config, configloc string, shutdown chan int, ui *UI.UI) {
+func watchBuild(c *cache, configloc string, shutdown chan int, ui *UI.UI) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		ui.Errorf("could not open a file watcher: %s", err.Error())
@@ -101,7 +105,7 @@ func watchBuild(cfg *config.Config, configloc string, shutdown chan int, ui *UI.
 	}
 
 	//add static folder to watcher
-	err = filepath.Walk(cfg.Folders.Templates, func(path string, file os.FileInfo, err error) error {
+	err = filepath.Walk(c.config.Folders.Templates, func(path string, file os.FileInfo, err error) error {
 		return watcher.Add(path)
 	})
 
@@ -110,10 +114,12 @@ func watchBuild(cfg *config.Config, configloc string, shutdown chan int, ui *UI.
 		shutdown <- 0
 		return
 	}
+
 	err = watcher.Add(configloc)
 	if err != nil {
 		ui.Errorf("could not watch config file %s", err.Error())
 	}
+
 	for {
 		//listen for watcher events
 		select {
@@ -129,7 +135,6 @@ func watchBuild(cfg *config.Config, configloc string, shutdown chan int, ui *UI.
 
 			ui.Infof("Refreshing because of page %s", e.Name)
 
-			time.Sleep(10)
 			if e.Name == configloc {
 				ui.Info("Changed file is config. Reloading...")
 				ncfg, err := config.CleanConfig(configloc, ui)
@@ -140,14 +145,17 @@ func watchBuild(cfg *config.Config, configloc string, shutdown chan int, ui *UI.
 					go net.HostLocally(os.TempDir()+"/abm/public", "8080")
 					continue
 				} else {
-					cfg = ncfg
+					c.config = ncfg
+					c.configChanged = true
 				}
+			} else {
+				c.templatesToRebuild = append(c.templatesToRebuild, strings.TrimPrefix(strings.Replace(e.Name, c.config.Folders.Templates, "", 1), "/"))
 			}
 
-			startParse(cfg)
-			
+			err = startCachedParse(c)
+
 			if err != nil {
-				failedToRender(cfg)
+				failedToRender(c.config)
 			} else {
 				ui.ShowResult()
 				websocket.SendUpdate()

@@ -10,7 +10,6 @@ import (
 
 	"gitlab.com/antipy/antibuild/cli/ui"
 
-	"gitlab.com/antipy/antibuild/api/site"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
 )
 
@@ -169,7 +168,7 @@ func getReplacers(vars []string, cSite *ConfigSite) ([]map[string]string, errors
 	return replacers, nil
 }
 
-func doIterators(cSite *ConfigSite, sites *[]*site.Site, log *ui.UI) errors.Error {
+func doIterators(cSite *ConfigSite, sites *map[string]*ConfigSite, log *ui.UI) errors.Error {
 	if len(cSite.IteratorValues) > 0 {
 		log.Debugf("Applying existing iterator variables: %v", cSite.IteratorValues)
 

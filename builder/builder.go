@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	siteAPI "gitlab.com/antipy/antibuild/api/site"
 	"gitlab.com/antipy/antibuild/cli/builder/config"
 	"gitlab.com/antipy/antibuild/cli/builder/site"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
@@ -56,7 +57,7 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 			return
 		}
 
-		err = startParse(cfg)
+		_, err = startParse(cfg)
 		if err != nil {
 			failedToRender(cfg)
 		} else {
@@ -80,84 +81,149 @@ func HeadlesStart(configLocation string, output io.Writer) {
 	cfg.UILogger.Info("Config is parsed and valid")
 	cfg.UILogger.Debugf("Parsed Config: %s", cfg)
 
-	err = startParse(cfg)
+	_, err = startParse(cfg)
 	if err != nil {
 		cfg.UILogger.Fatalf(err.Error())
 		return
 	}
 }
 
-func startParse(cfg *config.Config) errors.Error {
+func startCachedParse(c *cache) errors.Error {
 	start := time.Now()
 
-	cfg.UILogger.Debug("Initalizing module config")
-	var moduleConfig = make(map[string]modules.ModuleConfig, len(cfg.Modules.Config))
+	//check if the output folder is there and delete its contents
+	if c.config.Folders.Output != "" {
+		if c.configChanged {
+			os.RemoveAll(c.config.Folders.Output)
+		}
+	} else {
+		return ErrNoOutputSpecified
+	}
 
-	for module, mConfig := range cfg.Modules.Config {
-		moduleConfig[module] = modules.ModuleConfig{
-			Config: mConfig,
+	if c.configChanged {
+		c.config.UILogger.Debug("Initalizing module config")
+		var moduleConfig = make(map[string]modules.ModuleConfig, len(c.config.Modules.Config))
+
+		for module, mConfig := range c.config.Modules.Config {
+			moduleConfig[module] = modules.ModuleConfig{
+				Config: mConfig,
+			}
+		}
+
+		c.config.UILogger.Debug("Loading modules")
+		mhost, err := modules.LoadModules(c.config.Folders.Modules, c.config.Modules.Dependencies, moduleConfig, c.config.UILogger)
+		if err != nil {
+			c.config.UILogger.Fatal(err.Error())
+			return nil
+		}
+		if mhost != nil {
+			c.config.ModuleHost = mhost
+		}
+		c.config.UILogger.Debug("Finished loading modules")
+
+		pages := c.config.Pages
+
+		c.config.Pages = &site.ConfigSite{}
+		c.config.Pages.Sites = make([]*site.ConfigSite, 1)
+		c.config.Pages.Sites[0] = pages
+
+		site.OutputFolder = c.config.Folders.Output
+		site.TemplateFolder = c.config.Folders.Templates
+		site.StaticFolder = c.config.Folders.Static
+	}
+
+	if c.shouldUnfold || c.configChanged {
+		c.config.UILogger.Debug("Unfolding sites")
+		var err errors.Error
+		c.cSites, err = site.Unfold(c.config.Pages, c.config.UILogger.(*UI.UI))
+		if err != nil {
+			return err
+		}
+		c.config.UILogger.Debug("Finished unfolding sites")
+	}
+
+	var sites []*siteAPI.Site
+	var changed []string
+
+	if len(c.templatesToRebuild) > 0 || c.configChanged {
+		c.config.UILogger.Debug("Started gathering")
+		for hash, cSite := range c.cSites {
+			if c.configChanged {
+				s, err := site.Gather(cSite, c.config.UILogger.(*UI.UI))
+				if err != nil {
+					return err
+				}
+				c.sites[hash] = s
+				changed = append(changed, hash)
+			} else {
+				for _, t := range c.templatesToRebuild {
+					if contains(cSite.Templates, t) {
+						s, err := site.Gather(cSite, c.config.UILogger.(*UI.UI))
+						if err != nil {
+							return err
+						}
+						c.sites[hash] = s
+						changed = append(changed, hash)
+					}
+				}
+			}
+
+		}
+		c.config.UILogger.Debug("Finished gathering")
+
+		if len(c.config.Modules.SPPs) > 0 {
+			for _, cSite := range c.sites {
+				sites = append(sites, cSite)
+			}
+
+			c.config.UILogger.Debug("Started post-processing")
+			err := site.PostProcess(&sites, c.config.Modules.SPPs, c.config.UILogger.(*UI.UI))
+			if err != nil {
+				return err
+			}
+			c.config.UILogger.Debug("Finished post-processing")
+
 		}
 	}
 
-	cfg.UILogger.Debug("Loading modules")
-	mhost, err := modules.LoadModules(cfg.Folders.Modules, cfg.Modules.Dependencies, moduleConfig, cfg.UILogger)
+	c.config.UILogger.Debug("Started building")
+	if len(sites) == 0 && len(c.config.Modules.SPPs) == 0 {
+		for _, hash := range changed {
+			sites = append(sites, c.sites[hash])
+		}
+	}
+	err := site.Execute(sites, c.config.UILogger.(*UI.UI))
 	if err != nil {
-		cfg.UILogger.Fatal(err.Error())
-		return nil
+		return err
 	}
+	c.config.UILogger.Infof("Built %d pages", len(sites))
 
-	if mhost != nil {
-		cfg.ModuleHost = mhost
-	}
+	c.config.UILogger.Infof("Completed in %s", time.Since(start).String())
 
-	cfg.UILogger.Debug("Finished loading modules")
-
-	templateErr := executeTemplate(cfg)
-	if templateErr != nil {
-		cfg.UILogger.Fatal(templateErr.Error())
-		return nil
-	}
-
-	cfg.UILogger.Infof("Completed in %s", time.Since(start).String())
+	c.configChanged = false
+	c.shouldUnfold = false
+	c.templatesToRebuild = []string{}
 
 	return nil
 }
 
-//start the template execution
-func executeTemplate(cfg *config.Config) errors.Error {
-	//check if the output folder is there and delete its contents
-	if cfg.Folders.Output != "" {
-		os.RemoveAll(cfg.Folders.Output)
-	} else {
-		return ErrNoOutputSpecified
-	}
-	sites := cfg.Pages
-
-	cfg.Pages = &site.ConfigSite{}
-	cfg.Pages.Sites = make([]*site.ConfigSite, 1)
-	cfg.Pages.Sites[0] = sites
-
-	site.OutputFolder = cfg.Folders.Output
-	site.TemplateFolder = cfg.Folders.Templates
-	site.StaticFolder = cfg.Folders.Static
-
-	cfg.UILogger.Debug("Unfolding sites")
-
-	pages, err := site.Unfold(cfg.Pages, cfg.Modules.SPPs, cfg.UILogger.(*UI.UI))
-	if err != nil {
-		return err
+func startParse(cfg *config.Config) (*cache, errors.Error) {
+	c := &cache{
+		config:        cfg,
+		configChanged: true,
+		moduleConfig:  map[string]modules.ModuleConfig{},
+		cSites:        map[string]*site.ConfigSite{},
+		sites:         map[string]*siteAPI.Site{},
 	}
 
-	cfg.UILogger.Debug("Finished unfolding sites")
+	return c, startCachedParse(c)
+}
 
-	cfg.UILogger.Debug("Started building")
-
-	err = site.Execute(pages, cfg.UILogger.(*UI.UI))
-	if err != nil {
-		return err
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
 	}
-
-	cfg.UILogger.Infof("Built %d pages", len(pages))
-
-	return nil
+	return false
 }
