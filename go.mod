@@ -9,7 +9,7 @@ require (
 	github.com/gorilla/websocket v1.4.0
 	github.com/jaicewizard/tt v0.5.1
 	github.com/spf13/cobra v0.0.3
-	gitlab.com/antipy/antibuild/api v0.9.2
+	gitlab.com/antipy/antibuild/cli/api v0.9.2
 	gitlab.com/antipy/antibuild/std/file v0.0.0-20190402133528-d3c1eb0dcb0e
 	gitlab.com/antipy/antibuild/std/json v0.0.0-20190402133528-d3c1eb0dcb0e
 	gitlab.com/antipy/antibuild/std/language v0.0.0-20190402133528-d3c1eb0dcb0e

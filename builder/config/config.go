@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"os"
 
-	"gitlab.com/antipy/antibuild/api/host"
+	"gitlab.com/antipy/antibuild/cli/api/host"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
 
 	"gitlab.com/antipy/antibuild/cli/builder/site"

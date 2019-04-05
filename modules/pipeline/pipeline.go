@@ -5,7 +5,7 @@
 package pipeline
 
 import (
-	"gitlab.com/antipy/antibuild/api/file"
+	"gitlab.com/antipy/antibuild/cli/api/file"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
 )
 
