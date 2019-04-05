@@ -14,7 +14,6 @@ import (
 	"gitlab.com/antipy/antibuild/cli/modules/pipeline"
 
 	"github.com/jaicewizard/tt"
-	"gitlab.com/antipy/antibuild/api/site"
 	"gitlab.com/antipy/antibuild/cli/internal"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
 	"gitlab.com/antipy/antibuild/cli/ui"
@@ -51,7 +50,7 @@ type (
 
 	//SPP is a function thats able to post-process data
 	SPP interface {
-		Process([]*site.Site, string) []*site.Site
+		Process([]*Site, string) []*Site
 		GetPipe(string) pipeline.Pipe
 	}
 
@@ -59,6 +58,13 @@ type (
 	Iterator interface {
 		GetIterations(string) []string
 		GetPipe(string) pipeline.Pipe
+	}
+
+	//Site is the way a site is defined after all of its data and templates have been collected
+	Site struct {
+		Slug     string
+		Template string
+		Data     tt.Data
 	}
 )
 
@@ -110,8 +116,8 @@ var (
 */
 
 //Unfold the ConfigSite into a []ConfigSite
-func Unfold(configSite *ConfigSite, spps []string, log *ui.UI) ([]*site.Site, errors.Error) {
-	sites := make([]*site.Site, 0, len(configSite.Sites)*2)
+func Unfold(configSite *ConfigSite, spps []string, log *ui.UI) ([]*Site, errors.Error) {
+	sites := make([]*Site, 0, len(configSite.Sites)*2)
 	globalTemplates = make(map[string]*template.Template, len(sites))
 
 	err := unfold(configSite, nil, &sites, log)
@@ -128,7 +134,7 @@ func Unfold(configSite *ConfigSite, spps []string, log *ui.UI) ([]*site.Site, er
 	return sites, nil
 }
 
-func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]*site.Site, log *ui.UI) (err errors.Error) {
+func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]*Site, log *ui.UI) (err errors.Error) {
 	if parent != nil {
 		log.Debugf("Unfolding child %s of parent %s", cSite.Slug, parent.Slug)
 		mergeConfigSite(cSite, parent)
@@ -148,7 +154,7 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]*site.Site, log *ui.
 		log.Debugf("Gathering information for %s", cSite.Slug)
 		log.Debugf("Site data: %v", cSite)
 
-		site := &site.Site{
+		site := &Site{
 			Slug: cSite.Slug,
 		}
 
@@ -252,7 +258,7 @@ func gatherIterators(iterators map[string]IteratorData) errors.Error {
 }
 
 //collect data objects from modules
-func gatherData(site *site.Site, files []Data) errors.Error {
+func gatherData(site *Site, files []Data) errors.Error {
 	for _, d := range files {
 
 		//init data if it is empty
@@ -314,7 +320,7 @@ func gatherData(site *site.Site, files []Data) errors.Error {
 }
 
 //TODO optimize the SHIT out od this.
-func gatherTemplates(site *site.Site, templates []string) errors.Error {
+func gatherTemplates(site *Site, templates []string) errors.Error {
 	var newTemplates = make([]string, len(templates))
 	for i, template := range templates {
 		//prefix the templates with the TemplateFolder
@@ -343,11 +349,11 @@ func gatherTemplates(site *site.Site, templates []string) errors.Error {
 */
 
 //Execute the templates of a []Site into the final files
-func Execute(sites []*site.Site, log *ui.UI) errors.Error {
+func Execute(sites []*Site, log *ui.UI) errors.Error {
 	return execute(sites, log)
 }
 
-func execute(sites []*site.Site, log *ui.UI) errors.Error {
+func execute(sites []*Site, log *ui.UI) errors.Error {
 	// copy static folder
 	if StaticFolder != "" && OutputFolder != "" {
 		log.Debug("Copying static folder")
@@ -377,7 +383,7 @@ func execute(sites []*site.Site, log *ui.UI) errors.Error {
 	return nil
 }
 
-func executeTemplate(site *site.Site) errors.Error {
+func executeTemplate(site *Site) errors.Error {
 	//prefix the slug with the output folder
 	fileLocation := filepath.Join(OutputFolder, site.Slug)
 

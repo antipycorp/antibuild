@@ -169,7 +169,7 @@ func getReplacers(vars []string, cSite *ConfigSite) ([]map[string]string, errors
 	return replacers, nil
 }
 
-func doIterators(cSite *ConfigSite, sites *[]*site.Site, log *ui.UI) errors.Error {
+func doIterators(cSite *ConfigSite, sites *[]*Site, log *ui.UI) errors.Error {
 	if len(cSite.IteratorValues) > 0 {
 		log.Debugf("Applying existing iterator variables: %v", cSite.IteratorValues)
 
