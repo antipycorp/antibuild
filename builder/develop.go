@@ -7,7 +7,6 @@ package builder
 import (
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/fsnotify/fsnotify"
 	"gitlab.com/antipy/antibuild/cli/builder/config"
@@ -129,11 +128,11 @@ func watchBuild(cfg *config.Config, configloc string, shutdown chan int, ui *UI.
 
 			ui.Infof("Refreshing because of page %s", e.Name)
 
-			time.Sleep(10)
 			if e.Name == configloc {
 				ui.Info("Changed file is config. Reloading...")
 				ncfg, err := config.CleanConfig(configloc, ui)
 				if err != nil {
+					ui.Fatalf("Failed to load config: %s", err.Error())
 					ui.ShowResult()
 
 					failedToLoadConfig(ui, os.TempDir()+"/abm/public")
@@ -145,7 +144,7 @@ func watchBuild(cfg *config.Config, configloc string, shutdown chan int, ui *UI.
 			}
 
 			startParse(cfg)
-			
+
 			if err != nil {
 				failedToRender(cfg)
 			} else {

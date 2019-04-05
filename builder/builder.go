@@ -1,5 +1,3 @@
-// go build -gcflags -m
-
 // Copyright © 2018 Antipy V.O.F. info@antipy.com
 //
 // Licensed under the MIT License
@@ -145,19 +143,26 @@ func executeTemplate(cfg *config.Config) errors.Error {
 
 	cfg.UILogger.Debug("Unfolding sites")
 
+	startUnfold := time.Now()
+
 	pages, err := site.Unfold(cfg.Pages, cfg.Modules.SPPs, cfg.UILogger.(*UI.UI))
 	if err != nil {
 		return err
 	}
 
+	cfg.UILogger.Debugf("Unfolding took %s", time.Since(startUnfold).String())
+
 	cfg.UILogger.Debug("Finished unfolding sites")
 
 	cfg.UILogger.Debug("Started building")
+	startBuild := time.Now()
 
 	err = site.Execute(pages, cfg.UILogger.(*UI.UI))
 	if err != nil {
 		return err
 	}
+
+	cfg.UILogger.Debugf("Building took %s", time.Since(startBuild).String())
 
 	cfg.UILogger.Infof("Built %d pages", len(pages))
 

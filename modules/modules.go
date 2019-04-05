@@ -11,13 +11,21 @@ import (
 	"gitlab.com/antipy/antibuild/api/host"
 	"gitlab.com/antipy/antibuild/cli/builder/site"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
+
+	abm_file "gitlab.com/antipy/antibuild/std/file/handler"
+	abm_json "gitlab.com/antipy/antibuild/std/json/handler"
+	abm_language "gitlab.com/antipy/antibuild/std/language/handler"
+	abm_markdown "gitlab.com/antipy/antibuild/std/markdown/handler"
+	abm_math "gitlab.com/antipy/antibuild/std/math/handler"
+	abm_noescape "gitlab.com/antipy/antibuild/std/noescape/handler"
+	abm_util "gitlab.com/antipy/antibuild/std/util/handler"
+	abm_yaml "gitlab.com/antipy/antibuild/std/yaml/handler"
 )
 
 type (
 	internalMod struct {
-		version string
-		start   func(io.Reader, io.Writer)
-		name    string
+		start func(io.Reader, io.Writer)
+		name  string
 	}
 
 	//ModuleConfig contains the config for modules
@@ -36,7 +44,40 @@ var (
 
 	iterators = &site.Iterators
 
-	internalMods = map[string]internalMod{}
+	internalMods = map[string]internalMod{
+		"file": internalMod{
+			name:  "file",
+			start: abm_file.Handler,
+		},
+		"json": internalMod{
+			name:  "json",
+			start: abm_json.Handler,
+		},
+		"language": internalMod{
+			name:  "language",
+			start: abm_language.Handler,
+		},
+		"markdown": internalMod{
+			name:  "markdown",
+			start: abm_markdown.Handler,
+		},
+		"math": internalMod{
+			name:  "math",
+			start: abm_math.Handler,
+		},
+		"noescape": internalMod{
+			name:  "noescape",
+			start: abm_noescape.Handler,
+		},
+		"util": internalMod{
+			name:  "util",
+			start: abm_util.Handler,
+		},
+		"yaml": internalMod{
+			name:  "yaml",
+			start: abm_yaml.Handler,
+		},
+	}
 
 	loadedModules = make(map[string]string)
 
@@ -122,18 +163,15 @@ func loadModule(name, version, path string) (io.Reader, io.Writer, errors.Error)
 	fmt.Printf("Loading module: %s@%s\n", name, version)
 
 	if v, ok := internalMods[name]; ok {
-		if v.version == version {
+		in, stdin := io.Pipe()
+		stdout, out := io.Pipe()
 
-			in, stdin := io.Pipe()
-			stdout, out := io.Pipe()
+		in2 := bufio.NewReader(in)
+		stdout2 := bufio.NewReader(stdout)
 
-			in2 := bufio.NewReader(in)
-			stdout2 := bufio.NewReader(stdout)
+		go v.start(in2, out)
 
-			go v.start(in2, out)
-
-			return stdout2, stdin, nil
-		}
+		return stdout2, stdin, nil
 	}
 
 	//prepare command and get nesecary data

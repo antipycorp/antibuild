@@ -151,15 +151,22 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]*site.Site, log *ui.
 			Slug: cSite.Slug,
 		}
 
+		start := time.Now()
+
 		err := gatherData(site, cSite.Data)
 		if err != nil {
 			return ErrFailedGather.SetRoot(err.Error())
 		}
 
+		log.Debugf("Finished gathering data for %s in %s", cSite.Slug, time.Since(start).String())
+		start = time.Now()
+
 		err = gatherTemplates(site, cSite.Templates)
 		if err != nil {
 			return ErrFailedGather.SetRoot(err.Error())
 		}
+
+		log.Debugf("Finished gathering templates for %s in %s", cSite.Slug, time.Since(start).String())
 
 		//append site to the list of sites that will be executed
 		*sites = append(*sites, site)
