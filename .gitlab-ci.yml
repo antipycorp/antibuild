@@ -1,5 +1,30 @@
 stages:
+  - test
   - build
+
+cache:
+  paths:
+    - /apt-cache
+    - /go/src/
+
+test:
+  stage: test
+  image: circleci/golang:1.12-stretch
+  artifacts:
+    paths:
+      - test.txt
+  script:
+    - make test
+
+benchmark:
+  stage: test
+  image: circleci/golang:1.12-stretch
+  artifacts:
+    paths:
+      - benchmark.txt
+      - benchmark_change.txt
+  script:
+    - make benchmark
 
 build:
   stage: build

@@ -1,6 +1,4 @@
 vendor
-go.sum
-TODO
 antibuild
 main
 test
@@ -8,3 +6,7 @@ test
 dist
 
 .DS_Store
+
+test.txt
+benchmark.txt
+benchmark_change.txt

@@ -1,3 +1,7 @@
+// Copyright © 2018-2019 Antipy V.O.F. info@antipy.com
+//
+// Licensed under the MIT License
+
 package modules
 
 import (
@@ -71,7 +75,7 @@ func getIterator(command string, host *host.ModuleHost) *iterator {
 	}
 }
 
-func (it *iterator) Get(variable string) []string {
+func (it *iterator) GetIterations(variable string) []string {
 	var ret []string
 
 	pipe := it.GetPipe(variable)

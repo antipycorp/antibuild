@@ -1,4 +1,4 @@
-// Copyright © 2018 Antipy V.O.F. info@antipy.com
+// Copyright © 2018-2019 Antipy V.O.F. info@antipy.com
 //
 // Licensed under the MIT License
 
@@ -15,10 +15,11 @@ import (
 )
 
 type (
-	iterator struct {
-		iterator          string
-		iteratorArguments string
-		list              []string
+	// IteratorData is info about an iterator from the config
+	IteratorData struct {
+		Iterator          string
+		IteratorArguments string
+		List              []string
 	}
 )
 
@@ -27,23 +28,25 @@ var (
 	ErrNoIteratorFound = errors.NewError("could not get iterator information", 11)
 )
 
-func (i *iterator) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshalls the iterator data
+func (i *IteratorData) MarshalJSON() ([]byte, error) {
 	return []byte("\"" + i.String() + "\""), nil
 }
 
-func (i *iterator) String() string {
+func (i *IteratorData) String() string {
 	out := ""
 
-	out += "[" + i.iterator
-	if i.iteratorArguments != "" {
-		out += ":" + i.iteratorArguments
+	out += "[" + i.Iterator
+	if i.IteratorArguments != "" {
+		out += ":" + i.IteratorArguments
 	}
 	out += "]"
 
 	return out
 }
 
-func (i *iterator) UnmarshalJSON(data []byte) error {
+// UnmarshalJSON unmarshalls the iterator data
+func (i *IteratorData) UnmarshalJSON(data []byte) error {
 	//get the data from for the dataLoader
 	i1 := bytes.Index(data, []byte("["))
 	i2 := bytes.Index(data, []byte("]"))
@@ -63,11 +66,11 @@ func (i *iterator) UnmarshalJSON(data []byte) error {
 			loader = append(sep[0], append([]byte("_"), sep[0]...)...)
 		}
 
-		i.iterator = string(loader)
-		i.iteratorArguments = ""
+		i.Iterator = string(loader)
+		i.IteratorArguments = ""
 
 		if len(sep) >= 2 { //only if bigger than 2 this is available
-			i.iteratorArguments = string(sep[1])
+			i.IteratorArguments = string(sep[1])
 		}
 	}
 
@@ -107,23 +110,23 @@ func replaceVar(data string, variable string, value string) string {
 	return strings.ReplaceAll(data, "{{"+variable+"}}", value)
 }
 
-func replaceVarData(d data, variable string, value string) data {
-	d.loader = replaceVar(d.loader, variable, value)
-	d.loaderArguments = replaceVar(d.loaderArguments, variable, value)
-	d.parser = replaceVar(d.parser, variable, value)
-	d.parserArguments = replaceVar(d.parserArguments, variable, value)
-	for pp := range d.postProcessors {
-		dpp := d.postProcessors[pp]
-		dpp.postProcessor = replaceVar(dpp.postProcessor, variable, value)
-		dpp.postProcessorArguments = replaceVar(dpp.postProcessorArguments, variable, value)
-		d.postProcessors[pp] = dpp
+func replaceVarData(d Data, variable string, value string) Data {
+	d.Loader = replaceVar(d.Loader, variable, value)
+	d.LoaderArguments = replaceVar(d.LoaderArguments, variable, value)
+	d.Parser = replaceVar(d.Parser, variable, value)
+	d.ParserArguments = replaceVar(d.ParserArguments, variable, value)
+	for pp := range d.PostProcessors {
+		dpp := d.PostProcessors[pp]
+		dpp.PostProcessor = replaceVar(dpp.PostProcessor, variable, value)
+		dpp.PostProcessorArguments = replaceVar(dpp.PostProcessorArguments, variable, value)
+		d.PostProcessors[pp] = dpp
 	}
 	return d
 }
 
-func replaceVarIterator(i iterator, variable string, value string) iterator {
-	i.iterator = replaceVar(i.iterator, variable, value)
-	i.iteratorArguments = replaceVar(i.iteratorArguments, variable, value)
+func replaceVarIterator(i IteratorData, variable string, value string) IteratorData {
+	i.Iterator = replaceVar(i.Iterator, variable, value)
+	i.IteratorArguments = replaceVar(i.IteratorArguments, variable, value)
 
 	return i
 }
@@ -141,13 +144,13 @@ func getReplacers(vars []string, cSite *ConfigSite) ([]map[string]string, errors
 			return nil, ErrFailedGather.SetRoot(err.Error())
 		}
 
-		var i iterator
+		var i IteratorData
 		var ok bool
 		if i, ok = cSite.Iterators[variable]; !ok {
 			return nil, ErrFailedGather.SetRoot("no iterator defined for " + variable)
 		}
 
-		for _, val := range i.list {
+		for _, val := range i.List {
 			for _, replacer := range replacers {
 				r := make(map[string]string)
 
@@ -166,7 +169,7 @@ func getReplacers(vars []string, cSite *ConfigSite) ([]map[string]string, errors
 	return replacers, nil
 }
 
-func doIterators(cSite *ConfigSite, sites *[]*site.Site, log *ui.UI) (bool, errors.Error) {
+func doIterators(cSite *ConfigSite, sites *[]*site.Site, log *ui.UI) errors.Error {
 	if len(cSite.IteratorValues) > 0 {
 		log.Debugf("Applying existing iterator variables: %v", cSite.IteratorValues)
 
@@ -178,7 +181,7 @@ func doIterators(cSite *ConfigSite, sites *[]*site.Site, log *ui.UI) (bool, erro
 			}
 
 			for x := range cSite.Data {
-				if cSite.Data[x].shouldRange != variable {
+				if cSite.Data[x].ShouldRange != variable {
 					cSite.Data[x] = replaceVarData(cSite.Data[x], variable, value)
 				}
 			}
@@ -198,15 +201,15 @@ func doIterators(cSite *ConfigSite, sites *[]*site.Site, log *ui.UI) (bool, erro
 		log.Debugf("Generating sub-sites with vars %v", slugVars)
 		replacers, err := getReplacers(slugVars, cSite)
 		if err != nil {
-			return false, err
+			return err
 		}
 
 		if len(replacers) > 0 {
 			for _, replacer := range replacers {
 				newSlug := cSite.Slug
 				newTemplates := append([]string(nil), cSite.Templates...)
-				newData := append([]data(nil), cSite.Data...)
-				newIterators := make(map[string]iterator, len(cSite.Iterators))
+				newData := append([]Data(nil), cSite.Data...)
+				newIterators := make(map[string]IteratorData, len(cSite.Iterators))
 				for p, q := range cSite.Iterators {
 					newIterators[p] = q
 				}
@@ -221,7 +224,7 @@ func doIterators(cSite *ConfigSite, sites *[]*site.Site, log *ui.UI) (bool, erro
 					for x := range newData {
 						d := newData[x]
 
-						if d.shouldRange != variable {
+						if d.ShouldRange != variable {
 							d = replaceVarData(d, variable, value)
 							newData[x] = d
 						}
@@ -258,28 +261,28 @@ func doIterators(cSite *ConfigSite, sites *[]*site.Site, log *ui.UI) (bool, erro
 	}
 
 	for _, currentSite := range newSites {
-		var additionalData []data
+		var additionalData []Data
 
 		for x, d := range currentSite.Data {
-			if d.shouldRange != "" {
-				log.Debugf("Doing data iterator ranging for variable %s", d.shouldRange)
+			if d.ShouldRange != "" {
+				log.Debugf("Doing data iterator ranging for variable %s", d.ShouldRange)
 
-				variable := d.shouldRange
+				variable := d.ShouldRange
 
-				d.shouldRange = ""
+				d.ShouldRange = ""
 
 				err := gatherIterators(currentSite.Iterators)
 				if err != nil {
-					return false, ErrFailedGather.SetRoot(err.Error())
+					return ErrFailedGather.SetRoot(err.Error())
 				}
 
-				var i iterator
+				var i IteratorData
 				var ok bool
 				if i, ok = currentSite.Iterators[variable]; !ok {
-					return false, ErrFailedGather.SetRoot("no iterator defined for " + variable)
+					return ErrFailedGather.SetRoot("no iterator defined for " + variable)
 				}
 
-				for _, v := range i.list {
+				for _, v := range i.List {
 					newD := replaceVarData(d, variable, v)
 					additionalData = append(additionalData, newD)
 				}
@@ -294,7 +297,7 @@ func doIterators(cSite *ConfigSite, sites *[]*site.Site, log *ui.UI) (bool, erro
 			for _, childSite := range currentSite.Sites {
 				err := unfold(childSite, &currentSite, sites, log)
 				if err != nil {
-					return false, err
+					return err
 				}
 			}
 		} else {
@@ -302,10 +305,10 @@ func doIterators(cSite *ConfigSite, sites *[]*site.Site, log *ui.UI) (bool, erro
 		}
 	}
 
-	return slugSitesChanged, nil
+	return nil
 }
 
-func remove(s []data, i int) []data {
+func remove(s []Data, i int) []Data {
 	s[i] = s[len(s)-1]
 	return s[:len(s)-1]
 }

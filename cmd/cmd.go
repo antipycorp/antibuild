@@ -1,5 +1,8 @@
-package cmd
+// Copyright © 2018-2019 Antipy V.O.F. info@antipy.com
+//
+// Licensed under the MIT License
 
+package cmd
 
 import(
 	"github.com/spf13/cobra"
