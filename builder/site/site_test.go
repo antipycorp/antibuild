@@ -14,14 +14,15 @@ import (
 
 	"github.com/jaicewizard/tt"
 
+	apiSite "gitlab.com/antipy/antibuild/api/site"
 	"gitlab.com/antipy/antibuild/cli/builder/site"
 	"gitlab.com/antipy/antibuild/cli/modules/pipeline"
 )
 
 type unfoldPair struct {
 	in    site.ConfigSite
-	out   []*site.Site
-	res   []*site.Site
+	out   []*apiSite.Site
+	res   []*apiSite.Site
 	files map[string]string
 }
 
@@ -74,8 +75,8 @@ var unfoldTests = []unfoldPair{
 				"t1",
 			},
 		},
-		out: []*site.Site{
-			&site.Site{
+		out: []*apiSite.Site{
+			&apiSite.Site{
 				Slug: "/index.html",
 				Data: tt.Data{
 					"data": "nothing",

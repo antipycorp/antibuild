@@ -8,8 +8,8 @@ import (
 	"encoding/json"
 
 	"github.com/jaicewizard/tt"
-	"gitlab.com/antipy/antibuild/cli/api/host"
-	"gitlab.com/antipy/antibuild/cli/builder/site"
+	"gitlab.com/antipy/antibuild/api/host"
+	apiSite "gitlab.com/antipy/antibuild/api/site"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
 	"gitlab.com/antipy/antibuild/cli/modules/pipeline"
 )
@@ -187,8 +187,8 @@ func getSitePostProcessor(command string, host *host.ModuleHost) *sitePostProces
 	}
 }
 
-func (spp *sitePostProcessor) Process(data []*site.Site, variable string) []*site.Site {
-	var ret []*site.Site
+func (spp *sitePostProcessor) Process(data []*apiSite.Site, variable string) []*apiSite.Site {
+	var ret []*apiSite.Site
 
 	pipe := spp.GetPipe(variable)
 	pipeline.ExecPipeline(data, &ret, pipe)
