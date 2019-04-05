@@ -234,8 +234,8 @@ func genUnfold(benchID int) func(*testing.B) {
 }
 
 func BenchmarkGather(b *testing.B) {
-	b.Run("simple-basic", genUnfold(0))
-	b.Run("simple-iterator", genUnfold(1))
+	b.Run("simple-basic", genGather(0))
+	b.Run("simple-iterator", genGather(1))
 }
 
 func genGather(benchID int) func(*testing.B) {
