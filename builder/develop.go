@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	siteAPI "gitlab.com/antipy/antibuild/api/site"
 	"gitlab.com/antipy/antibuild/cli/builder/site"
 	"gitlab.com/antipy/antibuild/cli/modules"
 
@@ -29,7 +28,7 @@ type cache struct {
 	cSites       map[string]*site.ConfigSite
 	shouldUnfold bool
 
-	sites              map[string]*siteAPI.Site
+	sites              map[string]*site.Site
 	templatesToRebuild []string
 }
 
@@ -139,6 +138,7 @@ func watchBuild(c *cache, configloc string, shutdown chan int, ui *UI.UI) {
 				ui.Info("Changed file is config. Reloading...")
 				ncfg, err := config.CleanConfig(configloc, ui)
 				if err != nil {
+					ui.Fatalf("Failed to load config: %s", err.Error())
 					ui.ShowResult()
 
 					failedToLoadConfig(ui, os.TempDir()+"/abm/public")
@@ -153,7 +153,6 @@ func watchBuild(c *cache, configloc string, shutdown chan int, ui *UI.UI) {
 			}
 
 			err = startCachedParse(c)
-
 			if err != nil {
 				failedToRender(c.config)
 			} else {

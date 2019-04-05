@@ -1,3 +1,5 @@
+image: golang:1.12
+
 stages:
   - test
   - build
@@ -9,16 +11,14 @@ cache:
 
 test:
   stage: test
-  image: circleci/golang:1.12-stretch
   artifacts:
     paths:
       - test.txt
   script:
-    - make test
+    - make test branch='${CI_COMMIT_REF_SLUG}'
 
 benchmark:
   stage: test
-  image: circleci/golang:1.12-stretch
   artifacts:
     paths:
       - benchmark.txt
@@ -28,7 +28,6 @@ benchmark:
 
 build:
   stage: build
-  image: circleci/golang:1.12-stretch
   artifacts:
     paths:
       - dist/

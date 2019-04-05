@@ -9,7 +9,7 @@ import (
 
 	"github.com/jaicewizard/tt"
 	"gitlab.com/antipy/antibuild/api/host"
-	"gitlab.com/antipy/antibuild/api/site"
+	"gitlab.com/antipy/antibuild/cli/builder/site"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
 	"gitlab.com/antipy/antibuild/cli/modules/pipeline"
 )

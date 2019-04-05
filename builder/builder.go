@@ -9,7 +9,6 @@ import (
 	"os"
 	"time"
 
-	siteAPI "gitlab.com/antipy/antibuild/api/site"
 	"gitlab.com/antipy/antibuild/cli/builder/config"
 	"gitlab.com/antipy/antibuild/cli/builder/site"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
@@ -142,7 +141,7 @@ func startCachedParse(c *cache) errors.Error {
 		c.config.UILogger.Debug("Finished unfolding sites")
 	}
 
-	var sites []*siteAPI.Site
+	var sites []*site.Site
 	var changed []string
 
 	if len(c.templatesToRebuild) > 0 || c.configChanged {
@@ -213,7 +212,7 @@ func startParse(cfg *config.Config) (*cache, errors.Error) {
 		configChanged: true,
 		moduleConfig:  map[string]modules.ModuleConfig{},
 		cSites:        map[string]*site.ConfigSite{},
-		sites:         map[string]*siteAPI.Site{},
+		sites:         map[string]*site.Site{},
 	}
 
 	return c, startCachedParse(c)

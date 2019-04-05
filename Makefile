@@ -4,6 +4,8 @@ binary := antibuild
 outbinary := $(binary)
 debugflags = -gcflags=all="-N -l" 
 
+branch = $(shell git rev-parse --abbrev-ref HEAD)
+
 $(binary): $(shell find . -name '*.go' -type f)
 	go build -o $(outbinary)
 
@@ -55,10 +57,10 @@ bin:
 test:
 	go test ./...	> test.txt
 
-install_benchcmp:
+benchcmp: $(shell which benchcmp)
 	go get golang.org/x/tools/cmd/benchcmp 
 
-benchmark: install_benchcmp
-	go test ./... -run=xxx -bench=. -test.benchmem=true > benchmark.txt
-	-wget "https://gitlab.com/antipy/antibuild/cli/-/jobs/artifacts/${CI_COMMIT_REF_SLUG}/raw/benchmark.txt?job=benchmark" -O benchmark_before.txt; true
+benchmark: benchcmp
+	go test ./... -bench=. -run=^$ -test.benchmem=true > benchmark.txt
+	-wget "https://gitlab.com/antipy/antibuild/cli/-/jobs/artifacts/$(branch)/raw/benchmark.txt?job=benchmark" -O benchmark_before.txt; true
 	-benchcmp benchmark_before.txt benchmark.txt > benchmark_change.txt; true
