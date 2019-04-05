@@ -118,16 +118,6 @@ func (p parser) GetPipe(variable string) pipeline.Pipe {
 }
 
 func (i iterator) GetIterations(location string) []string {
-	/*files, err := ioutil.ReadDir(location)
-	if err != nil {
-		panic(err)
-	}
-	var retFiles = make([]string, len(files))
-	for i, f := range files {
-		retFiles[i] = f.Name()
-	}
-	return retFiles*/
-
 	return []string{
 		"hello",
 		"world",

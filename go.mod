@@ -30,5 +30,6 @@ require (
 	gitlab.com/antipy/antibuild/std/yaml v0.0.0-20190402133528-d3c1eb0dcb0e
 	gitlab.com/opennota/wd v0.0.0-20180912061657-c5d65f63c638 // indirect
 	golang.org/x/crypto v0.0.0-20190325154230-a5d413f7728c // indirect
+	golang.org/x/tools v0.0.0-20190404132500-923d25813098 // indirect
 	gopkg.in/AlecAivazis/survey.v1 v1.7.0
 )
