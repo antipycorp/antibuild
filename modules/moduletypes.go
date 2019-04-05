@@ -7,6 +7,8 @@ package modules
 import (
 	"encoding/json"
 
+	"gitlab.com/antipy/antibuild/cli/builder/site"
+
 	"github.com/jaicewizard/tt"
 	"gitlab.com/antipy/antibuild/api/host"
 	apiSite "gitlab.com/antipy/antibuild/api/site"
@@ -187,11 +189,29 @@ func getSitePostProcessor(command string, host *host.ModuleHost) *sitePostProces
 	}
 }
 
-func (spp *sitePostProcessor) Process(data []*apiSite.Site, variable string) []*apiSite.Site {
-	var ret []*apiSite.Site
+func (spp *sitePostProcessor) Process(data []*site.Site, variable string) []*site.Site {
+	var send []*apiSite.Site
+	var recieve []*apiSite.Site
+	var ret []*site.Site
+
+	for _, d := range data {
+		send = append(send, &apiSite.Site{
+			Slug:     d.Slug,
+			Template: d.Template,
+			Data:     d.Data,
+		})
+	}
 
 	pipe := spp.GetPipe(variable)
-	pipeline.ExecPipeline(data, &ret, pipe)
+	pipeline.ExecPipeline(send, &recieve, pipe)
+
+	for _, d := range recieve {
+		ret = append(ret, &site.Site{
+			Slug:     d.Slug,
+			Template: d.Template,
+			Data:     d.Data,
+		})
+	}
 
 	return ret
 }

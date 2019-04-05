@@ -19,11 +19,16 @@ import (
 	"gitlab.com/antipy/antibuild/cli/internal"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
 	"gitlab.com/antipy/antibuild/cli/ui"
-
-	apiSite "gitlab.com/antipy/antibuild/api/site"
 )
 
 type (
+	//Site is the way a site is defined after all of its data and templates have been collected
+	Site struct {
+		Slug     string
+		Template string
+		Data     tt.Data
+	}
+
 	//ConfigSite is the way a site is defined in the config file
 	ConfigSite struct {
 		Iterators      map[string]IteratorData `json:"iterators,omitempty"`
@@ -54,7 +59,7 @@ type (
 
 	//SPP is a function thats able to post-process data
 	SPP interface {
-		Process([]*apiSite.Site, string) []*apiSite.Site
+		Process([]*Site, string) []*Site
 		GetPipe(string) pipeline.Pipe
 	}
 
@@ -62,13 +67,6 @@ type (
 	Iterator interface {
 		GetIterations(string) []string
 		GetPipe(string) pipeline.Pipe
-	}
-
-	//Site is the way a site is defined after all of its data and templates have been collected
-	Site struct {
-		Slug     string
-		Template string
-		Data     tt.Data
 	}
 )
 
@@ -233,11 +231,11 @@ func gatherIterators(iterators map[string]IteratorData) errors.Error {
 }
 
 // Gather after unfolding
-func Gather(cSite *ConfigSite, log *ui.UI) (*apiSite.Site, errors.Error) {
+func Gather(cSite *ConfigSite, log *ui.UI) (*Site, errors.Error) {
 	log.Debugf("Gathering information for %s", cSite.Slug)
 	log.Debugf("Site data: %v", cSite)
 
-	site := &apiSite.Site{
+	site := &Site{
 		Slug: cSite.Slug,
 	}
 
@@ -257,7 +255,7 @@ func Gather(cSite *ConfigSite, log *ui.UI) (*apiSite.Site, errors.Error) {
 }
 
 //collect data objects from modules
-func gatherData(site *apiSite.Site, files []Data) errors.Error {
+func gatherData(site *Site, files []Data) errors.Error {
 	for _, d := range files {
 
 		//init data if it is empty
@@ -319,7 +317,7 @@ func gatherData(site *apiSite.Site, files []Data) errors.Error {
 }
 
 //TODO optimize the SHIT out od this.
-func gatherTemplates(site *apiSite.Site, templates []string) errors.Error {
+func gatherTemplates(site *Site, templates []string) errors.Error {
 	var newTemplates = make([]string, len(templates))
 	for i, template := range templates {
 		//prefix the templates with the TemplateFolder
@@ -342,7 +340,7 @@ func gatherTemplates(site *apiSite.Site, templates []string) errors.Error {
 }
 
 // PostProcess all sites
-func PostProcess(sites *[]*apiSite.Site, spps []string, log *ui.UI) errors.Error {
+func PostProcess(sites *[]*Site, spps []string, log *ui.UI) errors.Error {
 	for _, spp := range spps {
 		if k, ok := SPPs[spp]; ok {
 			*sites = k.Process(*sites, "")
@@ -359,11 +357,11 @@ func PostProcess(sites *[]*apiSite.Site, spps []string, log *ui.UI) errors.Error
 */
 
 //Execute the templates of a []Site into the final files
-func Execute(sites []*apiSite.Site, log *ui.UI) errors.Error {
+func Execute(sites []*Site, log *ui.UI) errors.Error {
 	return execute(sites, log)
 }
 
-func execute(sites []*apiSite.Site, log *ui.UI) errors.Error {
+func execute(sites []*Site, log *ui.UI) errors.Error {
 	// copy static folder
 	if StaticFolder != "" && OutputFolder != "" {
 		log.Debug("Copying static folder")
@@ -393,7 +391,7 @@ func execute(sites []*apiSite.Site, log *ui.UI) errors.Error {
 	return nil
 }
 
-func executeTemplate(site *apiSite.Site) errors.Error {
+func executeTemplate(site *Site) errors.Error {
 	//prefix the slug with the output folder
 	fileLocation := filepath.Join(OutputFolder, site.Slug)
 

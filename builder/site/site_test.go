@@ -21,8 +21,8 @@ import (
 
 type unfoldPair struct {
 	in    site.ConfigSite
-	out   []*apiSite.Site
-	res   []*apiSite.Site
+	out   []*site.Site
+	res   []*site.Site
 	files map[string]string
 }
 
@@ -75,8 +75,8 @@ var unfoldTests = []unfoldPair{
 				"t1",
 			},
 		},
-		out: []*apiSite.Site{
-			&apiSite.Site{
+		out: []*site.Site{
+			&site.Site{
 				Slug: "/index.html",
 				Data: tt.Data{
 					"data": "nothing",
@@ -131,7 +131,7 @@ func (i iterator) GetPipe(variable string) pipeline.Pipe {
 //Testunfold doesnt test template parsing, if anything failed it will be done during execute
 func TestUnfold(t *testing.T) {
 	for _, test := range unfoldTests {
-		dat, err := site.Unfold(&test.in, []string{}, testUI)
+		dat, err := site.Unfold(&test.in, testUI)
 		testUI.Infof("%v", err)
 
 		test.res = dat

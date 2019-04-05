@@ -13,7 +13,6 @@ import (
 	"gitlab.com/antipy/antibuild/cli/modules"
 
 	"github.com/fsnotify/fsnotify"
-	apiSite "gitlab.com/antipy/antibuild/api/site"
 	"gitlab.com/antipy/antibuild/cli/builder/config"
 	"gitlab.com/antipy/antibuild/cli/internal"
 	"gitlab.com/antipy/antibuild/cli/net"
@@ -29,7 +28,7 @@ type cache struct {
 	cSites       map[string]*site.ConfigSite
 	shouldUnfold bool
 
-	sites              map[string]*apiSite.Site
+	sites              map[string]*site.Site
 	templatesToRebuild []string
 }
 
