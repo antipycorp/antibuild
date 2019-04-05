@@ -14,6 +14,7 @@ import (
 
 	"github.com/jaicewizard/tt"
 
+	apiSite "gitlab.com/antipy/antibuild/api/site"
 	"gitlab.com/antipy/antibuild/cli/builder/site"
 	"gitlab.com/antipy/antibuild/cli/modules/pipeline"
 )
@@ -130,7 +131,7 @@ func (i iterator) GetPipe(variable string) pipeline.Pipe {
 //Testunfold doesnt test template parsing, if anything failed it will be done during execute
 func TestUnfold(t *testing.T) {
 	for _, test := range unfoldTests {
-		dat, err := site.Unfold(&test.in, []string{}, testUI)
+		dat, err := site.Unfold(&test.in, testUI)
 		testUI.Infof("%v", err)
 
 		test.res = dat

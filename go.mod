@@ -19,6 +19,7 @@ require (
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/pflag v1.0.3 // indirect
+	gitlab.com/antipy/antibuild/api v0.9.1
 	gitlab.com/antipy/antibuild/std/file v0.0.0-20190402133528-d3c1eb0dcb0e
 	gitlab.com/antipy/antibuild/std/json v0.0.0-20190402133528-d3c1eb0dcb0e
 	gitlab.com/antipy/antibuild/std/language v0.0.0-20190402133528-d3c1eb0dcb0e

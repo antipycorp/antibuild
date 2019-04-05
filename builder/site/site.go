@@ -22,6 +22,13 @@ import (
 )
 
 type (
+	//Site is the way a site is defined after all of its data and templates have been collected
+	Site struct {
+		Slug     string
+		Template string
+		Data     tt.Data
+	}
+
 	//ConfigSite is the way a site is defined in the config file
 	ConfigSite struct {
 		Iterators      map[string]IteratorData `json:"iterators,omitempty"`
@@ -60,13 +67,6 @@ type (
 	Iterator interface {
 		GetIterations(string) []string
 		GetPipe(string) pipeline.Pipe
-	}
-
-	//Site is the way a site is defined after all of its data and templates have been collected
-	Site struct {
-		Slug     string
-		Template string
-		Data     tt.Data
 	}
 )
 
