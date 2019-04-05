@@ -26,8 +26,8 @@ type UI struct {
 
 //ShowResult should be shown when something builds successfully
 func (ui *UI) ShowResult() {
-	//tm.Clear()
-	//tm.MoveCursor(1, 1)
+	tm.Clear()
+	tm.MoveCursor(1, 1)
 
 	if len(ui.log) != 0 {
 		if ui.failed {
@@ -88,8 +88,8 @@ func (ui *UI) ShowResult() {
 }
 
 func (ui *UI) showlog() {
-	//tm.Clear()
-	//tm.MoveCursor(1, 1)
+	tm.Clear()
+	tm.MoveCursor(1, 1)
 
 	tm.Print(tm.Color(tm.Bold("Build log:"), tm.BLUE) + "\n")
 
