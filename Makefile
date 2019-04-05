@@ -57,7 +57,7 @@ bin:
 test:
 	go test ./...	> test.txt
 
-benchcmp: (shell which benchcmp)
+benchcmp: $(shell which benchcmp)
 	go get golang.org/x/tools/cmd/benchcmp 
 
 benchmark: benchcmp
