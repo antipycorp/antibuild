@@ -28,5 +28,6 @@ require (
 	gitlab.com/antipy/antibuild/std/util v0.0.0-20190405205705-1ee031d46328
 	gitlab.com/antipy/antibuild/std/yaml v0.0.0-20190405205705-1ee031d46328
 	golang.org/x/crypto v0.0.0-20190404164418-38d8ce5564a5 // indirect
+	golang.org/x/tools v0.0.0-20190405180640-052fc3cfdbc2 // indirect
 	gopkg.in/AlecAivazis/survey.v1 v1.7.0
 )

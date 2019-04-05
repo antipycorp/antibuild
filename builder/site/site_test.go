@@ -14,7 +14,6 @@ import (
 
 	"github.com/jaicewizard/tt"
 
-	apiSite "gitlab.com/antipy/antibuild/api/site"
 	"gitlab.com/antipy/antibuild/cli/builder/site"
 	"gitlab.com/antipy/antibuild/cli/modules/pipeline"
 )
@@ -132,15 +131,24 @@ func (i iterator) GetPipe(variable string) pipeline.Pipe {
 func TestUnfold(t *testing.T) {
 	for _, test := range unfoldTests {
 		dat, err := site.Unfold(&test.in, testUI)
-		testUI.Infof("%v", err)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 
-		test.res = dat
-		if dat[0].Slug != test.out[0].Slug {
+		for _, d := range dat {
+			s, err := site.Gather(d, testUI)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			test.res = append(test.res, s)
+		}
+
+		if test.res[0].Slug != test.out[0].Slug {
 			t.FailNow()
 		}
 
 		for k := range test.out[0].Data {
-			if test.out[0].Data[k] != dat[0].Data[k] {
+			if test.out[0].Data[k] != test.res[0].Data[k] {
 				t.FailNow()
 			}
 		}
@@ -149,15 +157,27 @@ func TestUnfold(t *testing.T) {
 
 func TestExecute(t *testing.T) {
 	for _, test := range unfoldTests {
-		dat, _ := site.Unfold(&test.in, []string{}, testUI)
-		test.res = dat
+		dat, err := site.Unfold(&test.in, testUI)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+
+		for _, d := range dat {
+			s, err := site.Gather(d, testUI)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+
+			test.res = append(test.res, s)
+		}
 		site.Execute(test.res, testUI)
 
 		for file, data := range test.files {
 			dat, err := ioutil.ReadFile(site.OutputFolder + file)
 			if err != nil {
-				t.FailNow()
+				t.Fatal(err.Error())
 			}
+
 			if string(dat) != data {
 				t.FailNow()
 			}
@@ -208,7 +228,35 @@ func BenchmarkUnfold(b *testing.B) {
 func genUnfold(benchID int) func(*testing.B) {
 	return func(b *testing.B) {
 		for n := 0; n < b.N; n++ {
-			site.Unfold(&benchMarks[benchID], []string{}, testUI)
+			site.Unfold(&benchMarks[benchID], testUI)
+		}
+	}
+}
+
+func BenchmarkGather(b *testing.B) {
+	b.Run("simple-basic", genUnfold(0))
+	b.Run("simple-iterator", genUnfold(1))
+}
+
+func genGather(benchID int) func(*testing.B) {
+	return func(b *testing.B) {
+		for n := 0; n < b.N; n++ {
+			site.Unfold(&benchMarks[benchID], testUI)
+		}
+		var sites = make([]map[string]*site.ConfigSite, b.N)
+		for n := 0; n < b.N; n++ {
+			sites[n], _ = site.Unfold(&benchMarks[benchID], testUI)
+		}
+
+		b.ResetTimer()
+		for n := 0; n < b.N; n++ {
+			for _, d := range sites[n] {
+				_, err := site.Gather(d, testUI)
+				if err != nil {
+					b.Fatal(err.Error())
+				}
+			}
+
 		}
 	}
 }
