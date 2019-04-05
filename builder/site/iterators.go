@@ -10,7 +10,6 @@ import (
 
 	"gitlab.com/antipy/antibuild/cli/ui"
 
-	"gitlab.com/antipy/antibuild/api/site"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
 )
 
