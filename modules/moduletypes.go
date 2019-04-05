@@ -190,12 +190,11 @@ func getSitePostProcessor(command string, host *host.ModuleHost) *sitePostProces
 }
 
 func (spp *sitePostProcessor) Process(data []*site.Site, variable string) []*site.Site {
-	var send []*apiSite.Site
-	var recieve []*apiSite.Site
-	var ret []*site.Site
+	send := make([]apiSite.Site, 0, len(data))
+	var recieve []apiSite.Site
 
 	for _, d := range data {
-		send = append(send, &apiSite.Site{
+		send = append(send, apiSite.Site{
 			Slug:     d.Slug,
 			Template: d.Template,
 			Data:     d.Data,
@@ -204,6 +203,8 @@ func (spp *sitePostProcessor) Process(data []*site.Site, variable string) []*sit
 
 	pipe := spp.GetPipe(variable)
 	pipeline.ExecPipeline(send, &recieve, pipe)
+
+	ret := make([]*site.Site, 0, len(recieve))
 
 	for _, d := range recieve {
 		ret = append(ret, &site.Site{
