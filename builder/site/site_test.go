@@ -90,8 +90,7 @@ var unfoldTests = []unfoldPair{
 		in: site.ConfigSite{
 			Iterators: map[string]site.IteratorData{
 				"article": site.IteratorData{
-					Iterator:          "ls",
-					IteratorArguments: "/tmp/templates/iterators",
+					Iterator: "ls",
 				},
 			},
 			Slug: "/{{article}}/index.html",
@@ -156,8 +155,8 @@ func (p parser) GetPipe(variable string) pipeline.Pipe {
 
 func (i iterator) GetIterations(location string) []string {
 	return []string{
-		"hello",
 		"world",
+		"hello",
 	}
 }
 
@@ -188,9 +187,9 @@ func TestUnfold(t *testing.T) {
 		}
 		for i := 0; i < len(test.res); i++ {
 			if test.out[i].Slug != test.res[i].Slug {
-				print("should be:" + test.out[i].Slug + " but is:" + test.res[i].Slug)
+				print("should be:"+test.out[i].Slug+" but is:"+test.res[i].Slug+" for ", i, "\n")
 				for _, v := range test.res {
-					print("\n" + v.Slug)
+					print(v.Slug + "\n")
 				}
 				t.FailNow()
 			}

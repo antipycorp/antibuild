@@ -154,8 +154,8 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *map[string]*ConfigSite
 			return err
 		}
 
-		for _, v := range itSited {
-			err := unfold(&v, nil, sites, log)
+		for i := range itSited {
+			err := unfold(&itSited[i], nil, sites, log)
 			if err != nil {
 				return err
 			}
