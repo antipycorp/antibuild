@@ -5,7 +5,6 @@
 package builder
 
 import (
-	"encoding/json"
 	"io"
 	"os"
 	"time"
@@ -124,8 +123,8 @@ func startCachedParse(c *cache) errors.Error {
 		pages := c.config.Pages
 
 		c.config.Pages = &site.ConfigSite{}
-		c.config.Pages.Sites = make([]*site.ConfigSite, 1)
-		c.config.Pages.Sites[0] = pages
+		c.config.Pages.Sites = make([]site.ConfigSite, 1)
+		c.config.Pages.Sites[0] = *pages
 
 		site.OutputFolder = c.config.Folders.Output
 		site.TemplateFolder = c.config.Folders.Templates
@@ -139,9 +138,6 @@ func startCachedParse(c *cache) errors.Error {
 		if err != nil {
 			return err
 		}
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "    ")
-		enc.Encode(c.cSites)
 		c.config.UILogger.Debug("Finished unfolding sites")
 	}
 

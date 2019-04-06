@@ -6,7 +6,6 @@ package site
 
 import (
 	"bytes"
-	"fmt"
 	"strings"
 
 	"gitlab.com/antipy/antibuild/cli/ui"
@@ -189,12 +188,10 @@ func totalIncludedVars(cSite *ConfigSite) []string {
 
 func doIteratorVariables(cSite *ConfigSite) *ConfigSite {
 	for i, v := range cSite.Iterators {
-		fmt.Println("before:", v.IteratorArguments)
 		vars := includedVars([]byte(v.IteratorArguments))
 		for _, ivar := range vars {
 			v.IteratorArguments = replaceVar(v.IteratorArguments, ivar, cSite.IteratorValues[ivar])
 		}
-		fmt.Println("after:", v.IteratorArguments)
 		cSite.Iterators[i] = v
 	}
 	return cSite
@@ -228,18 +225,14 @@ func deepCopy(cSite ConfigSite) ConfigSite {
 }
 
 func doIterators2(cSite *ConfigSite, log *ui.UI) ([]ConfigSite, errors.Error) {
-	fmt.Println("NEW ITERATOR !!!!!!!!!!!!!!!!!!!!!!")
 	cSite = doIteratorVariables(cSite)
 	gatherIterators(cSite.Iterators) //TODO: goroutine, we can probably do something in  between this and when we actualy need it!!
 
 	var newData []Data
 	for _, d := range cSite.Data {
 		if d.ShouldRange != "" {
-			fmt.Println("SHOULDRANGE!!", d.ShouldRange)
 			for _, v := range cSite.Iterators[d.ShouldRange].List {
-				fmt.Println("before:", d)
 				nd := replaceVarData(d, d.ShouldRange, v)
-				fmt.Println("after:", nd)
 				newData = append(newData, nd)
 			}
 		} else {
@@ -257,7 +250,6 @@ func doIterators2(cSite *ConfigSite, log *ui.UI) ([]ConfigSite, errors.Error) {
 	options := make([][]string, len(usedVars))
 
 	for i, iOpts := range usedVars {
-		fmt.Println("USING VAR:", iOpts)
 		options[i] = cSite.Iterators[iOpts].List
 		if len(options[i]) == 0 {
 			options[i] = []string{cSite.IteratorValues[iOpts]}
@@ -271,7 +263,6 @@ func doIterators2(cSite *ConfigSite, log *ui.UI) ([]ConfigSite, errors.Error) {
 
 	var sites = make([]ConfigSite, olen)
 	sites[0] = *cSite
-	fmt.Println(options)
 	lastUpperBound := 0
 	currentLowerBound := 0
 	for vi, iOpts := range options {
@@ -284,25 +275,16 @@ func doIterators2(cSite *ConfigSite, log *ui.UI) ([]ConfigSite, errors.Error) {
 		variable := usedVars[vi]
 
 		for i := range iOpts {
-			fmt.Println("MIN", (lastUpperBound)*i)
-			fmt.Println("MAX", lastUpperBound)
 			base := (lastUpperBound) * i
 			for i2 := 0; i2 < lastUpperBound; i2++ {
 				sites[base+i2] = deepCopy(sites[i2])
 			}
 		}
 		for _, value := range iOpts {
-			fmt.Println("value:", value)
-			fmt.Println("min:", currentLowerBound)
-			fmt.Println("max:", currentLowerBound+lastUpperBound)
 			for i := currentLowerBound; i < currentLowerBound+lastUpperBound; i++ {
-				fmt.Println("before:", sites[i].Slug)
 				sites[i].Slug = replaceVar(sites[i].Slug, variable, value)
-				fmt.Println("after:", sites[i].Slug)
 				for di, d := range sites[i].Data {
-					fmt.Println("before:", d)
 					sites[i].Data[di] = replaceVarData(d, variable, value)
-					fmt.Println("after:", sites[i].Data[di])
 				}
 				if sites[i].IteratorValues == nil {
 					sites[i].IteratorValues = make(map[string]string)
