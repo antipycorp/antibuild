@@ -155,10 +155,6 @@ func (ui *UI) Info(err string) {
 
 //Infof logs helpfull information/warnings
 func (ui *UI) Infof(format string, a ...interface{}) {
-	if ui.LogFile == nil {
-		return
-	}
-
 	ui.Info(fmt.Sprintf(format, a...))
 }
 
@@ -177,10 +173,6 @@ func (ui *UI) Error(err string) {
 
 //Errorf logs errors, these can later be followed up on with a fatal or have potential consequences for the outcome
 func (ui *UI) Errorf(format string, a ...interface{}) {
-	if ui.LogFile == nil {
-		return
-	}
-
 	ui.Error(fmt.Sprintf(format, a...))
 }
 
@@ -201,10 +193,6 @@ func (ui *UI) Fatal(err string) {
 
 //Fatalf should be called when in an unrecoverable state. EG: config file not found, template function not called etc.
 func (ui *UI) Fatalf(format string, a ...interface{}) {
-	if ui.LogFile == nil {
-		return
-	}
-
 	ui.Fatal(fmt.Sprintf(format, a...))
 }
 
