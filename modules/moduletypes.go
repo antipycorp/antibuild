@@ -228,10 +228,7 @@ func (spp *sitePostProcessor) GetPipe(variable string) pipeline.Pipe {
 
 //UnmarshalJSON unmarshals the json into a module config
 func (mc *ModuleConfig) UnmarshalJSON(data []byte) error {
-	if err := json.Unmarshal(data, &mc.Config); err != nil {
-		return err
-	}
-	return nil
+	return json.Unmarshal(data, &mc.Config)
 }
 
 //MarshalJSON marschals the data into json

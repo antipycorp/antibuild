@@ -5,6 +5,7 @@
 package builder
 
 import (
+	"encoding/json"
 	"io"
 	"os"
 	"time"
@@ -138,6 +139,9 @@ func startCachedParse(c *cache) errors.Error {
 		if err != nil {
 			return err
 		}
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "    ")
+		enc.Encode(c.cSites)
 		c.config.UILogger.Debug("Finished unfolding sites")
 	}
 

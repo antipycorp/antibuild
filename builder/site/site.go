@@ -35,7 +35,7 @@ type (
 		Slug           string                  `json:"slug,omitempty"`
 		Templates      []string                `json:"templates,omitempty"`
 		Data           []Data                  `json:"data,omitempty"`
-		Sites          []*ConfigSite           `json:"sites,omitempty"`
+		Sites          []ConfigSite            `json:"sites,omitempty"`
 		IteratorValues map[string]string       `json:"-"`
 	}
 
@@ -134,19 +134,12 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *map[string]*ConfigSite
 	if parent != nil {
 		log.Debugf("Unfolding child %s of parent %s", cSite.Slug, parent.Slug)
 		mergeConfigSite(cSite, parent)
-	} else {
-		log.Debugf("Unfolding %s", cSite.Slug)
 	}
+	log.Debugf("Unfolding %s", cSite.Slug)
 
-	if len(cSite.Iterators) != 0 {
-		err := doIterators(cSite, sites, log)
-		if err != nil {
-			return err
-		}
-	}
-
+	includedVars := totalIncludedVars(cSite)
 	//If this is the last in the chain, add it to the list of return values
-	if len(cSite.Sites) == 0 {
+	if len(cSite.Sites) == 0 && len(includedVars) == 0 {
 		//append site to the list of sites that will be executed
 		(*sites)[string(hashConfigSite(cSite))] = cSite
 
@@ -155,8 +148,23 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *map[string]*ConfigSite
 		return nil
 	}
 
+	if len(includedVars) != 0 {
+		itSited, err := doIterators2(cSite, log)
+		if err != nil {
+			return err
+		}
+
+		for _, v := range itSited {
+			err := unfold(&v, nil, sites, log)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
 	for _, childSite := range cSite.Sites {
-		err = unfold(childSite, cSite, sites, log)
+		err = unfold(&childSite, cSite, sites, log)
 		if err != nil {
 			return err
 		}
@@ -185,13 +193,13 @@ func mergeConfigSite(dst *ConfigSite, src *ConfigSite) {
 		}
 	}
 
-	if dst.Iterators == nil {
+	/* if dst.Iterators == nil {
 		dst.Iterators = make(map[string]IteratorData, len(src.Iterators)) // or make a new one and fill it
 	}
 
 	for i, s := range src.Iterators {
 		dst.Iterators[i] = s
-	}
+	} */
 
 	if dst.IteratorValues == nil {
 		dst.IteratorValues = make(map[string]string, len(src.IteratorValues)) // or make a new one and fill it
@@ -204,27 +212,28 @@ func mergeConfigSite(dst *ConfigSite, src *ConfigSite) {
 	dst.Slug = src.Slug + dst.Slug
 }
 
-//collect iterators from modules
+//collect iterators from modules skiping over any already set values for obvious reasons
 func gatherIterators(iterators map[string]IteratorData) errors.Error {
 	for n, i := range iterators {
-		if len(i.List) == 0 {
-			var data []string
-
-			if _, ok := Iterators[i.Iterator]; !ok {
-				return ErrUsingUnknownModule.SetRoot(i.Iterator)
-			}
-
-			iPipe := Iterators[i.Iterator].GetPipe(i.IteratorArguments)
-
-			if iPipe != nil {
-				pipeline.ExecPipeline(nil, &data, iPipe)
-			} else {
-				data = Iterators[i.Iterator].GetIterations(i.IteratorArguments)
-			}
-
-			i.List = data
-			iterators[n] = i
+		if len(i.List) != 0 {
+			continue
 		}
+		var data []string
+
+		if _, ok := Iterators[i.Iterator]; !ok {
+			return ErrUsingUnknownModule.SetRoot(i.Iterator)
+		}
+
+		iPipe := Iterators[i.Iterator].GetPipe(i.IteratorArguments)
+
+		if iPipe != nil {
+			pipeline.ExecPipeline(nil, &data, iPipe)
+		} else {
+			data = Iterators[i.Iterator].GetIterations(i.IteratorArguments)
+		}
+
+		i.List = data
+		iterators[n] = i
 	}
 
 	return nil

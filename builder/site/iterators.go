@@ -6,6 +6,7 @@ package site
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 
 	"gitlab.com/antipy/antibuild/cli/ui"
@@ -22,6 +23,7 @@ type (
 	}
 )
 
+//0xc00020a808
 var (
 	//ErrNoIteratorFound means an iterator does not have a function
 	ErrNoIteratorFound = errors.NewError("could not get iterator information", 11)
@@ -93,7 +95,7 @@ func includedVars(data []byte) []string {
 		vars = append(vars, string(chunk))
 	}
 
-	return unique(vars)
+	return vars
 }
 
 func unique(stringSlice []string) []string {
@@ -113,13 +115,13 @@ func replaceVar(data string, variable string, value string) string {
 }
 
 func replaceVarData(d Data, variable string, value string) Data {
-	d.Loader = replaceVar(d.Loader, variable, value)
 	d.LoaderArguments = replaceVar(d.LoaderArguments, variable, value)
-	d.Parser = replaceVar(d.Parser, variable, value)
 	d.ParserArguments = replaceVar(d.ParserArguments, variable, value)
+	npp := make([]DataPostProcessor, len(d.PostProcessors))
+	copy(npp, d.PostProcessors)
+	d.PostProcessors = npp
 	for pp := range d.PostProcessors {
 		dpp := d.PostProcessors[pp]
-		dpp.PostProcessor = replaceVar(dpp.PostProcessor, variable, value)
 		dpp.PostProcessorArguments = replaceVar(dpp.PostProcessorArguments, variable, value)
 		d.PostProcessors[pp] = dpp
 	}
@@ -171,6 +173,153 @@ func getReplacers(vars []string, cSite *ConfigSite) ([]map[string]string, errors
 	return replacers, nil
 }
 
+func totalIncludedVars(cSite *ConfigSite) []string {
+	usedVars := includedVars([]byte(cSite.Slug))
+	for _, v := range cSite.Data {
+		usedVars = append(usedVars, includedVars([]byte(v.LoaderArguments+v.ParserArguments))...)
+	}
+
+	for _, v := range cSite.Iterators {
+		usedVars = append(usedVars, includedVars([]byte(v.IteratorArguments))...)
+	}
+
+	usedVars = unique(usedVars)
+	return usedVars
+}
+
+func doIteratorVariables(cSite *ConfigSite) *ConfigSite {
+	for i, v := range cSite.Iterators {
+		fmt.Println("before:", v.IteratorArguments)
+		vars := includedVars([]byte(v.IteratorArguments))
+		for _, ivar := range vars {
+			v.IteratorArguments = replaceVar(v.IteratorArguments, ivar, cSite.IteratorValues[ivar])
+		}
+		fmt.Println("after:", v.IteratorArguments)
+		cSite.Iterators[i] = v
+	}
+	return cSite
+}
+
+func deepCopy(cSite ConfigSite) ConfigSite {
+	npp := make([]Data, len(cSite.Data))
+	copy(npp, cSite.Data)
+	cSite.Data = npp
+
+	niv := make(map[string]string, len(cSite.IteratorValues))
+	for k, v := range cSite.IteratorValues {
+		niv[k] = v
+	}
+	cSite.IteratorValues = niv
+
+	nid := make(map[string]IteratorData, len(cSite.Iterators))
+	for k, v := range cSite.Iterators {
+		nid[k] = IteratorData{
+			Iterator:          v.Iterator,
+			IteratorArguments: v.IteratorArguments,
+		}
+	}
+	cSite.Iterators = nid
+	ns := make([]ConfigSite, len(cSite.Sites))
+	for i, v := range cSite.Sites {
+		ns[i] = deepCopy(v)
+	}
+	cSite.Sites = ns
+	return cSite
+}
+
+func doIterators2(cSite *ConfigSite, log *ui.UI) ([]ConfigSite, errors.Error) {
+	fmt.Println("NEW ITERATOR !!!!!!!!!!!!!!!!!!!!!!")
+	cSite = doIteratorVariables(cSite)
+	gatherIterators(cSite.Iterators) //TODO: goroutine, we can probably do something in  between this and when we actualy need it!!
+
+	var newData []Data
+	for _, d := range cSite.Data {
+		if d.ShouldRange != "" {
+			fmt.Println("SHOULDRANGE!!", d.ShouldRange)
+			for _, v := range cSite.Iterators[d.ShouldRange].List {
+				fmt.Println("before:", d)
+				nd := replaceVarData(d, d.ShouldRange, v)
+				fmt.Println("after:", nd)
+				newData = append(newData, nd)
+			}
+		} else {
+			newData = append(newData, d)
+		}
+	}
+
+	cSite.Data = newData
+
+	usedVars := includedVars([]byte(cSite.Slug))
+	for _, v := range cSite.Data {
+		usedVars = append(usedVars, includedVars([]byte(v.LoaderArguments+v.ParserArguments))...)
+	}
+	usedVars = unique(usedVars)
+	options := make([][]string, len(usedVars))
+
+	for i, iOpts := range usedVars {
+		fmt.Println("USING VAR:", iOpts)
+		options[i] = cSite.Iterators[iOpts].List
+		if len(options[i]) == 0 {
+			options[i] = []string{cSite.IteratorValues[iOpts]}
+		}
+	}
+
+	olen := 1
+	for _, iOpts := range options {
+		olen *= len(iOpts)
+	}
+
+	var sites = make([]ConfigSite, olen)
+	sites[0] = *cSite
+	fmt.Println(options)
+	lastUpperBound := 0
+	currentLowerBound := 0
+	for vi, iOpts := range options {
+		shouldDownGrade := false
+		lastUpperBound += len(iOpts) - 1
+		if lastUpperBound == 0 {
+			lastUpperBound = 1
+			shouldDownGrade = true
+		}
+		variable := usedVars[vi]
+
+		for i := range iOpts {
+			fmt.Println("MIN", (lastUpperBound)*i)
+			fmt.Println("MAX", lastUpperBound)
+			base := (lastUpperBound) * i
+			for i2 := 0; i2 < lastUpperBound; i2++ {
+				sites[base+i2] = deepCopy(sites[i2])
+			}
+		}
+		for _, value := range iOpts {
+			fmt.Println("value:", value)
+			fmt.Println("min:", currentLowerBound)
+			fmt.Println("max:", currentLowerBound+lastUpperBound)
+			for i := currentLowerBound; i < currentLowerBound+lastUpperBound; i++ {
+				fmt.Println("before:", sites[i].Slug)
+				sites[i].Slug = replaceVar(sites[i].Slug, variable, value)
+				fmt.Println("after:", sites[i].Slug)
+				for di, d := range sites[i].Data {
+					fmt.Println("before:", d)
+					sites[i].Data[di] = replaceVarData(d, variable, value)
+					fmt.Println("after:", sites[i].Data[di])
+				}
+				if sites[i].IteratorValues == nil {
+					sites[i].IteratorValues = make(map[string]string)
+				}
+				sites[i].IteratorValues[variable] = value
+			}
+			currentLowerBound += (lastUpperBound)
+		}
+		if shouldDownGrade {
+			lastUpperBound = 0
+			currentLowerBound = 0
+		}
+
+	}
+	return sites, nil
+}
+
 func doIterators(cSite *ConfigSite, sites *map[string]*ConfigSite, log *ui.UI) errors.Error {
 	if len(cSite.IteratorValues) > 0 {
 		log.Debugf("Applying existing iterator variables: %v", cSite.IteratorValues)
@@ -197,7 +346,7 @@ func doIterators(cSite *ConfigSite, sites *map[string]*ConfigSite, log *ui.UI) e
 	var newSites []ConfigSite
 	var slugSitesChanged = true
 
-	slugVars := includedVars([]byte(cSite.Slug))
+	slugVars := unique(includedVars([]byte(cSite.Slug)))
 
 	if len(slugVars) > 0 {
 		log.Debugf("Generating sub-sites with vars %v", slugVars)
@@ -297,7 +446,7 @@ func doIterators(cSite *ConfigSite, sites *map[string]*ConfigSite, log *ui.UI) e
 
 		if slugSitesChanged {
 			for _, childSite := range currentSite.Sites {
-				err := unfold(childSite, &currentSite, sites, log)
+				err := unfold(&childSite, &currentSite, sites, log)
 				if err != nil {
 					return err
 				}

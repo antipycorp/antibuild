@@ -55,7 +55,7 @@ bin:
 	mv antibuild ~/bin
 
 test:
-	go test ./...	> test.txt
+	go test ./... > test.txt
 
 benchcmp: $(shell which benchcmp)
 	go get golang.org/x/tools/cmd/benchcmp 

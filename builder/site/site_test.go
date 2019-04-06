@@ -86,6 +86,44 @@ var unfoldTests = []unfoldPair{
 			"/index.html": "hello darkness my old friend",
 		},
 	},
+	unfoldPair{
+		in: site.ConfigSite{
+			Iterators: map[string]site.IteratorData{
+				"article": site.IteratorData{
+					Iterator:          "ls",
+					IteratorArguments: "/tmp/templates/iterators",
+				},
+			},
+			Slug: "/{{article}}/index.html",
+			Data: []site.Data{
+				site.Data{
+					Loader:          "l",
+					LoaderArguments: "1",
+					Parser:          "p",
+				},
+			},
+			Templates: []string{
+				"t1",
+			},
+		},
+		out: []*site.Site{
+			&site.Site{
+				Slug: "/hello/index.html",
+				Data: tt.Data{
+					"data": "nothing",
+				},
+			},
+			&site.Site{
+				Slug: "/world/index.html",
+				Data: tt.Data{
+					"data": "nothing",
+				},
+			},
+		},
+		files: map[string]string{
+			"/index.html": "hello darkness my old friend",
+		},
+	},
 }
 
 func (l loader) Load(f string) []byte {
@@ -142,9 +180,20 @@ func TestUnfold(t *testing.T) {
 			}
 			test.res = append(test.res, s)
 		}
-
-		if test.res[0].Slug != test.out[0].Slug {
+		if len(test.out) != len(test.res) {
+			for _, v := range test.res {
+				print("\n" + v.Slug)
+			}
 			t.FailNow()
+		}
+		for i := 0; i < len(test.res); i++ {
+			if test.out[i].Slug != test.res[i].Slug {
+				print("should be:" + test.out[i].Slug + " but is:" + test.res[i].Slug)
+				for _, v := range test.res {
+					print("\n" + v.Slug)
+				}
+				t.FailNow()
+			}
 		}
 
 		for k := range test.out[0].Data {
