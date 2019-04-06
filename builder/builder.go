@@ -78,7 +78,7 @@ func HeadlesStart(configLocation string, output io.Writer) {
 	}
 
 	cfg.UILogger.Info("Config is parsed and valid")
-	cfg.UILogger.Debugf("Parsed Config: %s", cfg)
+	cfg.UILogger.Debugf("Parsed Config: %v", cfg)
 
 	_, err = startParse(cfg)
 	if err != nil {

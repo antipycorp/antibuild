@@ -5,9 +5,9 @@
 package ui
 
 import (
+	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 
 	tm "github.com/buger/goterm"
@@ -132,6 +132,10 @@ func (ui *UI) Debug(err string) {
 
 //Debugf logs to the log file only
 func (ui *UI) Debugf(format string, a ...interface{}) {
+	if ui.LogFile == nil {
+		return
+	}
+
 	ui.Debug(fmt.Sprintf(format, a...))
 }
 
@@ -151,6 +155,10 @@ func (ui *UI) Info(err string) {
 
 //Infof logs helpfull information/warnings
 func (ui *UI) Infof(format string, a ...interface{}) {
+	if ui.LogFile == nil {
+		return
+	}
+
 	ui.Info(fmt.Sprintf(format, a...))
 }
 
@@ -169,6 +177,10 @@ func (ui *UI) Error(err string) {
 
 //Errorf logs errors, these can later be followed up on with a fatal or have potential consequences for the outcome
 func (ui *UI) Errorf(format string, a ...interface{}) {
+	if ui.LogFile == nil {
+		return
+	}
+
 	ui.Error(fmt.Sprintf(format, a...))
 }
 
@@ -189,15 +201,19 @@ func (ui *UI) Fatal(err string) {
 
 //Fatalf should be called when in an unrecoverable state. EG: config file not found, template function not called etc.
 func (ui *UI) Fatalf(format string, a ...interface{}) {
+	if ui.LogFile == nil {
+		return
+	}
+
 	ui.Fatal(fmt.Sprintf(format, a...))
 }
 
 //SetLogfile sets the output writer for the logger
 func (ui *UI) SetLogfile(file io.Writer) {
 	if file != nil {
-		ui.LogFile = file
+		ui.LogFile = bufio.NewWriter(file)
 	} else {
-		ui.LogFile = ioutil.Discard
+		ui.LogFile = nil
 	}
 }
 

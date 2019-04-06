@@ -134,10 +134,9 @@ func Unfold(configSite *ConfigSite, log *ui.UI) (map[[16]byte]*ConfigSite, error
 
 func unfold(cSite *ConfigSite, parent *ConfigSite, sites *map[[16]byte]*ConfigSite, log *ui.UI) (err errors.Error) {
 	if parent != nil {
-		log.Debugf("Unfolding child %s of parent %s", cSite.Slug, parent.Slug)
 		mergeConfigSite(cSite, parent)
 	}
-	log.Debugf("Unfolding %s", cSite.Slug)
+	log.Debugf("Unfolding " + cSite.Slug)
 
 	numIncludedVars := numIncludedVars(cSite)
 	//If this is the last in the chain, add it to the list of return values
@@ -145,7 +144,7 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *map[[16]byte]*ConfigSi
 		//append site to the list of sites that will be executed
 		(*sites)[cSite.hash()] = cSite
 
-		log.Debugf("Unfolded to %s", cSite.Slug)
+		log.Debug("Unfolded to final site")
 
 		return nil
 	}
@@ -243,7 +242,7 @@ func gatherIterators(iterators map[string]IteratorData) errors.Error {
 
 // Gather after unfolding
 func Gather(cSite *ConfigSite, log *ui.UI) (*Site, errors.Error) {
-	log.Debugf("Gathering information for %s", cSite.Slug)
+	log.Debugf("Gathering information for " + cSite.Slug)
 	log.Debugf("Site data: %v", cSite)
 
 	site := &Site{
@@ -260,7 +259,7 @@ func Gather(cSite *ConfigSite, log *ui.UI) (*Site, errors.Error) {
 		return nil, ErrFailedGather.SetRoot(err.Error())
 	}
 
-	log.Debugf("Finished gathering for %s", cSite.Slug)
+	log.Debugf("Finished gathering for " + cSite.Slug)
 
 	return site, nil
 }
@@ -392,7 +391,7 @@ func execute(sites []*Site, log *ui.UI) errors.Error {
 
 	//export every template
 	for _, site := range sites {
-		log.Debugf("Building page for %s", site.Slug)
+		log.Debug("Building page for " + site.Slug)
 
 		err := executeTemplate(site)
 		if err != nil {
