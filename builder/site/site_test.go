@@ -291,7 +291,7 @@ func genGather(benchID int) func(*testing.B) {
 		for n := 0; n < b.N; n++ {
 			site.Unfold(&benchMarks[benchID], testUI)
 		}
-		var sites = make([]map[string]*site.ConfigSite, b.N)
+		var sites = make([]map[[16]byte]*site.ConfigSite, b.N)
 		for n := 0; n < b.N; n++ {
 			sites[n], _ = site.Unfold(&benchMarks[benchID], testUI)
 		}

@@ -142,7 +142,7 @@ func startCachedParse(c *cache) errors.Error {
 	}
 
 	var sites []*site.Site
-	var changed []string
+	var changed [][16]byte
 
 	if len(c.templatesToRebuild) > 0 || c.shouldUnfold || c.configChanged {
 		c.config.UILogger.Debug("Started gathering")
@@ -211,8 +211,8 @@ func startParse(cfg *config.Config) (*cache, errors.Error) {
 		config:        cfg,
 		configChanged: true,
 		moduleConfig:  map[string]modules.ModuleConfig{},
-		cSites:        map[string]*site.ConfigSite{},
-		sites:         map[string]*site.Site{},
+		cSites:        map[[16]byte]*site.ConfigSite{},
+		sites:         map[[16]byte]*site.Site{},
 	}
 
 	return c, startCachedParse(c)

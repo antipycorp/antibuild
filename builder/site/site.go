@@ -5,9 +5,11 @@
 package site
 
 import (
+	"bytes"
 	"crypto/md5"
 	"encoding/json"
 	"html/template"
+	"io"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -118,8 +120,8 @@ var (
 */
 
 //Unfold the ConfigSite into a []ConfigSite
-func Unfold(configSite *ConfigSite, log *ui.UI) (map[string]*ConfigSite, errors.Error) {
-	var sites = make(map[string]*ConfigSite)
+func Unfold(configSite *ConfigSite, log *ui.UI) (map[[16]byte]*ConfigSite, errors.Error) {
+	var sites = make(map[[16]byte]*ConfigSite)
 	globalTemplates = make(map[string]*template.Template, len(sites))
 
 	err := unfold(configSite, nil, &sites, log)
@@ -130,25 +132,25 @@ func Unfold(configSite *ConfigSite, log *ui.UI) (map[string]*ConfigSite, errors.
 	return sites, nil
 }
 
-func unfold(cSite *ConfigSite, parent *ConfigSite, sites *map[string]*ConfigSite, log *ui.UI) (err errors.Error) {
+func unfold(cSite *ConfigSite, parent *ConfigSite, sites *map[[16]byte]*ConfigSite, log *ui.UI) (err errors.Error) {
 	if parent != nil {
 		log.Debugf("Unfolding child %s of parent %s", cSite.Slug, parent.Slug)
 		mergeConfigSite(cSite, parent)
 	}
 	log.Debugf("Unfolding %s", cSite.Slug)
 
-	includedVars := totalIncludedVars(cSite)
+	numIncludedVars := numIncludedVars(cSite)
 	//If this is the last in the chain, add it to the list of return values
-	if len(cSite.Sites) == 0 && len(includedVars) == 0 {
+	if len(cSite.Sites) == 0 && numIncludedVars == 0 {
 		//append site to the list of sites that will be executed
-		(*sites)[string(hashConfigSite(cSite))] = cSite
+		(*sites)[cSite.hash()] = cSite
 
 		log.Debugf("Unfolded to %s", cSite.Slug)
 
 		return nil
 	}
 
-	if len(includedVars) != 0 {
+	if numIncludedVars != 0 {
 		itSited, err := doIterators2(cSite, log)
 		if err != nil {
 			return err
@@ -325,7 +327,7 @@ func gatherData(site *Site, files []Data) errors.Error {
 	return nil
 }
 
-//TODO optimize the SHIT out od this.
+//TODO optimize the SHIT out of this.
 func gatherTemplates(site *Site, templates []string) errors.Error {
 	var newTemplates = make([]string, len(templates))
 	for i, template := range templates {
@@ -462,4 +464,38 @@ func hashConfigSite(c *ConfigSite) []byte {
 	jsonBytes, _ := json.Marshal(c)
 	hash := md5.Sum(jsonBytes)
 	return hash[:]
+}
+func (c ConfigSite) hash() [16]byte {
+	hash := &bytes.Buffer{}
+	io.WriteString(hash, c.Slug)
+	for _, v := range c.Templates {
+		io.WriteString(hash, v)
+	}
+	for i, v := range c.IteratorValues {
+		io.WriteString(hash, i)
+		io.WriteString(hash, v)
+	}
+
+	for i, v := range c.Iterators {
+		io.WriteString(hash, i)
+		io.WriteString(hash, v.Iterator)
+		io.WriteString(hash, v.IteratorArguments)
+		for _, v := range v.List {
+			io.WriteString(hash, v)
+		}
+	}
+
+	for _, v := range c.Data {
+		io.WriteString(hash, v.ShouldRange)
+		io.WriteString(hash, v.Loader)
+		io.WriteString(hash, v.LoaderArguments)
+		io.WriteString(hash, v.Parser)
+		io.WriteString(hash, v.ParserArguments)
+		for _, v := range v.PostProcessors {
+			io.WriteString(hash, v.PostProcessor)
+			io.WriteString(hash, v.PostProcessorArguments)
+		}
+	}
+
+	return md5.Sum(hash.Bytes())
 }

@@ -27,10 +27,10 @@ type cache struct {
 	moduleConfig  map[string]modules.ModuleConfig
 	configChanged bool
 
-	cSites       map[string]*site.ConfigSite
+	cSites       map[[16]byte]*site.ConfigSite
 	shouldUnfold bool
 
-	sites              map[string]*site.Site
+	sites              map[[16]byte]*site.Site
 	templatesToRebuild []string
 }
 
