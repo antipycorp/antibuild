@@ -53,6 +53,8 @@ func (ui *UI) ShowResult() {
 					"\n" +
 					"Note that the development build is not optimized. \n" +
 					"To create a production build, use " + tm.Color(tm.Bold("antibuild build"), tm.BLUE) + ".\n" +
+					"\n" +
+					"To rebuild press " + tm.Color(tm.Bold("r"), tm.CYAN) + " and to hard reload press " + tm.Color(tm.Bold("R"), tm.CYAN) + ". Press " + tm.Color(tm.Bold("ESC"), tm.CYAN) + " to quit.\n" +
 					"")
 			}
 		}
@@ -74,7 +76,7 @@ func (ui *UI) ShowResult() {
 
 	if len(ui.infolog) != 0 {
 		tm.Print("\n" +
-			tm.Color(tm.Bold("Build Log:"), tm.BLUE) + "\n")
+			tm.Color(tm.Bold("Log:"), tm.BLUE) + "\n")
 
 		for _, e := range ui.infolog { //e for entry
 			tm.Print(e + "\n")

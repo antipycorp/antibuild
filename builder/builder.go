@@ -144,10 +144,10 @@ func startCachedParse(c *cache) errors.Error {
 	var sites []*site.Site
 	var changed []string
 
-	if len(c.templatesToRebuild) > 0 || c.configChanged {
+	if len(c.templatesToRebuild) > 0 || c.shouldUnfold || c.configChanged {
 		c.config.UILogger.Debug("Started gathering")
 		for hash, cSite := range c.cSites {
-			if c.configChanged {
+			if c.configChanged || c.shouldUnfold {
 				s, err := site.Gather(cSite, c.config.UILogger.(*UI.UI))
 				if err != nil {
 					return err

@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/eiannone/keyboard"
+
 	"gitlab.com/antipy/antibuild/cli/builder/site"
 	"gitlab.com/antipy/antibuild/cli/modules"
 
@@ -56,6 +58,7 @@ func staticWatch(src, dst string, shutdown chan int, log config.UIlogger) {
 		shutdown <- 0
 		return
 	}
+
 	//add static folder to watcher
 	err = filepath.Walk(src, func(path string, file os.FileInfo, err error) error {
 		return watcher.Add(path)
@@ -65,6 +68,7 @@ func staticWatch(src, dst string, shutdown chan int, log config.UIlogger) {
 		shutdown <- 0
 		return
 	}
+
 	for {
 		//listen for watcher events
 		select {
@@ -119,6 +123,29 @@ func watchBuild(c *cache, configloc string, shutdown chan int, ui *UI.UI) {
 		ui.Errorf("could not watch config file %s", err.Error())
 	}
 
+	err = keyboard.Open()
+	if err != nil {
+		ui.Errorf("could not start keyboard listener: %s", err.Error())
+	}
+	defer keyboard.Close()
+
+	keyChannel := make(chan rune)
+	go func() {
+		for {
+			char, key, err := keyboard.GetKey()
+			if err != nil {
+				ui.Errorf("getting key failed: %s", err.Error())
+			} else if key == keyboard.KeyCtrlC || key == keyboard.KeyEsc {
+				shutdown <- 1
+			} else {
+				keyChannel <- char
+			}
+
+		}
+	}()
+
+	keys := []rune("Rr")
+
 	for {
 		//listen for watcher events
 		select {
@@ -160,12 +187,37 @@ func watchBuild(c *cache, configloc string, shutdown chan int, ui *UI.UI) {
 				websocket.SendUpdate()
 			}
 
+		case key := <-keyChannel:
+			switch key {
+			case keys[0]:
+				ui.Info("Reloading config...")
+				c.config, err = config.CleanConfig(configloc, ui)
+				if err != nil {
+					failedToRender(c.config)
+					continue
+				}
+
+				c.configChanged = true
+				err = startCachedParse(c)
+			case keys[1]:
+				c.shouldUnfold = true
+				err = startCachedParse(c)
+			}
+
+			if err != nil {
+				failedToRender(c.config)
+			} else {
+				ui.ShowResult()
+				websocket.SendUpdate()
+			}
+
 		case err, ok := <-watcher.Errors:
 			if !ok {
 				shutdown <- 0
 				return
 			}
 			ui.Errorf("Error during watch... %s", err.Error())
+
 		case <-shutdown:
 			shutdown <- 0
 			return

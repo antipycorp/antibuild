@@ -5,6 +5,7 @@ go 1.12
 require (
 	github.com/Netflix/go-expect v0.0.0-20180928190340-9d1f4485533b // indirect
 	github.com/buger/goterm v0.0.0-20181115115552-c206103e1f37
+	github.com/eiannone/keyboard v0.0.0-20190314115158-7169d0afeb4f
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/gorilla/websocket v1.4.0
 	github.com/hinshun/vt10x v0.0.0-20180809195222-d55458df857c // indirect
@@ -28,6 +29,5 @@ require (
 	gitlab.com/antipy/antibuild/std/util v0.0.0-20190405205705-1ee031d46328
 	gitlab.com/antipy/antibuild/std/yaml v0.0.0-20190405205705-1ee031d46328
 	golang.org/x/crypto v0.0.0-20190404164418-38d8ce5564a5 // indirect
-	golang.org/x/tools v0.0.0-20190405180640-052fc3cfdbc2 // indirect
 	gopkg.in/AlecAivazis/survey.v1 v1.7.0
 )
