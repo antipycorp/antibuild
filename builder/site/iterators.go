@@ -76,11 +76,14 @@ func (i *IteratorData) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func includedVars(d string) []string {
-	data := []byte(d)
+func includedVars(data []byte) []string {
 	var vars []string
 
-	for strings.Count(string(data), "{{") > 0 && strings.Count(string(data), "}}") > 0 {
+	left, right := bytes.Count(data, []byte("{{")), bytes.Count(data, []byte("}}"))
+	if left != right {
+		//return error
+	}
+	for ; left > 0; left-- {
 		i1 := bytes.Index(data, []byte("{{"))
 		i2 := bytes.Index(data, []byte("}}"))
 
@@ -194,7 +197,7 @@ func doIterators(cSite *ConfigSite, sites *map[string]*ConfigSite, log *ui.UI) e
 	var newSites []ConfigSite
 	var slugSitesChanged = true
 
-	slugVars := includedVars(cSite.Slug)
+	slugVars := includedVars([]byte(cSite.Slug))
 
 	if len(slugVars) > 0 {
 		log.Debugf("Generating sub-sites with vars %v", slugVars)

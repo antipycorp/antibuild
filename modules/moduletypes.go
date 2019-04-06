@@ -195,9 +195,8 @@ func (spp *sitePostProcessor) Process(data []*site.Site, variable string) []*sit
 
 	for _, d := range data {
 		send = append(send, apiSite.Site{
-			Slug:     d.Slug,
-			Template: d.Template,
-			Data:     d.Data,
+			Slug: d.Slug,
+			Data: d.Data,
 		})
 	}
 
@@ -208,9 +207,8 @@ func (spp *sitePostProcessor) Process(data []*site.Site, variable string) []*sit
 
 	for _, d := range recieve {
 		ret = append(ret, &site.Site{
-			Slug:     d.Slug,
-			Template: d.Template,
-			Data:     d.Data,
+			Slug: d.Slug,
+			Data: d.Data,
 		})
 	}
 
