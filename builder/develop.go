@@ -38,10 +38,11 @@ type cache struct {
 func buildOnRefresh(cfg *config.Config, configLocation string, ui *UI.UI) {
 	cache, err := startParse(cfg)
 	if err != nil {
+		cfg.UILogger.Fatal(err.Error())
 		failedToRender(cfg)
-	} else {
-		cfg.UILogger.ShowResult()
 	}
+
+	cfg.UILogger.ShowResult()
 
 	shutdown := make(chan int, 10) // 10 is enough for some watcher to not get stuck on the chan
 	if cfg.Folders.Static != "" {
@@ -181,9 +182,13 @@ func watchBuild(c *cache, configloc string, shutdown chan int, ui *UI.UI) {
 
 			err = startCachedParse(c)
 			if err != nil {
+				c.config.UILogger.Fatal(err.Error())
 				failedToRender(c.config)
-			} else {
-				ui.ShowResult()
+			}
+
+			c.config.UILogger.ShowResult()
+
+			if err == nil {
 				websocket.SendUpdate()
 			}
 
@@ -193,7 +198,9 @@ func watchBuild(c *cache, configloc string, shutdown chan int, ui *UI.UI) {
 				ui.Info("Reloading config...")
 				c.config, err = config.CleanConfig(configloc, ui)
 				if err != nil {
+					c.config.UILogger.Fatal(err.Error())
 					failedToRender(c.config)
+					c.config.UILogger.ShowResult()
 					continue
 				}
 
@@ -205,9 +212,13 @@ func watchBuild(c *cache, configloc string, shutdown chan int, ui *UI.UI) {
 			}
 
 			if err != nil {
+				c.config.UILogger.Fatal(err.Error())
 				failedToRender(c.config)
-			} else {
-				ui.ShowResult()
+			}
+
+			c.config.UILogger.ShowResult()
+
+			if err == nil {
 				websocket.SendUpdate()
 			}
 

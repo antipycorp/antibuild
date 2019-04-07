@@ -49,10 +49,10 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 		if os.Getenv("DEBUG") == "1" { //cant get out of this, itl just loop
 			net.HostDebug()
 			timeout := time.After(1 * time.Minute)
-			for i :=0; ; i++ {
+			for i := 0; ; i++ {
 				select {
 				case <-timeout:
-					println("did", i, "iterations int one minute" )
+					println("did", i, "iterations int one minute")
 					return
 				default:
 					startParse(cfg)
@@ -72,10 +72,11 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 
 		_, err = startParse(cfg)
 		if err != nil {
+			cfg.UILogger.Fatal(err.Error())
 			failedToRender(cfg)
-		} else {
-			cfg.UILogger.ShowResult()
 		}
+
+		cfg.UILogger.ShowResult()
 	}
 }
 

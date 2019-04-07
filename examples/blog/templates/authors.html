@@ -1,0 +1,9 @@
+{{ define "page" }}
+<h1>Authors</h1>
+{{ range .authors }}
+<div>
+  <h2>{{.name}}</h2>
+  <p>{{.focus}} | {{.summary}}</p>
+</div>
+{{ end }}
+{{ end }}
