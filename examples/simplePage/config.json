@@ -1,7 +1,8 @@
 {
   "logging": {
     "file": "abm.log",
-    "pretty_print": true
+    "pretty_print": true,
+    "enable_debug": true
   },
   "folders": {
     "templates": "templates/",

@@ -1,8 +1,8 @@
 {
   "logging": {
     "file": "antibuild.log",
-	"pretty_print": true,
-	"log_debug": false
+    "pretty_print": true,
+    "enable_debug": false
   },
   "folders": {
     "templates": "templates/",

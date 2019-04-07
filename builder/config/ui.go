@@ -10,7 +10,7 @@ type (
 	log struct {
 		File        string `json:"file"`
 		PrettyPrint bool   `json:"pretty_print"`
-		LogDebug    bool   `json:"log_debug"`
+		EnableDebug bool   `json:"enable_debug"`
 	}
 
 	//UIlogger combines a UI and a logger
@@ -33,7 +33,7 @@ type (
 		Fatalf(string, ...interface{})
 		Debug(string)
 		Debugf(string, ...interface{})
-		ShouldLogDebug(bool)
+		ShouldEnableDebug(bool)
 	}
 
 	uiLoggerSetter interface {

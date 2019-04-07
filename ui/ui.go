@@ -21,7 +21,7 @@ type UI struct {
 	log            []string
 	infolog        []string
 	PrettyLog      bool
-	DoDebug        bool
+	DebugEnabled   bool
 }
 
 var (
@@ -100,7 +100,7 @@ func (ui *UI) showlog() {
 	tm.Clear()
 	tm.MoveCursor(1, 1)
 
-	tm.Print(tm.Color(tm.Bold("Build log:"), tm.BLUE) + "\n")
+	tm.Print(tm.Color(tm.Bold("Log:"), tm.BLUE) + "\n")
 
 	for _, e := range ui.infolog { //e for entry
 		tm.Print(e + "\n")
@@ -127,7 +127,7 @@ func getIP() string {
 
 //Debug logs to the log file only
 func (ui *UI) Debug(err string) {
-	if ui.LogFile != nil || !ui.DoDebug {
+	if ui.LogFile != nil || !ui.DebugEnabled {
 		if ui.PrettyLog {
 			entry := debugPrefix + err
 			ui.LogFile.Write([]byte(entry + "\n"))
@@ -139,7 +139,7 @@ func (ui *UI) Debug(err string) {
 
 //Debugf logs to the log file only
 func (ui *UI) Debugf(format string, a ...interface{}) {
-	if !ui.DoDebug {
+	if !ui.DebugEnabled {
 		return
 	}
 
@@ -206,10 +206,10 @@ func (ui *UI) Fatalf(format string, a ...interface{}) {
 //SetLogfile sets the output writer for the logger
 func (ui *UI) SetLogfile(file io.Writer) {
 	if file != nil {
-		ui.DoDebug = true
+		ui.DebugEnabled = true
 		ui.LogFile = file
 	} else {
-		ui.DoDebug = false
+		ui.DebugEnabled = false
 		ui.LogFile = nil
 	}
 }
@@ -219,7 +219,7 @@ func (ui *UI) SetPrettyPrint(enabled bool) {
 	ui.PrettyLog = enabled
 }
 
-//ShouldLogDebug enables/disables debug logging(performance save),
-func (ui *UI) ShouldLogDebug(enabled bool) {
-	ui.DoDebug = enabled
+//ShouldEnableDebug enables/disables debug logging (performance)
+func (ui *UI) ShouldEnableDebug(enabled bool) {
+	ui.DebugEnabled = enabled
 }
