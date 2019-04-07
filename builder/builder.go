@@ -278,7 +278,6 @@ func startParse2(cfg *config.Config, cache *cach) errors.Error {
 
 		site.TemplateFolder = cfg.Folders.Templates
 		site.OutputFolder = cfg.Folders.Output
-
 	}
 
 	if cache.fullRebuild {
