@@ -164,6 +164,7 @@ func remModule(identifier string, hosts map[string]*host.ModuleHost) {
 }
 
 func loadModule(name, version, path string) (io.Reader, io.Writer, errors.Error) {
+	//TODO: make this a log.debug thing
 	fmt.Printf("Loading module: %s@%s\n", name, version)
 
 	if v, ok := internalMods[name]; ok {

@@ -165,15 +165,21 @@ func totalIncludedVars(cSite *ConfigSite) []string {
 	return usedVars
 }
 
-func doIteratorVariables(cSite *ConfigSite) *ConfigSite {
+func doIteratorVariables(cSite *ConfigSite) (*ConfigSite, errors.Error) {
 	for i, v := range cSite.Iterators {
 		vars := includedVars([]byte(v.IteratorArguments))
 		for _, ivar := range vars {
-			v.IteratorArguments = replaceVar(v.IteratorArguments, ivar, cSite.IteratorValues[ivar])
+			var value string
+			var ok bool
+			if value, ok = cSite.IteratorValues[ivar]; !ok {
+				return nil, ErrNoIteratorFound.SetRoot("no variable defined for " + ivar)
+			}
+
+			v.IteratorArguments = replaceVar(v.IteratorArguments, ivar, value)
 		}
 		cSite.Iterators[i] = v
 	}
-	return cSite
+	return cSite, nil
 }
 
 func deepCopy(cSite ConfigSite) ConfigSite {
@@ -204,16 +210,30 @@ func deepCopy(cSite ConfigSite) ConfigSite {
 }
 
 func doIterators2(cSite *ConfigSite, log *ui.UI) ([]ConfigSite, errors.Error) {
-	cSite = doIteratorVariables(cSite)
+	cSite, err := doIteratorVariables(cSite)
+	if err != nil {
+		return nil, err
+	}
 	gatherIterators(cSite.Iterators) //TODO: goroutine, we can probably do something in  between this and when we actualy need it!!
+
+	var usedIterators []string
 
 	var newData []Data
 	for _, d := range cSite.Data {
 		if d.ShouldRange != "" {
-			for _, v := range cSite.Iterators[d.ShouldRange].List {
+
+			var i IteratorData
+			var ok bool
+			if i, ok = cSite.Iterators[d.ShouldRange]; !ok {
+				return nil, ErrNoIteratorFound.SetRoot("no iterator defined for " + d.ShouldRange)
+			}
+
+			for _, v := range i.List {
 				nd := replaceVarData(d, d.ShouldRange, v)
 				newData = append(newData, nd)
 			}
+			usedIterators = append(usedIterators, d.ShouldRange)
+			d.ShouldRange = ""
 		} else {
 			newData = append(newData, d)
 		}
@@ -222,16 +242,40 @@ func doIterators2(cSite *ConfigSite, log *ui.UI) ([]ConfigSite, errors.Error) {
 	cSite.Data = newData
 
 	usedVars := includedVars([]byte(cSite.Slug))
-	for _, v := range cSite.Data {
-		usedVars = append(usedVars, includedVars([]byte(v.LoaderArguments+v.ParserArguments))...)
-	}
+
+	usedIterators = unique(append(usedIterators, usedVars...)) //these are the variables that are used inside the site and should be fine
+
+	usedVars = append(usedVars, includedVars([]byte(cSite.Slug))...)
 	usedVars = unique(usedVars)
+
 	options := make([][]string, len(usedVars))
 
 	for i, iOpts := range usedVars {
-		options[i] = cSite.Iterators[iOpts].List
+		var data IteratorData
+		var ok bool
+		if data, ok = cSite.Iterators[iOpts]; !ok {
+			return nil, ErrNoIteratorFound.SetRoot("no iterator defined for " + iOpts)
+		}
+
+		options[i] = data.List
 		if len(options[i]) == 0 {
-			options[i] = []string{cSite.IteratorValues[iOpts]}
+			var value string
+			var ok bool
+			if value, ok = cSite.IteratorValues[iOpts]; !ok {
+				return nil, ErrNoIteratorFound.SetRoot("no variable defined for " + iOpts)
+			}
+
+			options[i] = []string{value}
+		}
+	}
+
+	for _, v := range usedIterators {
+		delete(cSite.Iterators, v)
+	}
+
+	if len(cSite.Iterators) != 0 {
+		for k, v := range cSite.Iterators {
+			log.Error("the iterator for variable " + k + ": " + v.IteratorArguments + " is never used inside a slug")
 		}
 	}
 
@@ -279,9 +323,4 @@ func doIterators2(cSite *ConfigSite, log *ui.UI) ([]ConfigSite, errors.Error) {
 
 	}
 	return sites, nil
-}
-
-func remove(s []Data, i int) []Data {
-	s[i] = s[len(s)-1]
-	return s[:len(s)-1]
 }

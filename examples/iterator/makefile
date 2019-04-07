@@ -8,5 +8,11 @@ $(binary): $(shell find ../../ -name "*.go")
 build: $(binary)
 	./$(binary) $(abargs)
 
+debug: export DEBUG = 1
+#debug: export GODEBUG = gctrace=1
+debug: $(binary)
+	./$(binary) develop
+
+
 clean:
 	rm $(binary) $(binary).log

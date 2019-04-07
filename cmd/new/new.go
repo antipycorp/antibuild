@@ -5,7 +5,6 @@
 package new
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -41,13 +40,13 @@ var newCMD = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		moduleRepository, err := cmdInternal.GetModuleRepository(moduleRepositoryURL)
 		if err != nil {
-			fmt.Println("Failed to download module repository list.")
+			println("Failed to download module repository list.")
 			return
 		}
 
 		templateRepository, err := cmdInternal.GetTemplateRepository(templateRepositoryURL)
 		if err != nil {
-			fmt.Println("Failed to download template repository list.")
+			println("Failed to download template repository list.")
 			return
 		}
 
@@ -105,7 +104,7 @@ var newCMD = &cobra.Command{
 
 		err = survey.Ask(newSurvey, &answers)
 		if err != nil {
-			fmt.Println(err.Error())
+			println(err.Error())
 			return
 		}
 
@@ -116,24 +115,20 @@ var newCMD = &cobra.Command{
 				installModules(moduleRepository, answers.DefaultModules, answers.Name)
 			}
 
-			fmt.Println("Success. Run these commands to get started:")
-			fmt.Println("")
-			fmt.Println("cd " + answers.Name)
-			fmt.Println("antibuild develop")
-			fmt.Println("")
-			fmt.Println("Need help? Look at our docs: https://build.antipy.com/get-started")
-			fmt.Println("")
-			fmt.Println("")
+			println("Success. Run these commands to get started:\n")
+			println("cd " + answers.Name)
+			println("antibuild develop\n")
+			println("Need help? Look at our docs: https://build.antipy.com/get-started\n\n")
 			return
 		}
 
-		fmt.Println("Failed.")
+		println("Failed.")
 	},
 }
 
 func downloadTemplate(templateRepository map[string]cmdInternal.TemplateRepositoryEntry, template string, outPath string) bool {
 	if _, ok := templateRepository[template]; !ok {
-		fmt.Println("The selected template is not available in this repository.")
+		println("The selected template is not available in this repository.")
 		return false
 	}
 
@@ -195,14 +190,14 @@ func downloadTemplate(templateRepository map[string]cmdInternal.TemplateReposito
 		log.Fatal(err)
 	}
 
-	fmt.Println("Downloaded template.")
+	println("Downloaded template.")
 	return true
 }
 
 func installModules(moduleRepository map[string]cmdInternal.ModuleRepositoryEntry, modules []string, outPath string) {
 	cfg, err := config.GetConfig(filepath.Join(outPath, "config.json"))
 	if err != nil {
-		fmt.Println("Could not open config file to add modules. Module installation will be skipped.")
+		println("Could not open config file to add modules. Module installation will be skipped.")
 		return
 	}
 
@@ -212,11 +207,11 @@ func installModules(moduleRepository map[string]cmdInternal.ModuleRepositoryEntr
 
 	err = config.SaveConfig(filepath.Join(outPath, "config.json"), cfg)
 	if err != nil {
-		fmt.Println("Could not save config file after adding modules. Modules installation will be skipped.")
+		println("Could not save config file after adding modules. Modules installation will be skipped.")
 		return
 	}
 
-	fmt.Println("Please run 'antibuild modules install' to install your selected modules.")
+	println("Please run 'antibuild modules install' to install your selected modules.")
 }
 
 //SetCommands sets the commands for this package to the cmd argument
