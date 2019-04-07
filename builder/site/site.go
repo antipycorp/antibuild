@@ -121,8 +121,8 @@ var (
 */
 
 //Unfold the ConfigSite into a []ConfigSite
-func Unfold(configSite *ConfigSite, log *ui.UI) (map[[16]byte]*ConfigSite, errors.Error) {
-	var sites = make(map[[16]byte]*ConfigSite)
+func Unfold(configSite *ConfigSite, log *ui.UI) ([]*ConfigSite, errors.Error) {
+	var sites []*ConfigSite
 	globalTemplates = make(map[string]*template.Template, len(sites))
 
 	err := unfold(configSite, nil, &sites, log)
@@ -133,7 +133,7 @@ func Unfold(configSite *ConfigSite, log *ui.UI) (map[[16]byte]*ConfigSite, error
 	return sites, nil
 }
 
-func unfold(cSite *ConfigSite, parent *ConfigSite, sites *map[[16]byte]*ConfigSite, log *ui.UI) (err errors.Error) {
+func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]*ConfigSite, log *ui.UI) (err errors.Error) {
 	if parent != nil {
 		mergeConfigSite(cSite, parent)
 	}
@@ -157,7 +157,7 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *map[[16]byte]*ConfigSi
 		}
 
 		//append site to the list of sites that will be executed
-		(*sites)[cSite.hash()] = cSite
+		(*sites) = append(*sites, cSite)
 		log.Debug("Unfolded to final site")
 
 		return nil

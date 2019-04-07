@@ -150,7 +150,7 @@ func startCachedParse(c *cache) errors.Error {
 	if c.shouldUnfold || c.configChanged {
 		c.config.UILogger.Debug("Unfolding sites")
 		var err errors.Error
-		c.cSites, err = site.Unfold(c.config.Pages, c.config.UILogger.(*UI.UI))
+		//c.cSites, err = site.Unfold(c.config.Pages, c.config.UILogger.(*UI.UI))
 		if err != nil {
 			return err
 		}
@@ -330,6 +330,19 @@ func startParse2(cfg *config.Config, cache *cach) errors.Error {
 		cache.data[cSite.Slug] = cd
 	}
 
+	err := site.PostProcess(&updatedSites, cfg.Modules.SPPs, cfg.UILogger.(*UI.UI))
+	if err != nil {
+		return err
+	}
+
+	err = site.Execute(updatedSites, cfg.UILogger.(*UI.UI))
+	if err != nil {
+		return err
+	}
+
+	cfg.UILogger.Infof("Built %d pages", len(updatedSites))
+	cfg.UILogger.Infof("Completed in %s", time.Since(start).String())
+
 	for k, v := range cache.data {
 		if !v.shouldRemove {
 			v.shouldRemove = true
@@ -341,22 +354,9 @@ func startParse2(cfg *config.Config, cache *cach) errors.Error {
 		}
 	}
 
-	err := site.PostProcess(&updatedSites, cfg.Modules.SPPs, cfg.UILogger.(*UI.UI))
-	if err != nil {
-		return err
-	}
-
-	err = site.Execute(updatedSites, cfg.UILogger.(*UI.UI))
-	if err != nil {
-		return err
-	}
-
 	//the true state will need to be checked during the process so we leave them true untill the end
 	cache.configUpdate = false
 	cache.fullRebuild = false
-
-	cfg.UILogger.Infof("Built %d pages", len(updatedSites))
-	cfg.UILogger.Infof("Completed in %s", time.Since(start).String())
 
 	return nil
 }
