@@ -47,6 +47,10 @@ func (df *Data) MarshalJSON() ([]byte, error) {
 func (df *Data) String() string {
 	out := ""
 
+	if df.ShouldRange != "" {
+		out += "[range:" + df.ShouldRange + "]"
+	}
+
 	out += "[" + df.Loader
 	if df.LoaderArguments != "" {
 		out += ":" + df.LoaderArguments

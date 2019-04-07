@@ -5,7 +5,6 @@
 package ui
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"net"
@@ -208,7 +207,7 @@ func (ui *UI) Fatalf(format string, a ...interface{}) {
 func (ui *UI) SetLogfile(file io.Writer) {
 	if file != nil {
 		ui.DoDebug = true
-		ui.LogFile = bufio.NewWriter(file)
+		ui.LogFile = file
 	} else {
 		ui.DoDebug = false
 		ui.LogFile = nil

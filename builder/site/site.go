@@ -143,7 +143,6 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *map[[16]byte]*ConfigSi
 	if len(cSite.Sites) == 0 && numIncludedVars == 0 {
 		//append site to the list of sites that will be executed
 		(*sites)[cSite.hash()] = cSite
-
 		log.Debug("Unfolded to final site")
 
 		return nil
@@ -152,9 +151,9 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *map[[16]byte]*ConfigSi
 	if numIncludedVars > 0 {
 		itSited, err := doIterators2(cSite, log)
 		if err != nil {
+			log.Debugf("failled to do iterators: %v", err)
 			return err
 		}
-
 		for i := range itSited {
 			err := unfold(&itSited[i], nil, sites, log)
 			if err != nil {
