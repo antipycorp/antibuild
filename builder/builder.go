@@ -185,7 +185,6 @@ func startCachedParse(c *cache) errors.Error {
 					}
 				}
 			}
-
 		}
 		c.config.UILogger.Debug("Finished gathering")
 
@@ -278,7 +277,6 @@ func startParse2(cfg *config.Config, cache *cach) errors.Error {
 
 		site.TemplateFolder = cfg.Folders.Templates
 		site.OutputFolder = cfg.Folders.Output
-
 	}
 
 	if cache.fullRebuild {
@@ -287,6 +285,7 @@ func startParse2(cfg *config.Config, cache *cach) errors.Error {
 			return ErrFailedRemoveFile.SetRoot(err.Error())
 		}
 	}
+
 	pagesC := site.DeepCopy(*cfg.Pages)
 	sites, _ := site.Unfold(&pagesC, cfg.UILogger.(*UI.UI))
 
@@ -299,18 +298,18 @@ func startParse2(cfg *config.Config, cache *cach) errors.Error {
 		if cd, ok = cache.data[cSite.Slug]; ok && !cache.fullRebuild {
 			if len(cSite.Dependencies) != len(cd.dependencies) {
 				depChange = true
-				goto postCheck
-			}
-			for i, d := range cSite.Dependencies {
-				if d != cd.dependencies[i] {
-					depChange = true
-					break
+			} else {
+				for i, d := range cSite.Dependencies {
+					if d != cd.dependencies[i] {
+						depChange = true
+						break
+					}
 				}
 			}
 		} else {
 			depChange = true
 		}
-	postCheck:
+
 		cd.dependencies = cSite.Dependencies
 
 		os.Remove(path.Join(cfg.Folders.Output, cd.site.Slug))
