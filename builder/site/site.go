@@ -7,7 +7,6 @@ package site
 import (
 	"bytes"
 	"crypto/md5"
-	"fmt"
 	"html/template"
 	"io"
 	"math/rand"
@@ -411,8 +410,6 @@ func executeTemplate(site *Site) errors.Error {
 	}
 
 	//fill the file by executing the template
-	fmt.Println(site.Template)
-	fmt.Println(globalTemplates)
 	err = globalTemplates[site.Template].ExecuteTemplate(file, "html", site.Data)
 	if err != nil {
 		return ErrFailedTemplate.SetRoot(err.Error())
