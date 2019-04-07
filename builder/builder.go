@@ -256,6 +256,7 @@ func startParse2(cfg *config.Config, cache *cach) errors.Error {
 	if cfg.Folders.Output == "" {
 		return ErrNoOutputSpecified
 	}
+
 	//if there is a config update reload all modules
 	if cache.configUpdate {
 		var moduleConfig = make(map[string]modules.ModuleConfig, len(cfg.Modules.Config))
@@ -327,6 +328,7 @@ func startParse2(cfg *config.Config, cache *cach) errors.Error {
 				}
 			}
 		}
+
 		if depChange || !datEqual || site.GetTemplateTree(s.Template) != site.GetTemplateTree(cd.site.Template) || cache.configUpdate {
 			if s == nil {
 				var err errors.Error
@@ -343,12 +345,14 @@ func startParse2(cfg *config.Config, cache *cach) errors.Error {
 		cache.data[cSite.Slug] = cd
 	}
 
-	err := site.PostProcess(&updatedSites, cfg.Modules.SPPs, cfg.UILogger.(*UI.UI))
-	if err != nil {
-		return err
+	if len(cfg.Modules.SPPs) > 0 {
+		err := site.PostProcess(&updatedSites, cfg.Modules.SPPs, cfg.UILogger.(*UI.UI))
+		if err != nil {
+			return err
+		}
 	}
 
-	err = site.Execute(updatedSites, cfg.UILogger.(*UI.UI))
+	err := site.Execute(updatedSites, cfg.UILogger.(*UI.UI))
 	if err != nil {
 		return err
 	}
