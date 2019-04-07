@@ -7,7 +7,6 @@ package builder
 import (
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/eiannone/keyboard"
 
@@ -36,7 +35,7 @@ type cache struct {
 
 //watches files and folders and rebuilds when things change
 func buildOnRefresh(cfg *config.Config, configLocation string, ui *UI.UI) {
-	cache, err := startParse(cfg)
+	cache, err := actualStartParse(cfg)
 	if err != nil {
 		failedToRender(cfg)
 	} else {
@@ -48,7 +47,7 @@ func buildOnRefresh(cfg *config.Config, configLocation string, ui *UI.UI) {
 		go staticWatch(cfg.Folders.Static, cfg.Folders.Output, shutdown, ui)
 	}
 
-	watchBuild(cache, configLocation, shutdown, ui)
+	watchBuild(cfg, cache, configLocation, shutdown, ui)
 }
 
 func staticWatch(src, dst string, shutdown chan int, log config.UIlogger) {
@@ -99,7 +98,7 @@ func staticWatch(src, dst string, shutdown chan int, log config.UIlogger) {
 }
 
 //! modules will not be able to call a refresh and thus we can only use the (local) templates as a source
-func watchBuild(c *cache, configloc string, shutdown chan int, ui *UI.UI) {
+func watchBuild(cfg *config.Config, c *cach, configloc string, shutdown chan int, ui *UI.UI) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		ui.Errorf("could not open a file watcher: %s", err.Error())
@@ -108,7 +107,7 @@ func watchBuild(c *cache, configloc string, shutdown chan int, ui *UI.UI) {
 	}
 
 	//add static folder to watcher
-	err = filepath.Walk(c.config.Folders.Templates, func(path string, file os.FileInfo, err error) error {
+	err = filepath.Walk(cfg.Folders.Templates, func(path string, file os.FileInfo, err error) error {
 		return watcher.Add(path)
 	})
 
@@ -172,16 +171,14 @@ func watchBuild(c *cache, configloc string, shutdown chan int, ui *UI.UI) {
 					go net.HostLocally(os.TempDir()+"/abm/public", "8080")
 					continue
 				} else {
-					c.config = ncfg
-					c.configChanged = true
+					cfg = ncfg
+					c.configUpdate = true
 				}
-			} else {
-				c.templatesToRebuild = append(c.templatesToRebuild, strings.TrimPrefix(strings.Replace(e.Name, c.config.Folders.Templates, "", 1), "/"))
-			}
+			} 
 
-			err = startCachedParse(c)
+			err = startParse2(cfg, c)
 			if err != nil {
-				failedToRender(c.config)
+				failedToRender(cfg)
 			} else {
 				ui.ShowResult()
 				websocket.SendUpdate()
@@ -191,21 +188,21 @@ func watchBuild(c *cache, configloc string, shutdown chan int, ui *UI.UI) {
 			switch key {
 			case keys[0]:
 				ui.Info("Reloading config...")
-				c.config, err = config.CleanConfig(configloc, ui)
+				cfg, err = config.CleanConfig(configloc, ui)
 				if err != nil {
-					failedToRender(c.config)
+					failedToRender(cfg)
 					continue
 				}
 
-				c.configChanged = true
-				err = startCachedParse(c)
+				c.fullRebuild = true
+				err = startParse2(cfg, c)
 			case keys[1]:
-				c.shouldUnfold = true
-				err = startCachedParse(c)
+				c.configUpdate = true
+				err = startParse2(cfg, c)
 			}
 
 			if err != nil {
-				failedToRender(c.config)
+				failedToRender(cfg)
 			} else {
 				ui.ShowResult()
 				websocket.SendUpdate()

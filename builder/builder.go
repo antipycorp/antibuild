@@ -7,6 +7,8 @@ package builder
 import (
 	"io"
 	"os"
+	"path"
+	"reflect"
 	"time"
 
 	"gitlab.com/antipy/antibuild/cli/builder/config"
@@ -49,10 +51,10 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 		if os.Getenv("DEBUG") == "1" { //cant get out of this, itl just loop
 			net.HostDebug()
 			timeout := time.After(1 * time.Minute)
-			for i :=0; ; i++ {
+			for i := 0; ; i++ {
 				select {
 				case <-timeout:
-					println("did", i, "iterations int one minute" )
+					println("did", i, "iterations int one minute")
 					return
 				default:
 					startParse(cfg)
@@ -70,7 +72,7 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 			return
 		}
 
-		_, err = startParse(cfg)
+		_, err = actualStartParse(cfg)
 		if err != nil {
 			failedToRender(cfg)
 		} else {
@@ -232,6 +234,143 @@ func startParse(cfg *config.Config) (*cache, errors.Error) {
 	return c, startCachedParse(c)
 }
 
+type cach struct {
+	rootPage site.ConfigSite
+	data     map[string]cachData
+
+	configUpdate bool
+	fullRebuild  bool
+}
+
+type cachData struct {
+	dependencies []string
+	site         site.Site
+	shouldRemove bool
+}
+
+func startParse2(cfg *config.Config, cache *cach) errors.Error {
+	start := time.Now()
+
+	if cfg.Folders.Output == "" {
+		return ErrNoOutputSpecified
+	}
+	//if there is a config update reload all modules
+	if cache.configUpdate {
+		var moduleConfig = make(map[string]modules.ModuleConfig, len(cfg.Modules.Config))
+
+		for module, mConfig := range cfg.Modules.Config {
+			moduleConfig[module] = modules.ModuleConfig{
+				Config: mConfig,
+			}
+		}
+
+		mhost, err := modules.LoadModules(cfg.Folders.Modules, cfg.Modules.Dependencies, moduleConfig, cfg.UILogger)
+		if err != nil {
+			cfg.UILogger.Fatal(err.Error())
+			return nil
+		}
+		if mhost != nil { // loadModules checks if modules are already loaded
+			cfg.ModuleHost = mhost
+		}
+
+		site.TemplateFolder = cfg.Folders.Templates
+		site.OutputFolder = cfg.Folders.Output
+
+	}
+
+	if cache.fullRebuild {
+		err := os.RemoveAll(cfg.Folders.Output)
+		if err != nil {
+			return ErrFailedRemoveFile.SetRoot(err.Error())
+		}
+	}
+	pagesC := site.DeepCopy(*cfg.Pages)
+	sites, _ := site.Unfold(&pagesC, cfg.UILogger.(*UI.UI))
+
+	updatedSites := make([]*site.Site, 0, len(sites))
+	for _, cSite := range sites {
+		depChange := false
+
+		var ok bool
+		var cd cachData
+		if cd, ok = cache.data[cSite.Slug]; ok && !cache.fullRebuild {
+			if len(cSite.Dependencies) != len(cd.dependencies) {
+				depChange = true
+				goto postCheck
+			}
+			for i, d := range cSite.Dependencies {
+				if d != cd.dependencies[i] {
+					depChange = true
+					break
+				}
+			}
+		} else {
+			depChange = true
+		}
+	postCheck:
+		cd.dependencies = cSite.Dependencies
+
+		os.Remove(path.Join(cfg.Folders.Output, cd.site.Slug))
+		s, err := site.Gather(cSite, cfg.UILogger.(*UI.UI))
+		if err != nil {
+			return err
+		}
+
+		datEqual := true
+		for k, v := range s.Data {
+			if !reflect.DeepEqual(v, cd.site.Data[k]) {
+				datEqual = false
+			}
+		}
+		cd.site = *s
+		if depChange || !datEqual || site.GetTemplateTree(s.Template) != site.GetTemplateTree(cd.site.Template) || cache.fullRebuild {
+			updatedSites = append(updatedSites, s)
+		}
+		cd.shouldRemove = false
+		cache.data[cSite.Slug] = cd
+	}
+
+	for k, v := range cache.data {
+		if !v.shouldRemove {
+			v.shouldRemove = true
+			cache.data[k] = v
+		} else {
+			os.Remove(path.Join(cfg.Folders.Output, k))
+			findTopEmptyDir(cfg.Folders.Output, k)
+			delete(cache.data, k)
+		}
+	}
+
+	err := site.PostProcess(&updatedSites, cfg.Modules.SPPs, cfg.UILogger.(*UI.UI))
+	if err != nil {
+		return err
+	}
+
+	err = site.Execute(updatedSites, cfg.UILogger.(*UI.UI))
+	if err != nil {
+		return err
+	}
+
+	//the true state will need to be checked during the process so we leave them true untill the end
+	cache.configUpdate = false
+	cache.fullRebuild = false
+
+	cfg.UILogger.Infof("Built %d pages", len(updatedSites))
+	cfg.UILogger.Infof("Completed in %s", time.Since(start).String())
+
+	return nil
+}
+
+func actualStartParse(cfg *config.Config) (*cach, errors.Error) {
+	cache := &cach{
+		rootPage:     *cfg.Pages,
+		data:         make(map[string]cachData),
+		configUpdate: true,
+		fullRebuild:  true,
+	}
+	return cache, startParse2(cfg, cache)
+}
+
 func contains(s []string, e string) bool {
 	for _, a := range s {
 		if a == e {
@@ -239,4 +378,24 @@ func contains(s []string, e string) bool {
 		}
 	}
 	return false
+}
+
+func findTopEmptyDir(base, rel string) error {
+	var p = path.Join(base, rel)
+	for {
+		p, _ = path.Split(p)
+		p = p[:len(p)-1]
+		f, err := os.Open(p)
+		if err != nil {
+			return nil //no issue if you cant open the file, it might just be already removed
+		}
+		defer f.Close()
+
+		// read in ONLY one file
+		_, err = f.Readdir(1)
+
+		if err != io.EOF {
+			return os.RemoveAll(p)
+		}
+	}
 }

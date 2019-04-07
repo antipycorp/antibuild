@@ -33,7 +33,6 @@ var (
 
 //ShowResult should be shown when something builds successfully
 func (ui *UI) ShowResult() {
-	return
 	tm.Clear()
 	tm.MoveCursor(1, 1)
 

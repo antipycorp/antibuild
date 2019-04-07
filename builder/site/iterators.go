@@ -204,11 +204,17 @@ func DeepCopy(cSite ConfigSite) ConfigSite {
 		}
 	}
 	cSite.Iterators = nid
+
 	ns := make([]ConfigSite, len(cSite.Sites))
 	for i, v := range cSite.Sites {
 		ns[i] = DeepCopy(v)
 	}
 	cSite.Sites = ns
+
+	ndp := make([]string, len(cSite.Dependencies))
+	copy(ndp, cSite.Dependencies)
+	cSite.Dependencies = ndp
+
 	return cSite
 }
 
@@ -278,6 +284,7 @@ func doIterators2(cSite ConfigSite, log *ui.UI) ([]ConfigSite, errors.Error) {
 	}
 
 	for _, v := range usedIterators {
+		cSite.Dependencies = append(cSite.Dependencies, cSite.Iterators[v].Iterator+cSite.Iterators[v].IteratorArguments)
 		delete(cSite.Iterators, v)
 	}
 

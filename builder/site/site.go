@@ -12,6 +12,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"text/template/parse"
 	"time"
 
 	"gitlab.com/antipy/antibuild/cli/modules/pipeline"
@@ -38,6 +39,7 @@ type (
 		Data           []Data                  `json:"data,omitempty"`
 		Sites          []ConfigSite            `json:"sites,omitempty"`
 		IteratorValues map[string]string       `json:"-"`
+		Dependencies   []string                `json:"-"`
 	}
 
 	//DataLoader is a module that loads data
@@ -141,6 +143,19 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *map[[16]byte]*ConfigSi
 
 	//If this is the last in the chain, add it to the list of return values
 	if len(cSite.Sites) == 0 && numIncludedVars == 0 {
+
+		for _, v := range cSite.Data {
+			dep := v.Loader +
+				v.LoaderArguments +
+				v.Parser +
+				v.ParserArguments
+			for _, pp := range v.PostProcessors {
+				dep += pp.PostProcessor + pp.PostProcessorArguments
+			}
+			cSite.Dependencies = append(cSite.Dependencies, dep)
+
+		}
+
 		//append site to the list of sites that will be executed
 		(*sites)[cSite.hash()] = cSite
 		log.Debug("Unfolded to final site")
@@ -190,6 +205,15 @@ func mergeConfigSite(dst *ConfigSite, src *ConfigSite) {
 		dst.Templates = make([]string, len(src.Templates)) // or make a new one and fill it
 		for i, s := range src.Templates {
 			dst.Templates[i] = s
+		}
+	}
+
+	if dst.Dependencies != nil {
+		dst.Dependencies = append(src.Dependencies, dst.Dependencies...) // just append
+	} else {
+		dst.Dependencies = make([]string, len(src.Dependencies)) // or make a new one and fill it
+		for i, s := range src.Dependencies {
+			dst.Dependencies[i] = s
 		}
 	}
 
@@ -395,7 +419,6 @@ func execute(sites []*Site, log *ui.UI) errors.Error {
 func executeTemplate(site *Site) errors.Error {
 	//prefix the slug with the output folder
 	fileLocation := filepath.Join(OutputFolder, site.Slug)
-
 	//check all folders in the path of the output file
 	err := os.MkdirAll(filepath.Dir(fileLocation), 0766)
 	if err != nil {
@@ -414,6 +437,14 @@ func executeTemplate(site *Site) errors.Error {
 		return ErrFailedTemplate.SetRoot(err.Error())
 	}
 
+	return nil
+}
+
+//GetTemplateTree gets the template according to
+func GetTemplateTree(template string) *parse.Tree {
+	if v, ok := globalTemplates[template]; ok {
+		return v.Tree
+	}
 	return nil
 }
 

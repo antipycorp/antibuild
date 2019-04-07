@@ -70,10 +70,10 @@ func HostLocally(output, port string) {
 	server.RegisterOnShutdown(handleShutdown)
 
 	//start the server
-	err := server.ListenAndServe()
-	if err != nil && err != http.ErrServerClosed {
-		panic(err)
-	}
+	//err := server.ListenAndServe()
+	//if err != nil && err != http.ErrServerClosed {
+	//	panic(err)
+	//}
 }
 
 func handleShutdown() {
