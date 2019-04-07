@@ -306,6 +306,9 @@ func doIterators2(cSite *ConfigSite, log *ui.UI) ([]ConfigSite, errors.Error) {
 		variable := usedVars[vi]
 
 		for i := range iOpts {
+			if i == 0 {
+				continue
+			}
 			base := (lastUpperBound) * i
 			for i2 := 0; i2 < lastUpperBound; i2++ {
 				sites[base+i2] = deepCopy(sites[i2])
