@@ -121,9 +121,7 @@ func replaceVar(data string, variable string, value string) string {
 func replaceVarData(d Data, variable string, value string) Data {
 	d.LoaderArguments = replaceVar(d.LoaderArguments, variable, value)
 	d.ParserArguments = replaceVar(d.ParserArguments, variable, value)
-	npp := make([]DataPostProcessor, len(d.PostProcessors))
-	copy(npp, d.PostProcessors)
-	d.PostProcessors = npp
+
 	for pp := range d.PostProcessors {
 		dpp := d.PostProcessors[pp]
 		dpp.PostProcessorArguments = replaceVar(dpp.PostProcessorArguments, variable, value)
@@ -183,9 +181,14 @@ func doIteratorVariables(cSite *ConfigSite) (*ConfigSite, errors.Error) {
 }
 
 func deepCopy(cSite ConfigSite) ConfigSite {
-	npp := make([]Data, len(cSite.Data))
-	copy(npp, cSite.Data)
-	cSite.Data = npp
+	nsd := make([]Data, len(cSite.Data))
+	for k, v := range cSite.Data {
+		npp := make([]DataPostProcessor, len(v.PostProcessors))
+		copy(npp, v.PostProcessors)
+		v.PostProcessors = npp
+		nsd[k] = v
+	}
+	cSite.Data = nsd
 
 	niv := make(map[string]string, len(cSite.IteratorValues))
 	for k, v := range cSite.IteratorValues {
