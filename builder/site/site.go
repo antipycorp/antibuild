@@ -7,7 +7,6 @@ package site
 import (
 	"bytes"
 	"crypto/md5"
-	"encoding/json"
 	"html/template"
 	"io"
 	"math/rand"
@@ -139,6 +138,7 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *map[[16]byte]*ConfigSi
 	log.Debugf("Unfolding " + cSite.Slug)
 
 	numIncludedVars := numIncludedVars(cSite)
+
 	//If this is the last in the chain, add it to the list of return values
 	if len(cSite.Sites) == 0 && numIncludedVars == 0 {
 		//append site to the list of sites that will be executed
@@ -149,11 +149,12 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *map[[16]byte]*ConfigSi
 		return nil
 	}
 
-	if numIncludedVars != 0 {
+	if numIncludedVars > 0 {
 		itSited, err := doIterators2(cSite, log)
 		if err != nil {
 			return err
 		}
+
 		for i := range itSited {
 			err := unfold(&itSited[i], nil, sites, log)
 			if err != nil {
@@ -233,7 +234,7 @@ func gatherIterators(iterators map[string]IteratorData) errors.Error {
 
 // Gather after unfolding
 func Gather(cSite *ConfigSite, log *ui.UI) (*Site, errors.Error) {
-	log.Debugf("Gathering information for " + cSite.Slug)
+	log.Debugf("Gathering information for %s", cSite.Slug)
 	log.Debugf("Site data: %v", cSite)
 
 	site := &Site{
@@ -250,7 +251,7 @@ func Gather(cSite *ConfigSite, log *ui.UI) (*Site, errors.Error) {
 		return nil, ErrFailedGather.SetRoot(err.Error())
 	}
 
-	log.Debugf("Finished gathering for " + cSite.Slug)
+	log.Debugf("Finished gathering")
 
 	return site, nil
 }
@@ -382,7 +383,7 @@ func execute(sites []*Site, log *ui.UI) errors.Error {
 
 	//export every template
 	for _, site := range sites {
-		log.Debug("Building page for " + site.Slug)
+		log.Debugf("Building page for %s", site.Slug)
 
 		err := executeTemplate(site)
 		if err != nil {
@@ -450,11 +451,6 @@ func randString(n int) string {
 	return string(b)
 }
 
-func hashConfigSite(c *ConfigSite) []byte {
-	jsonBytes, _ := json.Marshal(c)
-	hash := md5.Sum(jsonBytes)
-	return hash[:]
-}
 func (c ConfigSite) hash() [16]byte {
 	hash := &bytes.Buffer{}
 	io.WriteString(hash, c.Slug)

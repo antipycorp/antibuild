@@ -165,15 +165,21 @@ func totalIncludedVars(cSite *ConfigSite) []string {
 	return usedVars
 }
 
-func doIteratorVariables(cSite *ConfigSite) *ConfigSite {
+func doIteratorVariables(cSite *ConfigSite) (*ConfigSite, errors.Error) {
 	for i, v := range cSite.Iterators {
 		vars := includedVars([]byte(v.IteratorArguments))
 		for _, ivar := range vars {
-			v.IteratorArguments = replaceVar(v.IteratorArguments, ivar, cSite.IteratorValues[ivar])
+			var value string
+			var ok bool
+			if value, ok = cSite.IteratorValues[ivar]; !ok {
+				return nil, ErrNoIteratorFound.SetRoot("no variable defined for " + ivar)
+			}
+
+			v.IteratorArguments = replaceVar(v.IteratorArguments, ivar, value)
 		}
 		cSite.Iterators[i] = v
 	}
-	return cSite
+	return cSite, nil
 }
 
 func deepCopy(cSite ConfigSite) ConfigSite {
@@ -204,7 +210,10 @@ func deepCopy(cSite ConfigSite) ConfigSite {
 }
 
 func doIterators2(cSite *ConfigSite, log *ui.UI) ([]ConfigSite, errors.Error) {
-	cSite = doIteratorVariables(cSite)
+	cSite, err := doIteratorVariables(cSite)
+	if err != nil {
+		return nil, err
+	}
 	gatherIterators(cSite.Iterators) //TODO: goroutine, we can probably do something in  between this and when we actualy need it!!
 
 	var usedIterators []string
@@ -212,7 +221,14 @@ func doIterators2(cSite *ConfigSite, log *ui.UI) ([]ConfigSite, errors.Error) {
 	var newData []Data
 	for _, d := range cSite.Data {
 		if d.ShouldRange != "" {
-			for _, v := range cSite.Iterators[d.ShouldRange].List {
+
+			var i IteratorData
+			var ok bool
+			if i, ok = cSite.Iterators[d.ShouldRange]; !ok {
+				return nil, ErrNoIteratorFound.SetRoot("no iterator defined for " + d.ShouldRange)
+			}
+
+			for _, v := range i.List {
 				nd := replaceVarData(d, d.ShouldRange, v)
 				newData = append(newData, nd)
 			}
@@ -235,9 +251,21 @@ func doIterators2(cSite *ConfigSite, log *ui.UI) ([]ConfigSite, errors.Error) {
 	options := make([][]string, len(usedVars))
 
 	for i, iOpts := range usedVars {
-		options[i] = cSite.Iterators[iOpts].List
+		var data IteratorData
+		var ok bool
+		if data, ok = cSite.Iterators[iOpts]; !ok {
+			return nil, ErrNoIteratorFound.SetRoot("no iterator defined for " + iOpts)
+		}
+
+		options[i] = data.List
 		if len(options[i]) == 0 {
-			options[i] = []string{cSite.IteratorValues[iOpts]}
+			var value string
+			var ok bool
+			if value, ok = cSite.IteratorValues[iOpts]; !ok {
+				return nil, ErrNoIteratorFound.SetRoot("no variable defined for " + iOpts)
+			}
+
+			options[i] = []string{value}
 		}
 	}
 

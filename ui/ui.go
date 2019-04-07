@@ -206,7 +206,6 @@ func (ui *UI) Fatalf(format string, a ...interface{}) {
 
 //SetLogfile sets the output writer for the logger
 func (ui *UI) SetLogfile(file io.Writer) {
-	fmt.Println("THE LOG FILE IT SET!!!!")
 	if file != nil {
 		ui.DoDebug = true
 		ui.LogFile = bufio.NewWriter(file)
