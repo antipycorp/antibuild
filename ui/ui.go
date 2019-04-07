@@ -5,7 +5,6 @@
 package ui
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"net"
@@ -93,7 +92,7 @@ func (ui *UI) showlog() {
 	tm.Clear()
 	tm.MoveCursor(1, 1)
 
-	tm.Print(tm.Color(tm.Bold("Build log:"), tm.BLUE) + "\n")
+	tm.Print(tm.Color(tm.Bold("Log:"), tm.BLUE) + "\n")
 
 	for _, e := range ui.infolog { //e for entry
 		tm.Print(e + "\n")
@@ -199,7 +198,7 @@ func (ui *UI) Fatalf(format string, a ...interface{}) {
 //SetLogfile sets the output writer for the logger
 func (ui *UI) SetLogfile(file io.Writer) {
 	if file != nil {
-		ui.LogFile = bufio.NewWriter(file)
+		ui.LogFile = file
 	} else {
 		ui.LogFile = nil
 	}
