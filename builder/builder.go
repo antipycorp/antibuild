@@ -41,6 +41,7 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 			net.HostLocally(os.TempDir()+"/abm/public", "8080")
 		}
 		ui.Fatalf("could not parse the config file " + err.Error())
+		ui.ShowResult()
 		return
 	}
 
@@ -74,10 +75,12 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 
 		_, err = actualStartParse(cfg)
 		if err != nil {
+			cfg.UILogger.Fatal(err.Error())
+			println(err.Error())
 			failedToRender(cfg)
-		} else {
-			cfg.UILogger.ShowResult()
 		}
+
+		cfg.UILogger.ShowResult()
 	}
 }
 

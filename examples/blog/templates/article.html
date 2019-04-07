@@ -1,0 +1,6 @@
+{{ define "page" }}
+<h1>{{ .article.name }}</h1>
+<p>{{ .article.published }} | <a href="/author/{{.article.author}}">{{ (index .authors .article.author).name}}</a></p>
+<img style="width: 100%" src="{{.article.header_image}}">
+{{ markdown_common .article_content }}
+{{ end }}
