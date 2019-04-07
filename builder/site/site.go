@@ -154,7 +154,6 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *map[[16]byte]*ConfigSi
 		if err != nil {
 			return err
 		}
-
 		for i := range itSited {
 			err := unfold(&itSited[i], nil, sites, log)
 			if err != nil {
@@ -193,14 +192,6 @@ func mergeConfigSite(dst *ConfigSite, src *ConfigSite) {
 			dst.Templates[i] = s
 		}
 	}
-
-	/* if dst.Iterators == nil {
-		dst.Iterators = make(map[string]IteratorData, len(src.Iterators)) // or make a new one and fill it
-	}
-
-	for i, s := range src.Iterators {
-		dst.Iterators[i] = s
-	} */
 
 	if dst.IteratorValues == nil {
 		dst.IteratorValues = make(map[string]string, len(src.IteratorValues)) // or make a new one and fill it

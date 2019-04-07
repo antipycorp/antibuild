@@ -22,7 +22,15 @@ type UI struct {
 	log            []string
 	infolog        []string
 	PrettyLog      bool
+	DoDebug        bool
 }
+
+var (
+	debugPrefix = tm.Color(tm.Bold("debug "), tm.WHITE)
+	infoPrefix  = tm.Color(tm.Bold("info "), tm.BLUE)
+	errorPrefix = tm.Color(tm.Bold("error "), tm.RED)
+	fatalPrefix = tm.Color(tm.Bold("Failed to build. \n\n"), tm.RED)
+)
 
 //ShowResult should be shown when something builds successfully
 func (ui *UI) ShowResult() {
@@ -120,9 +128,9 @@ func getIP() string {
 
 //Debug logs to the log file only
 func (ui *UI) Debug(err string) {
-	if ui.LogFile != nil {
+	if ui.LogFile != nil || !ui.DoDebug {
 		if ui.PrettyLog {
-			entry := tm.Color(tm.Bold("debug "), tm.WHITE) + err
+			entry := debugPrefix + err
 			ui.LogFile.Write([]byte(entry + "\n"))
 			return
 		}
@@ -132,7 +140,7 @@ func (ui *UI) Debug(err string) {
 
 //Debugf logs to the log file only
 func (ui *UI) Debugf(format string, a ...interface{}) {
-	if ui.LogFile == nil {
+	if !ui.DoDebug {
 		return
 	}
 
@@ -141,7 +149,7 @@ func (ui *UI) Debugf(format string, a ...interface{}) {
 
 //Info logs helpfull information/warnings
 func (ui *UI) Info(err string) {
-	entry := tm.Color(tm.Bold("info "), tm.BLUE) + err
+	entry := infoPrefix + err
 	ui.infolog = append(ui.infolog, entry)
 	if ui.LogFile != nil {
 		if ui.PrettyLog {
@@ -160,7 +168,7 @@ func (ui *UI) Infof(format string, a ...interface{}) {
 
 //Error logs errors, these can later be followed up on with a fatal or have potential consequences for the outcome
 func (ui *UI) Error(err string) {
-	entry := tm.Color(tm.Bold("error "), tm.RED) + err
+	entry := errorPrefix + err
 	ui.log = append(ui.log, entry)
 	if ui.LogFile != nil {
 		if ui.PrettyLog {
@@ -178,7 +186,7 @@ func (ui *UI) Errorf(format string, a ...interface{}) {
 
 //Fatal should be called when in an unrecoverable state. EG: config file not found, template function not called etc.
 func (ui *UI) Fatal(err string) {
-	entry := tm.Color(tm.Bold("Failed to build. \n\n"), tm.RED) + err
+	entry := fatalPrefix + err
 	ui.log = append(ui.log, entry)
 	ui.failed = true
 
@@ -198,9 +206,12 @@ func (ui *UI) Fatalf(format string, a ...interface{}) {
 
 //SetLogfile sets the output writer for the logger
 func (ui *UI) SetLogfile(file io.Writer) {
+	fmt.Println("THE LOG FILE IT SET!!!!")
 	if file != nil {
+		ui.DoDebug = true
 		ui.LogFile = bufio.NewWriter(file)
 	} else {
+		ui.DoDebug = false
 		ui.LogFile = nil
 	}
 }
@@ -208,4 +219,9 @@ func (ui *UI) SetLogfile(file io.Writer) {
 //SetPrettyPrint this sets the setting for pretty printing,
 func (ui *UI) SetPrettyPrint(enabled bool) {
 	ui.PrettyLog = enabled
+}
+
+//ShouldLogDebug enables/disables debug logging(performance save),
+func (ui *UI) ShouldLogDebug(enabled bool) {
+	ui.DoDebug = enabled
 }

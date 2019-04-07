@@ -46,6 +46,19 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 		ui.HostingEnabled = isHost
 		ui.Port = port
 
+		if os.Getenv("DEBUG") == "1" { //cant get out of this, itl just loop
+			net.HostDebug()
+			timeout := time.After(1 * time.Minute)
+			for {
+				select {
+				case <-timeout:
+					return
+				default:
+					startParse(cfg)
+				}
+			}
+		}
+
 		if isHost {
 			//cfg.Folders.Output, _ = ioutil.TempDir("", "antibuild_hosting")
 			go net.HostLocally(cfg.Folders.Output, port) //still continues running, hosting doesnt actually build

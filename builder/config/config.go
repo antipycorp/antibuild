@@ -107,6 +107,7 @@ func CleanConfig(configLocation string, ui uiLoggerSetter) (*Config, errors.Erro
 	file.Seek(0, 0)
 	ui.SetLogfile(file)
 	ui.SetPrettyPrint(cfg.LogConfig.PrettyPrint)
+	ui.ShouldLogDebug(cfg.LogConfig.LogDebug)
 
 	cfg.UILogger = ui
 	return cfg, nil
@@ -136,6 +137,7 @@ func (l *log) UnmarshalJSON(data []byte) error {
 		cfgl := struct {
 			File        string `json:"file"`
 			PrettyPrint bool   `json:"pretty_print"`
+			LogDebug    bool   `json:"log_debug"`
 		}{}
 
 		if err := json.Unmarshal(data, &cfgl); err != nil {
