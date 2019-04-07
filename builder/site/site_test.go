@@ -155,8 +155,8 @@ func (p parser) GetPipe(variable string) pipeline.Pipe {
 
 func (i iterator) GetIterations(location string) []string {
 	return []string{
-		"world",
 		"hello",
+		"world",
 	}
 }
 
@@ -276,7 +276,8 @@ func BenchmarkUnfold(b *testing.B) {
 func genUnfold(benchID int) func(*testing.B) {
 	return func(b *testing.B) {
 		for n := 0; n < b.N; n++ {
-			site.Unfold(&benchMarks[benchID], testUI)
+			s := site.DeepCopy(benchMarks[benchID])
+			site.Unfold(&s, testUI)
 		}
 	}
 }
@@ -289,11 +290,14 @@ func BenchmarkGather(b *testing.B) {
 func genGather(benchID int) func(*testing.B) {
 	return func(b *testing.B) {
 		for n := 0; n < b.N; n++ {
-			site.Unfold(&benchMarks[benchID], testUI)
+			s := site.DeepCopy(benchMarks[benchID])
+
+			site.Unfold(&s, testUI)
 		}
 		var sites = make([]map[[16]byte]*site.ConfigSite, b.N)
 		for n := 0; n < b.N; n++ {
-			sites[n], _ = site.Unfold(&benchMarks[benchID], testUI)
+			s := site.DeepCopy(benchMarks[benchID])
+			sites[n], _ = site.Unfold(&s, testUI)
 		}
 
 		b.ResetTimer()
@@ -304,7 +308,6 @@ func genGather(benchID int) func(*testing.B) {
 					b.Fatal(err.Error())
 				}
 			}
-
 		}
 	}
 }

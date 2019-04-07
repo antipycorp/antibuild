@@ -33,6 +33,7 @@ var (
 
 //ShowResult should be shown when something builds successfully
 func (ui *UI) ShowResult() {
+	return
 	tm.Clear()
 	tm.MoveCursor(1, 1)
 
@@ -127,7 +128,7 @@ func getIP() string {
 
 //Debug logs to the log file only
 func (ui *UI) Debug(err string) {
-	if ui.LogFile != nil || !ui.DebugEnabled {
+	if ui.LogFile != nil && ui.DebugEnabled {
 		if ui.PrettyLog {
 			entry := debugPrefix + err
 			ui.LogFile.Write([]byte(entry + "\n"))

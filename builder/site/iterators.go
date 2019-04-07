@@ -121,9 +121,7 @@ func replaceVar(data string, variable string, value string) string {
 func replaceVarData(d Data, variable string, value string) Data {
 	d.LoaderArguments = replaceVar(d.LoaderArguments, variable, value)
 	d.ParserArguments = replaceVar(d.ParserArguments, variable, value)
-	npp := make([]DataPostProcessor, len(d.PostProcessors))
-	copy(npp, d.PostProcessors)
-	d.PostProcessors = npp
+
 	for pp := range d.PostProcessors {
 		dpp := d.PostProcessors[pp]
 		dpp.PostProcessorArguments = replaceVar(dpp.PostProcessorArguments, variable, value)
@@ -138,7 +136,7 @@ func replaceVarIterator(i IteratorData, variable string, value string) IteratorD
 	return i
 }
 
-func numIncludedVars(cSite *ConfigSite) int {
+func numIncludedVars(cSite ConfigSite) int {
 	usedVars := fastNumIncludedVars([]byte(cSite.Slug))
 	for _, v := range cSite.Data {
 		usedVars += fastNumIncludedVars([]byte(v.LoaderArguments + v.ParserArguments))
@@ -165,27 +163,32 @@ func totalIncludedVars(cSite *ConfigSite) []string {
 	return usedVars
 }
 
-func doIteratorVariables(cSite *ConfigSite) (*ConfigSite, errors.Error) {
+func doIteratorVariables(cSite *ConfigSite) errors.Error {
 	for i, v := range cSite.Iterators {
 		vars := includedVars([]byte(v.IteratorArguments))
 		for _, ivar := range vars {
 			var value string
 			var ok bool
 			if value, ok = cSite.IteratorValues[ivar]; !ok {
-				return nil, ErrNoIteratorFound.SetRoot("no variable defined for " + ivar)
+				return ErrNoIteratorFound.SetRoot("no variable defined for " + ivar)
 			}
 
 			v.IteratorArguments = replaceVar(v.IteratorArguments, ivar, value)
 		}
 		cSite.Iterators[i] = v
 	}
-	return cSite, nil
+	return nil
 }
 
-func deepCopy(cSite ConfigSite) ConfigSite {
-	npp := make([]Data, len(cSite.Data))
-	copy(npp, cSite.Data)
-	cSite.Data = npp
+func DeepCopy(cSite ConfigSite) ConfigSite {
+	nsd := make([]Data, len(cSite.Data))
+	for k, v := range cSite.Data {
+		npp := make([]DataPostProcessor, len(v.PostProcessors))
+		copy(npp, v.PostProcessors)
+		v.PostProcessors = npp
+		nsd[k] = v
+	}
+	cSite.Data = nsd
 
 	niv := make(map[string]string, len(cSite.IteratorValues))
 	for k, v := range cSite.IteratorValues {
@@ -203,14 +206,14 @@ func deepCopy(cSite ConfigSite) ConfigSite {
 	cSite.Iterators = nid
 	ns := make([]ConfigSite, len(cSite.Sites))
 	for i, v := range cSite.Sites {
-		ns[i] = deepCopy(v)
+		ns[i] = DeepCopy(v)
 	}
 	cSite.Sites = ns
 	return cSite
 }
 
-func doIterators2(cSite *ConfigSite, log *ui.UI) ([]ConfigSite, errors.Error) {
-	cSite, err := doIteratorVariables(cSite)
+func doIterators2(cSite ConfigSite, log *ui.UI) ([]ConfigSite, errors.Error) {
+	err := doIteratorVariables(&cSite)
 	if err != nil {
 		return nil, err
 	}
@@ -290,7 +293,7 @@ func doIterators2(cSite *ConfigSite, log *ui.UI) ([]ConfigSite, errors.Error) {
 	}
 
 	var sites = make([]ConfigSite, olen)
-	sites[0] = *cSite
+	sites[0] = cSite
 	lastUpperBound := 0
 	currentLowerBound := 0
 	for vi, iOpts := range options {
@@ -303,9 +306,12 @@ func doIterators2(cSite *ConfigSite, log *ui.UI) ([]ConfigSite, errors.Error) {
 		variable := usedVars[vi]
 
 		for i := range iOpts {
+			/* if i == 0 {
+				continue
+			} */
 			base := (lastUpperBound) * i
 			for i2 := 0; i2 < lastUpperBound; i2++ {
-				sites[base+i2] = deepCopy(sites[i2])
+				sites[base+i2] = DeepCopy(sites[i2])
 			}
 		}
 		for _, value := range iOpts {
