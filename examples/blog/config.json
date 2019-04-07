@@ -56,8 +56,9 @@
             "slug": "/articles/{{article}}/index.html",
             "templates": ["article.html"],
             "data": [
-              "[range:author][file_file:data/authors/{{author}}/meta.yaml][yaml_yaml][util_prefix:{{author}}][util_prefix:authors]",
-              "[file_file:data/articles/{{article}}/article.md][markdown_read:article_content]"
+              "[file_file:data/articles/{{article}}/meta.yaml][yaml_yaml][util_prefix:article]",
+              "[file_file:data/articles/{{article}}/article.md][markdown_read:article_content]",
+              "[range:author][file_file:data/authors/{{author}}/meta.yaml][yaml_yaml][util_prefix:{{author}}][util_prefix:authors]"
             ]
           },
           {
@@ -68,8 +69,13 @@
             "slug": "/authors/{{author}}/index.html",
             "templates": ["author.html"],
             "data": [
+              "[file_file:data/authors/{{author}}/meta.yaml][yaml_yaml][util_prefix:author]",
               "[range:article][file_file:data/articles/{{article}}/meta.yaml][yaml_yaml][util_prefix:{{article}}][util_prefix:articles]"
             ]
+          },
+          {
+            "slug": "/index.html",
+            "templates": ["home.html"]
           }
         ]
       }

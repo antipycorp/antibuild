@@ -39,6 +39,7 @@ func buildOnRefresh(cfg *config.Config, configLocation string, ui *UI.UI) {
 	cache, err := startParse(cfg)
 	if err != nil {
 		cfg.UILogger.Fatal(err.Error())
+		println(err.Error())
 		failedToRender(cfg)
 	}
 
@@ -183,6 +184,7 @@ func watchBuild(c *cache, configloc string, shutdown chan int, ui *UI.UI) {
 			err = startCachedParse(c)
 			if err != nil {
 				c.config.UILogger.Fatal(err.Error())
+				println(err.Error())
 				failedToRender(c.config)
 			}
 
@@ -199,6 +201,7 @@ func watchBuild(c *cache, configloc string, shutdown chan int, ui *UI.UI) {
 				c.config, err = config.CleanConfig(configloc, ui)
 				if err != nil {
 					c.config.UILogger.Fatal(err.Error())
+					println(err.Error())
 					failedToRender(c.config)
 					c.config.UILogger.ShowResult()
 					continue
