@@ -58,7 +58,7 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 					println("did", i, "iterations int one minute")
 					return
 				default:
-					startParse(cfg)
+					actualStartParse(cfg)
 				}
 			}
 		}
@@ -185,7 +185,6 @@ func startCachedParse(c *cache) errors.Error {
 					}
 				}
 			}
-
 		}
 		c.config.UILogger.Debug("Finished gathering")
 
@@ -242,7 +241,7 @@ type cach struct {
 	data     map[string]cachData
 
 	configUpdate bool
-	fullRebuild  bool
+	checkData    bool
 }
 
 type cachData struct {
@@ -280,7 +279,7 @@ func startParse2(cfg *config.Config, cache *cach) errors.Error {
 		site.OutputFolder = cfg.Folders.Output
 	}
 
-	if cache.fullRebuild {
+	if cache.configUpdate {
 		err := os.RemoveAll(cfg.Folders.Output)
 		if err != nil {
 			return ErrFailedRemoveFile.SetRoot(err.Error())
@@ -295,7 +294,7 @@ func startParse2(cfg *config.Config, cache *cach) errors.Error {
 
 		var ok bool
 		var cd cachData
-		if cd, ok = cache.data[cSite.Slug]; ok && !cache.fullRebuild {
+		if cd, ok = cache.data[cSite.Slug]; ok && !cache.configUpdate {
 			if len(cSite.Dependencies) != len(cd.dependencies) {
 				depChange = true
 				goto postCheck
@@ -313,21 +312,32 @@ func startParse2(cfg *config.Config, cache *cach) errors.Error {
 		cd.dependencies = cSite.Dependencies
 
 		os.Remove(path.Join(cfg.Folders.Output, cd.site.Slug))
-		s, err := site.Gather(cSite, cfg.UILogger.(*UI.UI))
-		if err != nil {
-			return err
-		}
+		var s *site.Site
 
 		datEqual := true
-		for k, v := range s.Data {
-			if !reflect.DeepEqual(v, cd.site.Data[k]) {
-				datEqual = false
+		if cache.checkData {
+			s, err := site.Gather(cSite, cfg.UILogger.(*UI.UI))
+			if err != nil {
+				return err
+			}
+			for k, v := range s.Data {
+				if !reflect.DeepEqual(v, cd.site.Data[k]) {
+					datEqual = false
+				}
 			}
 		}
-		cd.site = *s
-		if depChange || !datEqual || site.GetTemplateTree(s.Template) != site.GetTemplateTree(cd.site.Template) || cache.fullRebuild {
+		if depChange || !datEqual || site.GetTemplateTree(s.Template) != site.GetTemplateTree(cd.site.Template) || cache.configUpdate {
+			if s == nil {
+				var err errors.Error
+				s, err = site.Gather(cSite, cfg.UILogger.(*UI.UI))
+				if err != nil {
+					return err
+				}
+			}
+			cd.site = *s
 			updatedSites = append(updatedSites, s)
 		}
+
 		cd.shouldRemove = false
 		cache.data[cSite.Slug] = cd
 	}
@@ -358,7 +368,7 @@ func startParse2(cfg *config.Config, cache *cach) errors.Error {
 
 	//the true state will need to be checked during the process so we leave them true untill the end
 	cache.configUpdate = false
-	cache.fullRebuild = false
+	cache.checkData = false
 
 	return nil
 }
@@ -368,7 +378,7 @@ func actualStartParse(cfg *config.Config) (*cach, errors.Error) {
 		rootPage:     *cfg.Pages,
 		data:         make(map[string]cachData),
 		configUpdate: true,
-		fullRebuild:  true,
+		checkData:    false,
 	}
 	return cache, startParse2(cfg, cache)
 }

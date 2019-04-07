@@ -196,7 +196,7 @@ func watchBuild(cfg *config.Config, c *cach, configloc string, shutdown chan int
 					continue
 				}
 
-				c.fullRebuild = true
+				c.configUpdate = true
 				err = startParse2(cfg, c)
 			case keys[1]:
 				c.configUpdate = true
