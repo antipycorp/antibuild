@@ -10,7 +10,7 @@ require (
 	github.com/gorilla/websocket v1.4.0
 	github.com/hinshun/vt10x v0.0.0-20180809195222-d55458df857c // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
-	github.com/jaicewizard/tt v0.5.1
+	github.com/jaicewizard/tt v0.5.2
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/kr/pty v1.1.1 // indirect
 	github.com/mattn/go-colorable v0.1.1 // indirect
@@ -29,6 +29,5 @@ require (
 	gitlab.com/antipy/antibuild/std/util v0.0.0-20190405205705-1ee031d46328
 	gitlab.com/antipy/antibuild/std/yaml v0.0.0-20190405205705-1ee031d46328
 	golang.org/x/crypto v0.0.0-20190404164418-38d8ce5564a5 // indirect
-	golang.org/x/tools v0.0.0-20190406165526-0d5674b3111a // indirect
 	gopkg.in/AlecAivazis/survey.v1 v1.7.0
 )
