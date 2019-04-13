@@ -50,15 +50,19 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 		ui.Port = port
 
 		if os.Getenv("DEBUG") == "1" { //cant get out of this, itl just loop
+			cache, _ := actualStartParse(cfg)
 			net.HostDebug()
 			timeout := time.After(1 * time.Minute)
+
 			for i := 0; ; i++ {
 				select {
 				case <-timeout:
 					println("did", i, "iterations int one minute")
 					return
 				default:
-					actualStartParse(cfg)
+					cache.configUpdate = true
+					cache.rootPage = *cfg.Pages
+					startParse2(cfg, cache)
 				}
 			}
 		}
@@ -327,7 +331,8 @@ func startParse2(cfg *config.Config, cache *cach) errors.Error {
 				}
 			}
 		}
-		if depChange || !datEqual || site.GetTemplateTree(s.Template) != site.GetTemplateTree(cd.site.Template) || cache.configUpdate {
+
+		if depChange || !datEqual || (s != nil && site.GetTemplateTree(s.Template) != site.GetTemplateTree(cd.site.Template)) || cache.configUpdate {
 			if s == nil {
 				var err errors.Error
 				s, err = site.Gather(cSite, cfg.UILogger.(*UI.UI))
