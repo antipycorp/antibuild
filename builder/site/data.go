@@ -79,8 +79,8 @@ func (df *Data) UnmarshalJSON(data []byte) error {
 	data = data[1 : len(data)-1]
 
 	//get the data from for the dataLoader
-	i1 := bytes.Index(data, []byte("["))
-	i2 := bytes.Index(data, []byte("]"))
+	i1 := bytes.IndexByte(data, '[')
+	i2 := bytes.IndexByte(data, ']')
 
 	loaderData := data[i1+1 : i2]
 	data = data[i2+1:] //data is used for parser
@@ -92,7 +92,7 @@ func (df *Data) UnmarshalJSON(data []byte) error {
 			return ErrNoDataLoaderFound.SetRoot(string(loaderData))
 		}
 
-		if string(sep[0]) == "range" {
+		if bytes.EqualFold(sep[0], []byte("range")) {
 			if len(sep) < 2 { //only if bigger than 2 this is available
 				return ErrNoRangeVariable.SetRoot(string(loaderData))
 			}
@@ -100,8 +100,8 @@ func (df *Data) UnmarshalJSON(data []byte) error {
 			df.ShouldRange = string(sep[1])
 
 			//get the data from for the dataLoader
-			i1 := bytes.Index(data, []byte("["))
-			i2 := bytes.Index(data, []byte("]"))
+			i1 := bytes.IndexByte(data, '[')
+			i2 := bytes.IndexByte(data, ']')
 
 			loaderData = data[i1+1 : i2]
 			data = data[i2+1:] //data is used for parser
@@ -129,8 +129,8 @@ func (df *Data) UnmarshalJSON(data []byte) error {
 	}
 
 	//get the data from for the dataParser
-	i1 = bytes.Index(data, []byte("["))
-	i2 = bytes.Index(data, []byte("]"))
+	i1 = bytes.IndexByte(data, '[')
+	i2 = bytes.IndexByte(data, ']')
 
 	parserData := data[i1+1 : i2]
 	data = data[i2+1:] //keep this in place for potential fututre extentions
@@ -159,8 +159,8 @@ func (df *Data) UnmarshalJSON(data []byte) error {
 	}
 
 	for len(data) > 0 {
-		i1 = bytes.Index(data, []byte("["))
-		i2 = bytes.Index(data, []byte("]"))
+		i1 = bytes.IndexByte(data, '[')
+		i2 = bytes.IndexByte(data, ']')
 
 		postProcessorData := data[i1+1 : i2]
 		data = data[i2+1:] //keep this in place for potential fututre extentions

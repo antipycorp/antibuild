@@ -15,4 +15,4 @@ debug: $(binary)
 
 
 clean:
-	rm $(binary) $(binary).log
+	rm $(binary) $(binary).log mem.prof

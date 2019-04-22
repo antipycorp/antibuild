@@ -48,8 +48,8 @@ func (i *IteratorData) String() string {
 // UnmarshalJSON unmarshalls the iterator data
 func (i *IteratorData) UnmarshalJSON(data []byte) error {
 	//get the data from for the dataLoader
-	i1 := bytes.Index(data, []byte("["))
-	i2 := bytes.Index(data, []byte("]"))
+	i1 := bytes.IndexByte(data, '[')
+	i2 := bytes.IndexByte(data, ']')
 
 	iteratorData := data[i1+1 : i2]
 
@@ -84,6 +84,7 @@ func includedVars(data []byte) []string {
 	if left != right {
 		//return error
 	}
+	vars = make([]string, 0, left)
 	for ; left > 0; left-- {
 		i1 := bytes.Index(data, []byte("{{"))
 		i2 := bytes.Index(data, []byte("}}"))
@@ -104,7 +105,8 @@ func fastNumIncludedVars(data []byte) int {
 
 func unique(stringSlice []string) []string {
 	keys := make(map[string]bool)
-	list := []string{}
+	list := make([]string, 0, len(stringSlice))
+
 	for _, entry := range stringSlice {
 		if _, value := keys[entry]; !value {
 			keys[entry] = true
@@ -180,6 +182,7 @@ func doIteratorVariables(cSite *ConfigSite) errors.Error {
 	return nil
 }
 
+//DeepCopy deep copies the site.
 func DeepCopy(cSite ConfigSite) ConfigSite {
 	nsd := make([]Data, len(cSite.Data))
 	for k, v := range cSite.Data {
