@@ -69,7 +69,11 @@ type (
 	//Iterator is a function thats able to post-process data
 	Iterator interface {
 		GetIterations(string) []string
-		GetPipe(string) pipeline.Pipe
+	}
+
+	pipeQue struct {
+		pipe []pipeline.Pipe
+		data tt.Data
 	}
 )
 
@@ -108,6 +112,8 @@ var (
 	ErrFailedCreateFS = errors.NewError("couldn't create directory/file", 4)
 	//ErrUsingUnknownModule is when a user uses a module that is not registered.
 	ErrUsingUnknownModule = errors.NewError("module is used but not registered", 5)
+
+	pipeLines = make(map[string]pipeQue)
 )
 
 /*
@@ -234,21 +240,13 @@ func gatherIterators(iterators map[string]IteratorData) errors.Error {
 		if len(i.List) != 0 {
 			continue
 		}
-		var data []string
 
 		if _, ok := Iterators[i.Iterator]; !ok {
 			return ErrUsingUnknownModule.SetRoot(i.Iterator)
 		}
 
-		iPipe := Iterators[i.Iterator].GetPipe(i.IteratorArguments)
+		i.List = Iterators[i.Iterator].GetIterations(i.IteratorArguments)
 
-		if iPipe != nil {
-			pipeline.ExecPipeline(nil, &data, iPipe)
-		} else {
-			data = Iterators[i.Iterator].GetIterations(i.IteratorArguments)
-		}
-
-		i.List = data
 		iterators[n] = i
 	}
 
@@ -323,7 +321,8 @@ func gatherData(site *Site, files []Data) errors.Error {
 				pipes = append(pipes, dpp)
 			}
 
-			pipeline.ExecPipeline(nil, &data, pipes...)
+			bytes, _ := pipeline.ExecPipeline(nil, pipes...)
+			data.GobDecode(bytes)
 		} else {
 			fileData := DataLoaders[d.Loader].Load(d.LoaderArguments)
 			data = DataParsers[d.Parser].Parse(fileData, d.ParserArguments)
