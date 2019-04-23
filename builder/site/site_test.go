@@ -164,7 +164,7 @@ func (i iterator) GetPipe(variable string) pipeline.Pipe {
 	return nil
 }
 
-//Testunfold doesnt test template parsing, if anything failed it will be done during execute
+//Testunfold doesn't test template parsing, if anything failed it will be done during execute
 func TestUnfold(t *testing.T) {
 	for _, test := range unfoldTests {
 		dat, err := site.Unfold(&test.in, testUI)

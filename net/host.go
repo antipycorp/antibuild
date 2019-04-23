@@ -31,7 +31,7 @@ var (
 	shutdown chan int
 )
 
-//HostDebug host the /debug/pprof endpoint localy on port 5000
+//HostDebug host the /debug/pprof endpoint locally on port 5000
 func HostDebug() {
 	debug := http.Server{
 		Addr:        ":5000",
