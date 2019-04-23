@@ -17,6 +17,21 @@ test:
   script:
     - make test branch='${CI_COMMIT_REF_SLUG}'
 
+test_blog:
+  stage: test
+  script:
+  - cd examples/blog; go run ../../*.go develop
+
+test_iterators:
+  stage: test
+  script:
+    - cd examples/iterators; go run ../../*.go develop
+
+test_simplePage:
+  stage: test
+  script:
+    - cd examples/simplePage; go run ../../*.go develop
+
 benchmark:
   stage: test
   artifacts:
