@@ -36,11 +36,7 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 	ui := &UI.UI{}
 	cfg, err := config.CleanConfig(configLocation, ui)
 	if err != nil {
-		if isHost {
-			failedToLoadConfig(ui, os.TempDir()+"/abm/public")
-			net.HostLocally(os.TempDir()+"/abm/public", "8080")
-		}
-		ui.Fatalf("could not parse the config file " + err.Error())
+		ui.Fatalf("Could not parse the config file " + err.Error())
 		ui.ShowResult()
 		return
 	}
@@ -68,7 +64,6 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 		}
 
 		if isHost {
-			//cfg.Folders.Output, _ = ioutil.TempDir("", "antibuild_hosting")
 			go net.HostLocally(cfg.Folders.Output, port) //still continues running, hosting doesnt actually build
 		}
 

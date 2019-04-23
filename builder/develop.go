@@ -16,7 +16,6 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"gitlab.com/antipy/antibuild/cli/builder/config"
 	"gitlab.com/antipy/antibuild/cli/internal"
-	"gitlab.com/antipy/antibuild/cli/net"
 	"gitlab.com/antipy/antibuild/cli/net/websocket"
 	UI "gitlab.com/antipy/antibuild/cli/ui"
 )
@@ -168,15 +167,12 @@ func watchBuild(cfg *config.Config, c *cach, configloc string, shutdown chan int
 				if err != nil {
 					ui.Fatalf("Failed to load config: %s", err.Error())
 					ui.ShowResult()
-
-					failedToLoadConfig(ui, os.TempDir()+"/abm/public")
-					go net.HostLocally(os.TempDir()+"/abm/public", "8080")
 					continue
 				} else {
 					cfg = ncfg
 					c.configUpdate = true
 				}
-			} 
+			}
 
 			err = startParse2(cfg, c)
 			if err != nil {
