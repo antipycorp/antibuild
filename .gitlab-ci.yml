@@ -25,10 +25,10 @@ test_blog:
   script:
   - cd examples/blog; go run ../../*.go build
 
-test_iterators:
+test_iterator:
   stage: test
   script:
-    - cd examples/iterators; go run ../../*.go build
+    - cd examples/iterator; go run ../../*.go build
 
 test_simplePage:
   stage: test
