@@ -294,7 +294,7 @@ func genGather(benchID int) func(*testing.B) {
 
 			site.Unfold(&s, testUI)
 		}
-		var sites = make([]map[[16]byte]*site.ConfigSite, b.N)
+		var sites = make([][]*site.ConfigSite, b.N)
 		for n := 0; n < b.N; n++ {
 			s := site.DeepCopy(benchMarks[benchID])
 			sites[n], _ = site.Unfold(&s, testUI)
