@@ -9,6 +9,9 @@ cache:
     - /apt-cache
     - /go/src/
 
+before_script:
+  - go mod download
+
 test:
   stage: test
   artifacts:
@@ -20,17 +23,17 @@ test:
 test_blog:
   stage: test
   script:
-  - cd examples/blog; go run ../../*.go develop
+  - cd examples/blog; go run ../../*.go build
 
 test_iterators:
   stage: test
   script:
-    - cd examples/iterators; go run ../../*.go develop
+    - cd examples/iterators; go run ../../*.go build
 
 test_simplePage:
   stage: test
   script:
-    - cd examples/simplePage; go run ../../*.go develop
+    - cd examples/simplePage; go run ../../*.go build
 
 benchmark:
   stage: test
