@@ -164,10 +164,11 @@ func (i iterator) GetPipe(variable string) pipeline.Pipe {
 	return nil
 }
 
-//Testunfold doesnt test template parsing, if anything failed it will be done during execute
+//Testunfold doesn't test template parsing, if anything failed it will be done during execute
 func TestUnfold(t *testing.T) {
 	for _, test := range unfoldTests {
-		dat, err := site.Unfold(&test.in, testUI)
+		s := site.DeepCopy(test.in)
+		dat, err := site.Unfold(&s, testUI)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -187,7 +188,7 @@ func TestUnfold(t *testing.T) {
 		}
 		for i := 0; i < len(test.res); i++ {
 			if test.out[i].Slug != test.res[i].Slug {
-				print("should be:"+test.out[i].Slug+" but is:"+test.res[i].Slug+" for ", i, "\n")
+				print("should be: "+test.out[i].Slug+" but is: "+test.res[i].Slug+" for ", i, "\n")
 				for _, v := range test.res {
 					print(v.Slug + "\n")
 				}
@@ -205,7 +206,8 @@ func TestUnfold(t *testing.T) {
 
 func TestExecute(t *testing.T) {
 	for _, test := range unfoldTests {
-		dat, err := site.Unfold(&test.in, testUI)
+		s := site.DeepCopy(test.in)
+		dat, err := site.Unfold(&s, testUI)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -294,7 +296,8 @@ func genGather(benchID int) func(*testing.B) {
 
 			site.Unfold(&s, testUI)
 		}
-		var sites = make([]map[[16]byte]*site.ConfigSite, b.N)
+
+		var sites = make([][]*site.ConfigSite, b.N)
 		for n := 0; n < b.N; n++ {
 			s := site.DeepCopy(benchMarks[benchID])
 			sites[n], _ = site.Unfold(&s, testUI)

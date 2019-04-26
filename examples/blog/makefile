@@ -11,7 +11,7 @@ build: $(binary)
 debug: export DEBUG = 1
 #debug: export GODEBUG = gctrace=1
 debug: $(binary)
-	./$(bi
+	./$(binary) build
 
 develop:
 	./$(binary) develop

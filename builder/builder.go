@@ -37,11 +37,7 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 	ui := &UI.UI{}
 	cfg, err := config.CleanConfig(configLocation, ui)
 	if err != nil {
-		if isHost {
-			failedToLoadConfig(ui, os.TempDir()+"/abm/public")
-			net.HostLocally(os.TempDir()+"/abm/public", "8080")
-		}
-		ui.Fatalf("could not parse the config file " + err.Error())
+		ui.Fatalf("Could not parse the config file " + err.Error())
 		ui.ShowResult()
 		return
 	}
@@ -72,8 +68,7 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 		}
 
 		if isHost {
-			//cfg.Folders.Output, _ = ioutil.TempDir("", "antibuild_hosting")
-			go net.HostLocally(cfg.Folders.Output, port) //still continues running, hosting doesnt actually build
+			go net.HostLocally(cfg.Folders.Output, port) //still continues running, hosting doesn't actually build
 		}
 
 		if isRefreshEnabled { // if refresh is enabled run the refresh, if it returns return
@@ -127,7 +122,7 @@ func startCachedParse(c *cache) errors.Error {
 	}
 
 	if c.configChanged {
-		c.config.UILogger.Debug("Initalizing module config")
+		c.config.UILogger.Debug("Initializing module config")
 		var moduleConfig = make(map[string]modules.ModuleConfig, len(c.config.Modules.Config))
 
 		for module, mConfig := range c.config.Modules.Config {
@@ -137,13 +132,13 @@ func startCachedParse(c *cache) errors.Error {
 		}
 
 		c.config.UILogger.Debug("Loading modules")
-		mhost, err := modules.LoadModules(c.config.Folders.Modules, c.config.Modules.Dependencies, moduleConfig, c.config.UILogger)
+		moduleHost, err := modules.LoadModules(c.config.Folders.Modules, c.config.Modules.Dependencies, moduleConfig, c.config.UILogger)
 		if err != nil {
 			c.config.UILogger.Fatal(err.Error())
 			return nil
 		}
-		if mhost != nil {
-			c.config.ModuleHost = mhost
+		if moduleHost != nil {
+			c.config.ModuleHost = moduleHost
 		}
 		c.config.UILogger.Debug("Finished loading modules")
 
@@ -275,13 +270,13 @@ func startParse2(cfg *config.Config, cache *cach) errors.Error {
 			}
 		}
 
-		mhost, err := modules.LoadModules(cfg.Folders.Modules, cfg.Modules.Dependencies, moduleConfig, cfg.UILogger)
+		moduleHost, err := modules.LoadModules(cfg.Folders.Modules, cfg.Modules.Dependencies, moduleConfig, cfg.UILogger)
 		if err != nil {
 			cfg.UILogger.Fatal(err.Error())
 			return nil
 		}
-		if mhost != nil { // loadModules checks if modules are already loaded
-			cfg.ModuleHost = mhost
+		if moduleHost != nil { // loadModules checks if modules are already loaded
+			cfg.ModuleHost = moduleHost
 		}
 
 		site.TemplateFolder = cfg.Folders.Templates
@@ -379,7 +374,7 @@ func startParse2(cfg *config.Config, cache *cach) errors.Error {
 		}
 	}
 
-	//the true state will need to be checked during the process so we leave them true untill the end
+	//the true state will need to be checked during the process so we leave them true until the end
 	cache.configUpdate = false
 	cache.checkData = false
 
