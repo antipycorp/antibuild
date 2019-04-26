@@ -16,7 +16,10 @@
       "markdown": "https://build.antipy.com/dl/modules.json",
       "util": "https://build.antipy.com/dl/modules.json",
       "yaml": "https://build.antipy.com/dl/modules.json"
-    }
+    },
+    "repositories": [
+      "https://build.antipy.com/dl/modules.json"
+    ]
   },
   "pages": {
     "sites": [

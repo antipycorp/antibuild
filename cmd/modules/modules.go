@@ -16,6 +16,7 @@ import (
 	cmdInternal "gitlab.com/antipy/antibuild/cli/cmd/internal"
 	"gitlab.com/antipy/antibuild/cli/internal"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
+	"gitlab.com/antipy/antibuild/cli/modules"
 	"gitlab.com/antipy/antibuild/cli/ui"
 )
 
@@ -82,13 +83,15 @@ var modulesAddCMD = &cobra.Command{
 		tm.Print(tm.Color("Downloading "+tm.Bold(newModule), tm.BLUE) + tm.Color(" from repository "+tm.Bold(repositoryFile), tm.BLUE) + "\n")
 		tm.Flush()
 
-		err = installModule(newModule, repositoryFile)
+		err = modules.InstallModule(newModule, "", repositoryFile, &cfg.Modules)
+
+		//err = installModule(newModule, repositoryFile)
 		checkModuleErr(err)
 		if err != nil {
 			return
 		}
 
-		cfg.Modules.Dependencies[newModule] = repositoryFile
+		cfg.Modules.Dependencies[newModule] = "" //TODO: replace with version
 
 		err = config.SaveConfig(configFile, cfg)
 		if err != nil {
@@ -182,7 +185,9 @@ var modulesInstallCMD = &cobra.Command{
 			tm.Print(tm.Color("Downloading "+tm.Bold(moduleName), tm.BLUE) + tm.Color(" from repository "+tm.Bold(repositoryFile), tm.BLUE) + "\n")
 			tm.Flush()
 
-			err := installModule(moduleName, moduleRepository)
+			err := modules.InstallModule(moduleName, "", moduleRepository, &cfg.Modules)
+
+			//err := installModule(moduleName, moduleRepository)
 			checkModuleErr(err)
 
 			tm.Print(tm.Color("Finished downloading "+tm.Bold(moduleName), tm.GREEN) + "\n \n")
@@ -213,7 +218,7 @@ func installModule(moduleName string, moduleRepository string) errors.Error {
 	var ok bool
 
 	if moduleInfo, ok = moduleList[moduleRepository][moduleName]; !ok {
-		return ErrUnknownModule.SetRoot("")
+		return ErrUnknownModule
 	}
 
 	if _, ok := moduleInfo.Compiled[goos]; ok {

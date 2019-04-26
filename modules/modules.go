@@ -36,6 +36,13 @@ type (
 	ModuleConfig struct {
 		Config map[string]interface{}
 	}
+	//Modules is the part of the config file that handles modules
+	Modules struct {
+		Dependencies map[string]string       `json:"dependencies"`
+		Config       map[string]ModuleConfig `json:"config,omitempty"`
+		SPPs         []string                `json:"spps,omitempty"`
+		Repositories []string                `json:"repositories"`
+	}
 )
 
 var (
@@ -99,7 +106,9 @@ var (
 
 //LoadModules communicates with modules to load them.
 //Although this should be used for initial setup, for hoatloading modules use LoadModule.
-func LoadModules(moduleRoot string, deps map[string]string, configs map[string]ModuleConfig, log host.Logger) (moduleHost map[string]*host.ModuleHost, err errors.Error) {
+func LoadModules(moduleRoot string, modules Modules, log host.Logger) (moduleHost map[string]*host.ModuleHost, err errors.Error) {
+	deps := modules.Dependencies
+	configs := modules.Config
 	moduleHost = make(map[string]*host.ModuleHost, len(deps))
 
 	for identifier, version := range deps {
@@ -129,7 +138,7 @@ func LoadModules(moduleRoot string, deps map[string]string, configs map[string]M
 
 //LoadModule Loads a specific module and is menth for hotloading, this
 //should not be used for initial setup. For initial setup use LoadModules.
-func LoadModule(moduleRoot string, identifier string, version string, moduleHost map[string]*host.ModuleHost, config ModuleConfig, log host.Logger) errors.Error {
+func LoadModule(moduleRoot, identifier, version string, moduleHost map[string]*host.ModuleHost, config ModuleConfig, log host.Logger) errors.Error {
 	if _, ok := loadedModules[identifier]; ok {
 		if loadedModules[identifier] == version {
 			return nil

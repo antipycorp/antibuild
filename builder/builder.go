@@ -41,7 +41,7 @@ var (
 	ErrFailedExport = errors.NewError("failed to export the output files", 2)
 	//ErrNoOutputSpecified is for a failure in gathering files.
 	ErrNoOutputSpecified = errors.NewError("no output folder specified", 3)
-	//ErrFailedRemoveFile is for a failure in gathering files.
+	//ErrFailedRemoveFile is for failling to remove the output folder.
 	ErrFailedRemoveFile = errors.NewError("failed removing output folder", 4)
 )
 
@@ -135,15 +135,8 @@ func startCachedParse(cfg *config.Config, cache *cache) errors.Error {
 
 	//if there is a config update reload all modules
 	if cache.configUpdate {
-		var moduleConfig = make(map[string]modules.ModuleConfig, len(cfg.Modules.Config))
 
-		for module, mConfig := range cfg.Modules.Config {
-			moduleConfig[module] = modules.ModuleConfig{
-				Config: mConfig,
-			}
-		}
-
-		moduleHost, err := modules.LoadModules(cfg.Folders.Modules, cfg.Modules.Dependencies, moduleConfig, cfg.UILogger)
+		moduleHost, err := modules.LoadModules(cfg.Folders.Modules, cfg.Modules, cfg.UILogger)
 		if err != nil {
 			cfg.UILogger.Fatal(err.Error())
 			return nil

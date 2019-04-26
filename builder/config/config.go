@@ -10,6 +10,7 @@ import (
 
 	"gitlab.com/antipy/antibuild/api/host"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
+	"gitlab.com/antipy/antibuild/cli/modules"
 
 	"gitlab.com/antipy/antibuild/cli/builder/site"
 )
@@ -19,7 +20,7 @@ type (
 	Config struct {
 		LogConfig  log                         `json:"logging"`
 		Folders    Folder                      `json:"folders"`
-		Modules    Modules                     `json:"modules"`
+		Modules    modules.Modules             `json:"modules"`
 		Pages      *site.ConfigSite            `json:"pages"`
 		ModuleHost map[string]*host.ModuleHost `json:"-"`
 		UILogger   UIlogger                    `json:"-"`
@@ -30,13 +31,6 @@ type (
 		Static    string `json:"static"`
 		Output    string `json:"output"`
 		Modules   string `json:"modules"`
-	}
-
-	//Modules is the part of the config file that handles modules
-	Modules struct {
-		Dependencies map[string]string                 `json:"dependencies"`
-		Config       map[string]map[string]interface{} `json:"config,omitempty"`
-		SPPs         []string                          `json:"spps,omitempty"`
 	}
 )
 
