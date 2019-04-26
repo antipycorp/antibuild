@@ -20,6 +20,20 @@ import (
 	UI "gitlab.com/antipy/antibuild/cli/ui"
 )
 
+type cache struct {
+	rootPage site.ConfigSite
+	data     map[string]cacheData
+
+	configUpdate bool
+	checkData    bool
+}
+
+type cacheData struct {
+	dependencies []string
+	site         site.Site
+	shouldRemove bool
+}
+
 var (
 	//ErrFailedUnfold is when the template failed building
 	ErrFailedUnfold = errors.NewError("failed to unfold", 1)
@@ -46,7 +60,7 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 		ui.Port = port
 
 		if os.Getenv("DEBUG") == "1" { //cant get out of this, itl just loop
-			cache, _ := actualStartParse(cfg)
+			cache, _ := startParse(cfg)
 			net.HostDebug()
 			timeout := time.After(1 * time.Minute)
 
@@ -58,7 +72,7 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 				default:
 					cache.configUpdate = true
 					cache.rootPage = *cfg.Pages
-					startParse2(cfg, cache)
+					startCachedParse(cfg, cache)
 				}
 			}
 		}
@@ -72,7 +86,7 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 			return
 		}
 
-		_, err = actualStartParse(cfg)
+		_, err = startParse(cfg)
 		if err != nil {
 			cfg.UILogger.Fatal(err.Error())
 			println(err.Error())
@@ -98,158 +112,21 @@ func HeadlesStart(configLocation string, output io.Writer) {
 	cfg.UILogger.Info("Config is parsed and valid")
 	cfg.UILogger.Debugf("Parsed Config: %v", cfg)
 
-	_, err = startParse(cfg)
+	cache := &cache{
+		rootPage:     *cfg.Pages,
+		data:         make(map[string]cacheData),
+		configUpdate: true,
+		checkData:    false,
+	}
+
+	err = startCachedParse(cfg, cache)
 	if err != nil {
 		cfg.UILogger.Fatalf(err.Error())
 		return
 	}
 }
 
-func startCachedParse(c *cache) errors.Error {
-	start := time.Now()
-
-	//check if the output folder is there and delete its contents
-	if c.config.Folders.Output != "" {
-		if c.configChanged {
-			os.RemoveAll(c.config.Folders.Output)
-		}
-	} else {
-		return ErrNoOutputSpecified
-	}
-
-	if c.configChanged {
-		c.config.UILogger.Debug("Initializing module config")
-		var moduleConfig = make(map[string]modules.ModuleConfig, len(c.config.Modules.Config))
-
-		for module, mConfig := range c.config.Modules.Config {
-			moduleConfig[module] = modules.ModuleConfig{
-				Config: mConfig,
-			}
-		}
-
-		c.config.UILogger.Debug("Loading modules")
-		moduleHost, err := modules.LoadModules(c.config.Folders.Modules, c.config.Modules.Dependencies, moduleConfig, c.config.UILogger)
-		if err != nil {
-			c.config.UILogger.Fatal(err.Error())
-			return nil
-		}
-		if moduleHost != nil {
-			c.config.ModuleHost = moduleHost
-		}
-		c.config.UILogger.Debug("Finished loading modules")
-
-		pages := c.config.Pages
-
-		c.config.Pages = &site.ConfigSite{}
-		c.config.Pages.Sites = make([]site.ConfigSite, 1)
-		c.config.Pages.Sites[0] = *pages
-
-		site.OutputFolder = c.config.Folders.Output
-		site.TemplateFolder = c.config.Folders.Templates
-		site.StaticFolder = c.config.Folders.Static
-	}
-
-	if c.shouldUnfold || c.configChanged {
-		c.config.UILogger.Debug("Unfolding sites")
-		var err errors.Error
-		//c.cSites, err = site.Unfold(c.config.Pages, c.config.UILogger.(*UI.UI))
-		if err != nil {
-			return err
-		}
-		c.config.UILogger.Debug("Finished unfolding sites")
-	}
-
-	var sites []*site.Site
-	var changed [][16]byte
-
-	if len(c.templatesToRebuild) > 0 || c.shouldUnfold || c.configChanged {
-		c.config.UILogger.Debug("Started gathering")
-		for hash, cSite := range c.cSites {
-			if c.configChanged || c.shouldUnfold {
-				s, err := site.Gather(cSite, c.config.UILogger.(*UI.UI))
-				if err != nil {
-					return err
-				}
-				c.sites[hash] = s
-				changed = append(changed, hash)
-			} else {
-				for _, t := range c.templatesToRebuild {
-					if contains(cSite.Templates, t) {
-						s, err := site.Gather(cSite, c.config.UILogger.(*UI.UI))
-						if err != nil {
-							return err
-						}
-						c.sites[hash] = s
-						changed = append(changed, hash)
-					}
-				}
-			}
-		}
-		c.config.UILogger.Debug("Finished gathering")
-
-		if len(c.config.Modules.SPPs) > 0 {
-			for _, cSite := range c.sites {
-				sites = append(sites, cSite)
-			}
-
-			c.config.UILogger.Debug("Started post-processing")
-			err := site.PostProcess(&sites, c.config.Modules.SPPs, c.config.UILogger.(*UI.UI))
-			if err != nil {
-				return err
-			}
-			c.config.UILogger.Debug("Finished post-processing")
-
-		}
-	}
-
-	c.config.UILogger.Debug("Started building")
-	if len(sites) == 0 && len(c.config.Modules.SPPs) == 0 {
-		for _, hash := range changed {
-			sites = append(sites, c.sites[hash])
-		}
-	}
-	err := site.Execute(sites, c.config.UILogger.(*UI.UI))
-	if err != nil {
-		return err
-	}
-	c.config.UILogger.Infof("Built %d pages", len(sites))
-
-	c.config.UILogger.Infof("Completed in %s", time.Since(start).String())
-
-	c.configChanged = false
-	c.shouldUnfold = false
-	c.templatesToRebuild = []string{}
-
-	return nil
-}
-
-func startParse(cfg *config.Config) (*cache, errors.Error) {
-	c := &cache{
-		config:        cfg,
-		configChanged: true,
-		moduleConfig:  map[string]modules.ModuleConfig{},
-		cSites:        map[[16]byte]*site.ConfigSite{},
-		sites:         map[[16]byte]*site.Site{},
-	}
-
-	return c, startCachedParse(c)
-}
-
-type cach struct {
-	rootPage site.ConfigSite
-	data     map[string]cachData
-
-	configUpdate bool
-	checkData    bool
-}
-
-type cachData struct {
-	dependencies []string
-	site         site.Site
-	shouldRemove bool
-}
-
-func startParse2(cfg *config.Config, cache *cach) errors.Error {
+func startCachedParse(cfg *config.Config, cache *cache) errors.Error {
 	start := time.Now()
 
 	if cfg.Folders.Output == "" {
@@ -294,7 +171,7 @@ func startParse2(cfg *config.Config, cache *cach) errors.Error {
 		depChange := false
 
 		var ok bool
-		var cd cachData
+		var cd cacheData
 		if cd, ok = cache.data[cSite.Slug]; ok && !cache.configUpdate {
 			if len(cSite.Dependencies) != len(cd.dependencies) {
 				depChange = true
@@ -377,14 +254,14 @@ func startParse2(cfg *config.Config, cache *cach) errors.Error {
 	return nil
 }
 
-func actualStartParse(cfg *config.Config) (*cach, errors.Error) {
-	cache := &cach{
+func startParse(cfg *config.Config) (*cache, errors.Error) {
+	cache := &cache{
 		rootPage:     *cfg.Pages,
-		data:         make(map[string]cachData),
+		data:         make(map[string]cacheData),
 		configUpdate: true,
 		checkData:    false,
 	}
-	return cache, startParse2(cfg, cache)
+	return cache, startCachedParse(cfg, cache)
 }
 
 func contains(s []string, e string) bool {

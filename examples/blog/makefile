@@ -11,11 +11,7 @@ build: $(binary)
 debug: export DEBUG = 1
 debug: export GODEBUG = gctrace=1
 debug: $(binary)
-<<<<<<< Updated upstream
-	./$(binary) build
-=======
 	./$(binary) develop
->>>>>>> Stashed changes
 
 develop:
 	./$(binary) develop

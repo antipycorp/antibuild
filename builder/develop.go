@@ -10,9 +10,6 @@ import (
 
 	"github.com/eiannone/keyboard"
 
-	"gitlab.com/antipy/antibuild/cli/builder/site"
-	"gitlab.com/antipy/antibuild/cli/modules"
-
 	"github.com/fsnotify/fsnotify"
 	"gitlab.com/antipy/antibuild/cli/builder/config"
 	"gitlab.com/antipy/antibuild/cli/internal"
@@ -20,21 +17,9 @@ import (
 	UI "gitlab.com/antipy/antibuild/cli/ui"
 )
 
-type cache struct {
-	config        *config.Config
-	moduleConfig  map[string]modules.ModuleConfig
-	configChanged bool
-
-	cSites       map[[16]byte]*site.ConfigSite
-	shouldUnfold bool
-
-	sites              map[[16]byte]*site.Site
-	templatesToRebuild []string
-}
-
 //watches files and folders and rebuilds when things change
 func buildOnRefresh(cfg *config.Config, configLocation string, ui *UI.UI) {
-	cache, err := actualStartParse(cfg)
+	cache, err := startParse(cfg)
 	if err != nil {
 		cfg.UILogger.Fatal(err.Error())
 		println(err.Error())
@@ -99,7 +84,7 @@ func staticWatch(src, dst string, shutdown chan int, log config.UIlogger) {
 }
 
 //! modules will not be able to call a refresh and thus we can only use the (local) templates as a source
-func watchBuild(cfg *config.Config, c *cach, configloc string, shutdown chan int, ui *UI.UI) {
+func watchBuild(cfg *config.Config, c *cache, configloc string, shutdown chan int, ui *UI.UI) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		ui.Errorf("could not open a file watcher: %s", err.Error())
@@ -174,7 +159,7 @@ func watchBuild(cfg *config.Config, c *cach, configloc string, shutdown chan int
 				}
 			}
 
-			err = startParse2(cfg, c)
+			err = startCachedParse(cfg, c)
 			if err != nil {
 				failedToRender(cfg)
 			} else {
@@ -193,10 +178,10 @@ func watchBuild(cfg *config.Config, c *cach, configloc string, shutdown chan int
 				}
 
 				c.configUpdate = true
-				err = startParse2(cfg, c)
+				err = startCachedParse(cfg, c)
 			case keys[1]:
 				c.configUpdate = true
-				err = startParse2(cfg, c)
+				err = startCachedParse(cfg, c)
 			}
 
 			if err != nil {
