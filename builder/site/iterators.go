@@ -6,9 +6,8 @@ package site
 
 import (
 	"bytes"
-	"strings"
-
 	"gitlab.com/antipy/antibuild/cli/ui"
+	"strings"
 
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
 )
@@ -29,11 +28,11 @@ var (
 )
 
 // MarshalJSON marshalls the iterator data
-func (i *IteratorData) MarshalJSON() ([]byte, error) {
+func (i IteratorData) MarshalJSON() ([]byte, error) {
 	return []byte("\"" + i.String() + "\""), nil
 }
 
-func (i *IteratorData) String() string {
+func (i IteratorData) String() string {
 	out := ""
 
 	out += "[" + i.Iterator

@@ -11,7 +11,6 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/pkg/profile"
 	"gitlab.com/antipy/antibuild/cli/builder/config"
 	"gitlab.com/antipy/antibuild/cli/builder/site"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
@@ -47,17 +46,14 @@ func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSe
 		ui.Port = port
 
 		if os.Getenv("DEBUG") == "1" { //cant get out of this, itl just loop
-			p := profile.Start(profile.MemProfile)
-
 			cache, _ := actualStartParse(cfg)
 			net.HostDebug()
-			timeout := time.After(10 * time.Second)
+			timeout := time.After(1 * time.Minute)
 
 			for i := 0; ; i++ {
 				select {
 				case <-timeout:
 					println("did", i, "iterations int one minute")
-					p.Stop()
 					return
 				default:
 					cache.configUpdate = true

@@ -12,7 +12,7 @@ import (
 	"context"
 
 	//pprof should only work when the host is on, otherwise its not gonna be used anyways
-
+	_ "net/http/pprof"
 	"os"
 
 	ws "gitlab.com/antipy/antibuild/cli/net/websocket"

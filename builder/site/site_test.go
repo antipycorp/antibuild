@@ -167,8 +167,8 @@ func (i iterator) GetPipe(variable string) pipeline.Pipe {
 //Testunfold doesn't test template parsing, if anything failed it will be done during execute
 func TestUnfold(t *testing.T) {
 	for _, test := range unfoldTests {
-		s := site.DeepCopy(test.in)
-		dat, err := site.Unfold(&s, testUI)
+		in := site.DeepCopy(test.in)
+		dat, err := site.Unfold(&in, testUI)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -206,8 +206,8 @@ func TestUnfold(t *testing.T) {
 
 func TestExecute(t *testing.T) {
 	for _, test := range unfoldTests {
-		s := site.DeepCopy(test.in)
-		dat, err := site.Unfold(&s, testUI)
+		in := site.DeepCopy(test.in)
+		dat, err := site.Unfold(&in, testUI)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -296,7 +296,7 @@ func genGather(benchID int) func(*testing.B) {
 
 			site.Unfold(&s, testUI)
 		}
-
+		
 		var sites = make([][]*site.ConfigSite, b.N)
 		for n := 0; n < b.N; n++ {
 			s := site.DeepCopy(benchMarks[benchID])

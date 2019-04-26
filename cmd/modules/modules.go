@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 
 	tm "github.com/buger/goterm"
 	"github.com/spf13/cobra"
@@ -41,6 +40,8 @@ var (
 	ErrFailedGitRepositoryDownload = errors.NewError("failed to clone the git repository", 11)
 	//ErrFailedModuleBuild means that the module could not be built
 	ErrFailedModuleBuild = errors.NewError("failed to build the module from repository source", 21)
+	//ErrFileSystem means that something withh the filesystem has gone wrong
+	ErrFileSystem = errors.NewError("failled to ineract with the filesystem", 31)
 )
 
 var configFile string
@@ -194,6 +195,14 @@ func installModule(moduleName string, moduleRepository string) errors.Error {
 	goos := runtime.GOOS
 	goarch := runtime.GOARCH
 	module := "abm_" + moduleName
+	targetFile := ".modules/" + module
+
+	if _, err := os.Stat(".modules/"); os.IsNotExist(err) {
+		err = os.MkdirAll(".modules/", 0755)
+		if err != nil {
+			return ErrFileSystem.SetRoot(err.Error())
+		}
+	}
 
 	err := updateModuleList(moduleRepository)
 	if err != nil {
@@ -209,8 +218,7 @@ func installModule(moduleName string, moduleRepository string) errors.Error {
 
 	if _, ok := moduleInfo.Compiled[goos]; ok {
 		if _, ok := moduleInfo.Compiled[goos][goarch]; ok {
-			err := os.Mkdir(".modules/", 0755)
-			err = internal.DownloadFile(".modules/"+module, moduleInfo.Compiled[goos][goarch], true)
+			err = internal.DownloadFile(targetFile, moduleInfo.Compiled[goos][goarch], true)
 			if err != nil {
 				return ErrFailedModuleBinaryDownload.SetRoot(err.Error())
 			}
@@ -231,7 +239,7 @@ func installModule(moduleName string, moduleRepository string) errors.Error {
 			return ErrFailedGitRepositoryDownload.SetRoot(err.Error())
 		}
 
-		dir = filepath.Join(dir, strings.Split(moduleInfo.Source.URL, "/")[len(strings.Split(moduleInfo.Source.URL, "/"))-1])
+		dir = filepath.Join(dir, filepath.Base(moduleInfo.Source.URL))
 
 		break
 	default:
@@ -239,7 +247,7 @@ func installModule(moduleName string, moduleRepository string) errors.Error {
 	}
 
 	dir = filepath.Join(dir, moduleInfo.Source.SubDirectory)
-	err = internal.CompileFromSource(dir, ".modules/"+module)
+	err = internal.CompileFromSource(dir, targetFile)
 	if err != nil {
 		return ErrFailedModuleBuild.SetRoot(err.Error())
 	}

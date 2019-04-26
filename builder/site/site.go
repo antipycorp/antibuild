@@ -5,10 +5,8 @@
 package site
 
 import (
-	"bytes"
-	"crypto/md5"
 	"html/template"
-	"io"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -101,6 +99,7 @@ var (
 	OutputFolder string
 
 	globalTemplates = make(map[string]*template.Template)
+	subTemplates    = make(map[string]string)
 
 	//ErrFailedTemplate is when the template failed building
 	ErrFailedTemplate = errors.NewError("failed building template", 1)
@@ -340,24 +339,25 @@ func gatherData(site *Site, files []Data) errors.Error {
 	return nil
 }
 
-//TODO optimize the SHIT out of this.
 func gatherTemplates(site *Site, templates []string) errors.Error {
-	var newTemplates = make([]string, len(templates))
-	for i, template := range templates {
+	finalTemplate := template.New("").Funcs(TemplateFunctions)
+	for _, tPath := range templates {
 		//prefix the templates with the TemplateFolder
-		newTemplates[i] = filepath.Join(TemplateFolder, template)
+		path := filepath.Join(TemplateFolder, tPath)
+		if _, ok := subTemplates[path]; !ok {
+			bytes, err := ioutil.ReadFile(path)
+			if err != nil {
+				return errors.Import(err)
+			}
+			subTemplates[path] = string(bytes)
+		}
+		finalTemplate.Parse(subTemplates[path])
 	}
-
-	var err error
 
 	//get the template with the TemplateFunctions initalized
 	id := randString(32)
-	template, err := template.New("").Funcs(TemplateFunctions).ParseFiles(newTemplates...)
-	if err != nil {
-		return errors.Import(err)
-	}
 
-	globalTemplates[id] = template
+	globalTemplates[id] = finalTemplate
 	site.Template = id
 
 	return nil
@@ -418,6 +418,7 @@ func execute(sites []*Site, log *ui.UI) errors.Error {
 func executeTemplate(site *Site) errors.Error {
 	//prefix the slug with the output folder
 	fileLocation := filepath.Join(OutputFolder, site.Slug)
+
 	//check all folders in the path of the output file
 	err := os.MkdirAll(filepath.Dir(fileLocation), 0766)
 	if err != nil {
@@ -478,39 +479,4 @@ func randString(n int) string {
 	}
 
 	return string(b)
-}
-
-func (c ConfigSite) hash() [16]byte {
-	hash := &bytes.Buffer{}
-	io.WriteString(hash, c.Slug)
-	for _, v := range c.Templates {
-		io.WriteString(hash, v)
-	}
-	for i, v := range c.IteratorValues {
-		io.WriteString(hash, i)
-		io.WriteString(hash, v)
-	}
-
-	for i, v := range c.Iterators {
-		io.WriteString(hash, i)
-		io.WriteString(hash, v.Iterator)
-		io.WriteString(hash, v.IteratorArguments)
-		for _, v := range v.List {
-			io.WriteString(hash, v)
-		}
-	}
-
-	for _, v := range c.Data {
-		io.WriteString(hash, v.ShouldRange)
-		io.WriteString(hash, v.Loader)
-		io.WriteString(hash, v.LoaderArguments)
-		io.WriteString(hash, v.Parser)
-		io.WriteString(hash, v.ParserArguments)
-		for _, v := range v.PostProcessors {
-			io.WriteString(hash, v.PostProcessor)
-			io.WriteString(hash, v.PostProcessorArguments)
-		}
-	}
-
-	return md5.Sum(hash.Bytes())
 }
