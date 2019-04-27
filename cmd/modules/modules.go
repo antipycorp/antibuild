@@ -5,16 +5,11 @@
 package modules
 
 import (
-	"io/ioutil"
 	"os"
-	"path/filepath"
-	"runtime"
 
 	tm "github.com/buger/goterm"
 	"github.com/spf13/cobra"
 	"gitlab.com/antipy/antibuild/cli/builder/config"
-	cmdInternal "gitlab.com/antipy/antibuild/cli/cmd/internal"
-	"gitlab.com/antipy/antibuild/cli/internal"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
 	"gitlab.com/antipy/antibuild/cli/modules"
 	"gitlab.com/antipy/antibuild/cli/ui"
@@ -25,28 +20,8 @@ var fallbackUI = ui.UI{
 	PrettyLog:      true,
 }
 
-var moduleList = make(map[string]map[string]cmdInternal.ModuleRepositoryEntry)
-var moduleListLoaded = make(map[string]bool)
-
-var (
-	//ErrFailedModuleBinaryDownload means the module binary download failed
-	ErrFailedModuleBinaryDownload = errors.NewError("failed downloading module binary from repository server", 1)
-	//ErrFailedModuleRepositoryListDownload means the module repository list download failed
-	ErrFailedModuleRepositoryListDownload = errors.NewError("failed downloading the module repository list", 2)
-	//ErrUnknownModule means that the module could not be found in the module repository list
-	ErrUnknownModule = errors.NewError("module was not found in module repository list", 3)
-	//ErrUnkownSourceRepositoryType means that source repository type was not recognized
-	ErrUnkownSourceRepositoryType = errors.NewError("source repository code is unknown", 10)
-	//ErrFailedGitRepositoryDownload means that the git repository could not be cloned
-	ErrFailedGitRepositoryDownload = errors.NewError("failed to clone the git repository", 11)
-	//ErrFailedModuleBuild means that the module could not be built
-	ErrFailedModuleBuild = errors.NewError("failed to build the module from repository source", 21)
-	//ErrFileSystem means that something withh the filesystem has gone wrong
-	ErrFileSystem = errors.NewError("failled to ineract with the filesystem", 31)
-)
-
 var configFile string
-var repositoryFile string
+var repositoryFile = modules.NoRepoSpecified
 
 // modulesCMD represents the modules command
 var modulesCMD = &cobra.Command{
@@ -65,7 +40,7 @@ var modulesAddCMD = &cobra.Command{
 		"a",
 	},
 	Short: "Get a module",
-	Long:  `Adds and downloads a module.`,
+	Long:  `Adds and downloads a module. Repositories specified by -m, will be checked, if nothing is specified it will first check the repositories specified in the config file. If nothing is found the standart repositorie is queried (` + modules.STDRepo + `)`,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg, err := config.GetConfig(configFile)
@@ -85,7 +60,6 @@ var modulesAddCMD = &cobra.Command{
 
 		err = modules.InstallModule(newModule, "", repositoryFile, &cfg.Modules)
 
-		//err = installModule(newModule, repositoryFile)
 		checkModuleErr(err)
 		if err != nil {
 			return
@@ -186,8 +160,6 @@ var modulesInstallCMD = &cobra.Command{
 			tm.Flush()
 
 			err := modules.InstallModule(moduleName, "", moduleRepository, &cfg.Modules)
-
-			//err := installModule(moduleName, moduleRepository)
 			checkModuleErr(err)
 
 			tm.Print(tm.Color("Finished downloading "+tm.Bold(moduleName), tm.GREEN) + "\n \n")
@@ -196,107 +168,44 @@ var modulesInstallCMD = &cobra.Command{
 	},
 }
 
-func installModule(moduleName string, moduleRepository string) errors.Error {
-	goos := runtime.GOOS
-	goarch := runtime.GOARCH
-	module := "abm_" + moduleName
-	targetFile := ".modules/" + module
-
-	if _, err := os.Stat(".modules/"); os.IsNotExist(err) {
-		err = os.MkdirAll(".modules/", 0755)
-		if err != nil {
-			return ErrFileSystem.SetRoot(err.Error())
-		}
-	}
-
-	err := updateModuleList(moduleRepository)
-	if err != nil {
-		return ErrFailedModuleRepositoryListDownload.SetRoot(err.Error())
-	}
-
-	var moduleInfo cmdInternal.ModuleRepositoryEntry
-	var ok bool
-
-	if moduleInfo, ok = moduleList[moduleRepository][moduleName]; !ok {
-		return ErrUnknownModule
-	}
-
-	if _, ok := moduleInfo.Compiled[goos]; ok {
-		if _, ok := moduleInfo.Compiled[goos][goarch]; ok {
-			err = internal.DownloadFile(targetFile, moduleInfo.Compiled[goos][goarch], true)
-			if err != nil {
-				return ErrFailedModuleBinaryDownload.SetRoot(err.Error())
-			}
-
-			return nil
-		}
-	}
-
-	dir, err := ioutil.TempDir("", module)
-	if err != nil {
-		panic(err)
-	}
-
-	switch moduleInfo.Source.Type {
-	case "git":
-		err = internal.DownloadGit(dir, moduleInfo.Source.URL)
-		if err != nil {
-			return ErrFailedGitRepositoryDownload.SetRoot(err.Error())
-		}
-
-		dir = filepath.Join(dir, filepath.Base(moduleInfo.Source.URL))
-
-		break
-	default:
-		return ErrUnkownSourceRepositoryType.SetRoot(moduleInfo.Source.Type + " is not a known source repository type")
-	}
-
-	dir = filepath.Join(dir, moduleInfo.Source.SubDirectory)
-	err = internal.CompileFromSource(dir, targetFile)
-	if err != nil {
-		return ErrFailedModuleBuild.SetRoot(err.Error())
-	}
-	return nil
-}
-
 func checkModuleErr(err errors.Error) {
 	if err != nil {
 		switch err.GetCode() {
-		case ErrFailedModuleBinaryDownload.GetCode():
+		case modules.ErrFailedModuleBinaryDownload.GetCode():
 			tm.Print("" +
 				tm.Color(tm.Bold("Failed to download module."), tm.RED) + "\n" +
 				"\n" +
 				"   The module you are trying to download has a pre-built binary for your architecture and os but it failed to download. The server might be down. \n" +
 				"\n")
-		case ErrFailedModuleRepositoryListDownload.GetCode():
+		case modules.ErrNotExist.GetCode():
 			tm.Print("" +
-				tm.Color(tm.Bold("Failed to download module repository list."), tm.RED) + "\n" +
+				tm.Color(tm.Bold("Module is not found."), tm.RED) + "\n" +
 				"\n" +
-				"   The module repository list could not be downloaded. The server might be down.\n" +
+				"   The module you requested is not listed in the module repository specified, those in the config file, or the standart repository.\nIs the name of the module spelled correctly?\n" +
 				"\n")
-		case ErrUnknownModule.GetCode():
+		case modules.ErrFailedModuleRepositoryDownload.GetCode():
 			tm.Print("" +
-				tm.Color(tm.Bold("Module does not exist."), tm.RED) + "\n" +
+				tm.Color(tm.Bold("Failed to query the repository."), tm.RED) + "\n" +
 				"\n" +
-				"   The module you requested is not listed in the module repository list. Is the name of the module spelled correctly?\n" +
+				"   The repository that was specified, or any in the config file, are not valid repositories. make sure you specified the correct url.\n" +
 				"\n")
-		case ErrUnkownSourceRepositoryType.GetCode():
-			tm.Print("" +
-				tm.Color(tm.Bold("Failed to download module."), tm.RED) + "\n" +
-				"\n" +
-				"   The repository type that was supplied in the module repository list is not valid. Are you using an old version of Antibuild?\n" +
-				"\n")
-		case ErrFailedGitRepositoryDownload.GetCode():
+		case modules.ErrFailedGitRepositoryDownload.GetCode():
 			tm.Print("" +
 				tm.Color(tm.Bold("Failed to download git repository for module."), tm.RED) + "\n" +
 				"\n" +
 				"   The source code could not be cloned from repository the git repository. Do you have Git installed?\n" +
 				"\n")
-		case ErrFailedModuleBuild.GetCode():
+		case modules.ErrFailedModuleBuild.GetCode():
 			tm.Print("" +
 				tm.Color(tm.Bold("Failed to build module form source."), tm.RED) + "\n" +
 				"\n" +
 				"   The module could not be built from repository source. Make sure you have Go installed.\n" +
+				"\n")
+		case modules.ErrUnkownSourceRepositoryType.GetCode():
+			tm.Print("" +
+				tm.Color(tm.Bold("The repository is invalid."), tm.RED) + "\n" +
+				"\n" +
+				"   the source type is not supported in this version of antibuild.\n" +
 				"\n")
 		default:
 			tm.Print("" +
@@ -313,29 +222,11 @@ func checkModuleErr(err errors.Error) {
 	}
 }
 
-func updateModuleList(moduleRepository string) error {
-	if _, ok := moduleListLoaded[moduleRepository]; !ok {
-		moduleListLoaded[moduleRepository] = false
-	}
-
-	if !moduleListLoaded[moduleRepository] {
-		moduleListLoaded[moduleRepository] = true
-
-		var err error
-		moduleList[moduleRepository], err = cmdInternal.GetModuleRepository(moduleRepository)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 //SetCommands sets the commands for this package to the cmd argument
 func SetCommands(cmd *cobra.Command) {
 	modulesInstallCMD.Flags().StringVarP(&configFile, "config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
 	modulesAddCMD.Flags().StringVarP(&configFile, "config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
-	modulesAddCMD.Flags().StringVarP(&repositoryFile, "modules", "m", "https://build.antipy.com/dl/modules.json", "The module repository list file to use. Default is \"https://build.antipy.com/dl/modules.json\"")
+	modulesAddCMD.Flags().StringVarP(&repositoryFile, "modules", "m", modules.NoRepoSpecified, "The module repository to use.")
 	modulesRemoveCMD.Flags().StringVarP(&configFile, "config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
 
 	modulesCMD.AddCommand(modulesInstallCMD)

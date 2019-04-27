@@ -5,6 +5,7 @@
 package new
 
 import (
+	"gitlab.com/antipy/antibuild/cli/modules"
 	"io/ioutil"
 	"log"
 	"os"
@@ -38,11 +39,8 @@ var newCMD = &cobra.Command{
 	Short: "Make a new antibuild project.",
 	Long:  `Generate a new antibuild project. To get started run "antibuild new" and follow the prompts.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		moduleRepository, err := cmdInternal.GetModuleRepository(moduleRepositoryURL)
-		if err != nil {
-			println("Failed to download module repository list.")
-			return
-		}
+		moduleRepository := &modules.ModuleRepository{}
+		moduleRepository.Download(moduleRepositoryURL)
 
 		templateRepository, err := cmdInternal.GetTemplateRepository(templateRepositoryURL)
 		if err != nil {
@@ -53,7 +51,7 @@ var newCMD = &cobra.Command{
 		var modules []string
 		var templates []string
 
-		for module := range moduleRepository {
+		for module := range *moduleRepository {
 			modules = append(modules, module)
 		}
 
@@ -107,12 +105,17 @@ var newCMD = &cobra.Command{
 			println(err.Error())
 			return
 		}
+		var modulesFinal = make([][2]string, len(answers.DefaultModules))
+		for i := range modules {
+			modulesFinal[i][0] = answers.DefaultModules[i]
+			modulesFinal[i][1] = moduleRepositoryURL
 
+		}
 		if _, err := ioutil.ReadDir(answers.Name); os.IsNotExist(err) {
 			downloadTemplate(templateRepository, answers.Template, answers.Name)
 
 			if len(answers.DefaultModules) > 0 {
-				installModules(moduleRepository, answers.DefaultModules, answers.Name)
+				installModules(modulesFinal, answers.Name)
 			}
 
 			println("Success. Run these commands to get started:\n")
@@ -194,7 +197,7 @@ func downloadTemplate(templateRepository map[string]cmdInternal.TemplateReposito
 	return true
 }
 
-func installModules(moduleRepository map[string]cmdInternal.ModuleRepositoryEntry, modules []string, outPath string) {
+func installModules(modules [][2]string, outPath string) {
 	cfg, err := config.GetConfig(filepath.Join(outPath, "config.json"))
 	if err != nil {
 		println("Could not open config file to add modules. Module installation will be skipped.")
@@ -202,7 +205,7 @@ func installModules(moduleRepository map[string]cmdInternal.ModuleRepositoryEntr
 	}
 
 	for _, module := range modules {
-		cfg.Modules.Dependencies[module] = moduleRepositoryURL
+		cfg.Modules.Dependencies[module[0]] = module[1]
 	}
 
 	err = config.SaveConfig(filepath.Join(outPath, "config.json"), cfg)

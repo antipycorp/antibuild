@@ -8,11 +8,17 @@ import (
 	"runtime"
 )
 
-const noRepoSpecified = "UNDEFINED"
+const (
+	//NoRepoSpecified should be used as a module repo when none is specified, will use the config repos and STDRepo
+	NoRepoSpecified = "UNSPECIFIED"
+	STDRepo         = "https://build.antipy.com/dl/modules.json"
+)
 
 var (
 	//ErrNotExist means the module does not exist in the repository
 	ErrNotExist = errors.NewError("module does not exist the repository:", 1)
+	//ErrNotExistAll means the module does not exist in the repository specified, not in the ones specified in the config, and not in the STDRepo
+	ErrNotExistAll = errors.NewError("module does not exist the repositories:", 2)
 	//ErrFailedModuleBinaryDownload means the module binary download failed
 	ErrFailedModuleBinaryDownload = errors.NewError("failed downloading module binary from repository server", 2)
 	//ErrUnkownSourceRepositoryType means that source repository type was not recognized
@@ -101,9 +107,9 @@ func (me ModuleEntry) Install(version, targetFile string) errors.Error {
 
 //InstallModule installs a module
 func InstallModule(name, version, repoURL string, config *Modules) errors.Error {
-
-	if repoURL != noRepoSpecified {
-		repo := &ModuleRepository{}
+	repo := &ModuleRepository{}
+	var err errors.Error
+	if repoURL != NoRepoSpecified {
 		err := repo.Download(repoURL)
 		err = repo.Install(name, version, "amb_"+name)
 		if err != nil {
@@ -113,7 +119,6 @@ func InstallModule(name, version, repoURL string, config *Modules) errors.Error 
 	}
 
 	for _, v := range config.Repositories {
-		repo := &ModuleRepository{}
 		err := repo.Download(v)
 		err = repo.Install(name, version, "amb_"+name)
 		if err != nil {
@@ -122,7 +127,17 @@ func InstallModule(name, version, repoURL string, config *Modules) errors.Error 
 			}
 			return err
 		}
-		break
+		goto postSetup
+	}
+	repoURL = STDRepo
+	err = repo.Download(repoURL)
+	err = repo.Install(name, version, "amb_"+name)
+	if err != nil {
+		if err.GetCode() == ErrNotExist.GetCode() {
+			return ErrNotExistAll.SetRoot(name)
+		}
+
+		return err
 	}
 
 postSetup:
