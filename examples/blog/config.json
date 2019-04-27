@@ -19,50 +19,50 @@
     }
   },
   "pages": {
-	"iterators": {
-		"article": "[file_all:data/articles]",
-		"author": "[file_all:data/authors]"
-	},
-	"slug": "",
-	"templates": ["layout.html"],
-	"sites": [
-		{
-			"slug": "/index.html",
-			"templates": ["home.html"]
-		},
-		{
-		"slug": "/articles/index.html",
-		"templates": ["articles.html"],
-		"data": [
-			"[range:article][file_file:data/articles/{{article}}/meta.yaml][yaml_yaml][util_prefix:{{article}}][util_prefix:articles]",
-			"[range:author][file_file:data/authors/{{author}}/meta.yaml][yaml_yaml][util_prefix:{{author}}][util_prefix:authors]"
-		]
-	  },
-	  {
-		"slug": "/authors/index.html",
-		"templates": ["authors.html"],
-		"data": [
-			"[range:article][file_file:data/articles/{{article}}/meta.yaml][yaml_yaml][util_prefix:{{article}}][util_prefix:articles]",
-			"[range:author][file_file:data/authors/{{author}}/meta.yaml][yaml_yaml][util_prefix:{{author}}][util_prefix:authors]"
-		]
-	  },
-	  {
-		"slug": "/articles/{{article}}/index.html",
-		"templates": ["article.html"],
-		"data": [
-			"[file_file:data/articles/{{article}}/meta.yaml][yaml_yaml][util_prefix:article]",
-			"[file_file:data/articles/{{article}}/article.md][markdown_read:article_content]",
-			"[range:author][file_file:data/authors/{{author}}/meta.yaml][yaml_yaml][util_prefix:{{author}}][util_prefix:authors]"
-		]
-	  },
-	  {
-		"slug": "/authors/{{author}}/index.html",
-		"templates": ["author.html"],
-		"data": [
-			"[file_file:data/authors/{{author}}/meta.yaml][yaml_yaml][util_prefix:author]",
-			"[range:article][file_file:data/articles/{{article}}/meta.yaml][yaml_yaml][util_prefix:{{article}}][util_prefix:articles]"
-		]
-	  }
-	]
+    "iterators": {
+      "article": "[file_all:data/articles]",
+      "author": "[file_all:data/authors]"
+    },
+    "slug": "",
+    "templates": ["layout.html"],
+    "sites": [
+      {
+        "slug": "/index.html",
+        "templates": ["home.html"]
+      },
+      {
+        "slug": "/articles/index.html",
+        "templates": ["articles.html"],
+        "data": [
+          "[range:article][file_file:data/articles/{{article}}/meta.yaml][yaml_yaml][util_prefix:{{article}}][util_prefix:articles]",
+          "[range:author][file_file:data/authors/{{author}}/meta.yaml][yaml_yaml][util_prefix:{{author}}][util_prefix:authors]"
+        ]
+      },
+      {
+        "slug": "/authors/index.html",
+        "templates": ["authors.html"],
+        "data": [
+          "[range:article][file_file:data/articles/{{article}}/meta.yaml][yaml_yaml][util_prefix:{{article}}][util_prefix:articles]",
+          "[range:author][file_file:data/authors/{{author}}/meta.yaml][yaml_yaml][util_prefix:{{author}}][util_prefix:authors]"
+        ]
+      },
+      {
+        "slug": "/articles/{{article}}/index.html",
+        "templates": ["article.html"],
+        "data": [
+          "[file_file:data/articles/{{article}}/meta.yaml][yaml_yaml][util_prefix:article]",
+          "[file_file:data/articles/{{article}}/article.md][markdown_read:article_content]",
+          "[range:author][file_file:data/authors/{{author}}/meta.yaml][yaml_yaml][util_prefix:{{author}}][util_prefix:authors]"
+        ]
+      },
+      {
+        "slug": "/authors/{{author}}/index.html",
+        "templates": ["author.html"],
+        "data": [
+          "[file_file:data/authors/{{author}}/meta.yaml][yaml_yaml][util_prefix:author]",
+          "[range:article][file_file:data/articles/{{article}}/meta.yaml][yaml_yaml][util_prefix:{{article}}][util_prefix:articles]"
+        ]
+      }
+    ]
   }
 }
