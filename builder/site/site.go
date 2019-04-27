@@ -183,8 +183,10 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]*ConfigSite, log *ui
 		return nil
 	}
 
-	for _, childSite := range cSite.Sites {
-		err = unfold(&childSite, cSite, sites, log)
+	for i := range cSite.Sites {
+		//the reason we use the index, is because otherwise the pointer will be re-used, and thus pverwritter by all following sites
+		//iterating sites dont have this issue since they always contain at least one deep-copy
+		err = unfold(&cSite.Sites[i], cSite, sites, log)
 		if err != nil {
 			return err
 		}

@@ -171,7 +171,7 @@ func (ui *UI) Error(err string) {
 	ui.log = append(ui.log, entry)
 	if ui.LogFile != nil {
 		if ui.PrettyLog {
-			ui.LogFile.Write([]byte(entry))
+			ui.LogFile.Write([]byte(entry + "\n"))
 			return
 		}
 		ui.LogFile.Write([]byte(err + "\n"))
@@ -191,7 +191,7 @@ func (ui *UI) Fatal(err string) {
 
 	if ui.LogFile != nil {
 		if ui.PrettyLog {
-			ui.LogFile.Write([]byte(entry))
+			ui.LogFile.Write([]byte(entry + "\n"))
 			return
 		}
 		ui.LogFile.Write([]byte(err + "\n"))
