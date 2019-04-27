@@ -29,7 +29,7 @@ var (
 	//ErrInvalidName is for a failure moving the static folder
 	ErrInvalidName = errors.NewError("name does not match the requirements", 2)
 
-	moduleRepositoryURL   string
+	moduleRepositoryURL   = modules.STDRepo
 	templateRepositoryURL string
 )
 
@@ -219,7 +219,7 @@ func installModules(modules [][2]string, outPath string) {
 
 //SetCommands sets the commands for this package to the cmd argument
 func SetCommands(cmd *cobra.Command) {
-	newCMD.Flags().StringVarP(&moduleRepositoryURL, "modules", "m", "https://build.antipy.com/dl/modules.json", "The module repository list file to use. Default is \"https://build.antipy.com/dl/modules.json\"")
+	newCMD.Flags().StringVarP(&moduleRepositoryURL, "modules", "m", modules.STDRepo, "The module repository list file to use. Default is \"https://build.antipy.com/dl/modules.json\"")
 	newCMD.Flags().StringVarP(&templateRepositoryURL, "templates", "t", "https://build.antipy.com/dl/templates.json", "The template repository list file to use. Default is \"https://build.antipy.com/dl/templates.json\"")
 	cmd.AddCommand(newCMD)
 }
