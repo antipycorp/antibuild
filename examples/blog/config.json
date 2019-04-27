@@ -22,11 +22,11 @@
 	"slug": "",
 	"templates": ["layout.html"],
 	"sites": [
-	  {
-		"slug": "/index.html",
-		"templates": ["home.html"]
-	  },	
-	  {
+		{
+			"slug": "/index.html",
+			"templates": ["home.html"]
+		  },
+		{
 		"iterators": {
 			"article": "[file_all:data/articles]",
 			"author": "[file_all:data/authors]"

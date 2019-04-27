@@ -126,8 +126,8 @@ var (
 */
 
 //Unfold the ConfigSite into a []ConfigSite
-func Unfold(configSite *ConfigSite, log *ui.UI) ([]*ConfigSite, errors.Error) {
-	var sites []*ConfigSite
+func Unfold(configSite *ConfigSite, log *ui.UI) ([]ConfigSite, errors.Error) {
+	var sites []ConfigSite
 	globalTemplates = make(map[string]*template.Template, len(sites))
 
 	err := unfold(configSite, nil, &sites, log)
@@ -138,7 +138,7 @@ func Unfold(configSite *ConfigSite, log *ui.UI) ([]*ConfigSite, errors.Error) {
 	return sites, nil
 }
 
-func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]*ConfigSite, log *ui.UI) (err errors.Error) {
+func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]ConfigSite, log *ui.UI) (err errors.Error) {
 	if parent != nil {
 		mergeConfigSite(cSite, parent)
 	}
@@ -162,7 +162,7 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]*ConfigSite, log *ui
 		}
 
 		//append site to the list of sites that will be executed
-		(*sites) = append(*sites, cSite)
+		(*sites) = append(*sites, *cSite)
 		log.Debug("Unfolded to final site")
 
 		return nil
@@ -183,10 +183,8 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]*ConfigSite, log *ui
 		return nil
 	}
 
-	for i := range cSite.Sites {
-		//the reason we use the index, is because otherwise the pointer will be re-used, and thus pverwritter by all following sites
-		//iterating sites dont have this issue since they always contain at least one deep-copy
-		err = unfold(&cSite.Sites[i], cSite, sites, log)
+	for _, childSite := range cSite.Sites {
+		err = unfold(&childSite, cSite, sites, log)
 		if err != nil {
 			return err
 		}
@@ -255,7 +253,7 @@ func gatherIterators(iterators map[string]IteratorData) errors.Error {
 }
 
 // Gather after unfolding
-func Gather(cSite *ConfigSite, log *ui.UI) (*Site, errors.Error) {
+func Gather(cSite ConfigSite, log *ui.UI) (*Site, errors.Error) {
 	log.Debugf("Gathering information for %s", cSite.Slug)
 	log.Debugf("Site data: %v", cSite)
 
