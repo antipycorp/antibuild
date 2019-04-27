@@ -148,7 +148,6 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]ConfigSite, log *ui.
 
 	//If this is the last in the chain, add it to the list of return values
 	if len(cSite.Sites) == 0 && numIncludedVars == 0 {
-
 		for _, v := range cSite.Data {
 			dep := v.Loader +
 				v.LoaderArguments +
@@ -158,7 +157,6 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]ConfigSite, log *ui.
 				dep += pp.PostProcessor + pp.PostProcessorArguments
 			}
 			cSite.Dependencies = append(cSite.Dependencies, dep)
-
 		}
 
 		//append site to the list of sites that will be executed
@@ -196,7 +194,7 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]ConfigSite, log *ui.
 //mergeConfigSite merges the src into the dst
 func mergeConfigSite(dst *ConfigSite, src *ConfigSite) {
 	if dst.Data != nil {
-		dst.Data = append(src.Data, dst.Data...) // just append
+		dst.Data = append(dst.Data, src.Data...) // just append
 	} else {
 		dst.Data = make([]Data, len(src.Data)) // or make a new one and fill it
 		for i, s := range src.Data {
@@ -205,7 +203,7 @@ func mergeConfigSite(dst *ConfigSite, src *ConfigSite) {
 	}
 
 	if dst.Templates != nil {
-		dst.Templates = append(src.Templates, dst.Templates...) // just append
+		dst.Templates = append(dst.Templates, src.Templates...) // just append
 	} else {
 		dst.Templates = make([]string, len(src.Templates)) // or make a new one and fill it
 		for i, s := range src.Templates {
@@ -214,7 +212,7 @@ func mergeConfigSite(dst *ConfigSite, src *ConfigSite) {
 	}
 
 	if dst.Dependencies != nil {
-		dst.Dependencies = append(src.Dependencies, dst.Dependencies...) // just append
+		dst.Dependencies = append(dst.Dependencies, src.Dependencies...) // just append
 	} else {
 		dst.Dependencies = make([]string, len(src.Dependencies)) // or make a new one and fill it
 		for i, s := range src.Dependencies {
@@ -223,7 +221,7 @@ func mergeConfigSite(dst *ConfigSite, src *ConfigSite) {
 	}
 
 	if dst.IteratorValues == nil {
-		dst.IteratorValues = make(map[string]string, len(src.IteratorValues)) // or make a new one and fill it
+		dst.IteratorValues = make(map[string]string, len(src.IteratorValues)) // if none exist, make a new one to fill
 	}
 
 	for i, s := range src.IteratorValues {
