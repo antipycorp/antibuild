@@ -5,8 +5,10 @@
 package net
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"context"
@@ -45,6 +47,7 @@ func HostLocally(output, port string) {
 	if addr == ":" {
 		addr = ":8080"
 	}
+
 	if os.Getenv("DEBUG") == "1" {
 		debug := http.Server{
 			Addr:        ":5000",
@@ -70,6 +73,11 @@ func HostLocally(output, port string) {
 	//start the server
 	err := server.ListenAndServe()
 	if err != nil && err != http.ErrServerClosed {
+		if strings.Contains(err.Error(), "address already in use") {
+			fmt.Printf("The port %s is already being used by a different program.", port)
+			os.Exit(0)
+		}
+
 		panic(err)
 	}
 }
