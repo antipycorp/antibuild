@@ -21,7 +21,6 @@ type (
 	}
 )
 
-//0xc00020a808
 var (
 	//ErrNoIteratorFound means an iterator does not have a function
 	ErrNoIteratorFound = errors.NewError("could not get iterator information", 11)
@@ -290,12 +289,6 @@ func doIterators2(cSite ConfigSite, log *ui.UI) ([]ConfigSite, errors.Error) {
 		delete(cSite.Iterators, v)
 	}
 
-	if len(cSite.Iterators) != 0 {
-		for k, v := range cSite.Iterators {
-			log.Error("the iterator for variable " + k + ": " + v.IteratorArguments + " is never used inside a slug")
-		}
-	}
-
 	olen := 1
 	for _, iOpts := range options {
 		olen *= len(iOpts)
@@ -315,9 +308,6 @@ func doIterators2(cSite ConfigSite, log *ui.UI) ([]ConfigSite, errors.Error) {
 		variable := usedVars[vi]
 
 		for i := range iOpts {
-			/* if i == 0 {
-				continue
-			} */
 			base := (lastUpperBound) * i
 			for i2 := 0; i2 < lastUpperBound; i2++ {
 				sites[base+i2] = DeepCopy(sites[i2])

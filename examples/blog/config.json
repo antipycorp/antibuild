@@ -19,18 +19,18 @@
     }
   },
   "pages": {
+	"iterators": {
+		"article": "[file_all:data/articles]",
+		"author": "[file_all:data/authors]"
+	},
 	"slug": "",
 	"templates": ["layout.html"],
 	"sites": [
 		{
 			"slug": "/index.html",
 			"templates": ["home.html"]
-		  },
-		{
-		"iterators": {
-			"article": "[file_all:data/articles]",
-			"author": "[file_all:data/authors]"
 		},
+		{
 		"slug": "/articles/index.html",
 		"templates": ["articles.html"],
 		"data": [
@@ -39,10 +39,6 @@
 		]
 	  },
 	  {
-		"iterators": {
-			"article": "[file_all:data/articles]",
-			"author": "[file_all:data/authors]"
-		},
 		"slug": "/authors/index.html",
 		"templates": ["authors.html"],
 		"data": [
@@ -51,10 +47,6 @@
 		]
 	  },
 	  {
-		"iterators": {
-			"article": "[file_all:data/articles]",
-			"author": "[file_all:data/authors]"
-		},
 		"slug": "/articles/{{article}}/index.html",
 		"templates": ["article.html"],
 		"data": [
@@ -64,10 +56,6 @@
 		]
 	  },
 	  {
-		"iterators": {
-			"article": "[file_all:data/articles]",
-			"author": "[file_all:data/authors]"
-		},
 		"slug": "/authors/{{author}}/index.html",
 		"templates": ["author.html"],
 		"data": [

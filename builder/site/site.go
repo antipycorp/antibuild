@@ -228,6 +228,14 @@ func mergeConfigSite(dst *ConfigSite, src *ConfigSite) {
 		dst.IteratorValues[i] = s
 	}
 
+	if dst.Iterators == nil {
+		dst.Iterators = make(map[string]IteratorData, len(src.Iterators)) // if none exist, make a new one to fill
+	}
+
+	for i, s := range src.Iterators {
+		dst.Iterators[i] = s
+	}
+
 	dst.Slug = src.Slug + dst.Slug
 }
 
