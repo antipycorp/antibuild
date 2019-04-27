@@ -169,7 +169,7 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]ConfigSite, log *ui.
 	if numIncludedVars > 0 {
 		itSited, err := doIterators2(*cSite, log)
 		if err != nil {
-			log.Debugf("failled to do iterators: %v", err)
+			log.Fatalf("failled to do iterators: %v", err)
 			return err
 		}
 		for i := range itSited {

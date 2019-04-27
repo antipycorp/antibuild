@@ -157,8 +157,10 @@ func startCachedParse(cfg *config.Config, cache *cache) errors.Error {
 	}
 
 	pagesC := site.DeepCopy(*cfg.Pages)
-	sites, _ := site.Unfold(&pagesC, cfg.UILogger.(*UI.UI))
-
+	sites, err := site.Unfold(&pagesC, cfg.UILogger.(*UI.UI))
+	if err != nil {
+		return ErrFailedUnfold.SetRoot(err.Error())
+	}
 	updatedSites := make([]*site.Site, 0, len(sites))
 	for _, cSite := range sites {
 		depChange := false
@@ -221,9 +223,9 @@ func startCachedParse(cfg *config.Config, cache *cache) errors.Error {
 		}
 	}
 
-	err := site.Execute(updatedSites, cfg.UILogger.(*UI.UI))
+	err = site.Execute(updatedSites, cfg.UILogger.(*UI.UI))
 	if err != nil {
-		return err
+		return ErrFailedExport.SetRoot(err.Error())
 	}
 
 	cfg.UILogger.Infof("Built %d pages", len(updatedSites))
