@@ -224,6 +224,7 @@ func doIterators2(cSite ConfigSite, log *ui.UI) ([]ConfigSite, errors.Error) {
 	if err != nil {
 		return nil, err
 	}
+
 	gatherIterators(cSite.Iterators)
 
 	var usedIterators []string

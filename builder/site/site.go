@@ -179,6 +179,10 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]ConfigSite, log *ui.
 			}
 		}
 		return nil
+	} else {
+		// we might not have iterators values that we need right now
+		// but if we can parse them now then we dont need duplicate work
+		gatherIterators(cSite.Iterators)
 	}
 
 	for _, childSite := range cSite.Sites {
