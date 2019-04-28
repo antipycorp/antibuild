@@ -39,7 +39,7 @@
         ]
       },
       {
-        "slug": "/authors/index.html",
+		"slug": "/authors/index.html",
         "templates": ["authors.html"],
         "data": [
           "[range:article][file_file:data/articles/{{article}}/meta.yaml][yaml_yaml][util_prefix:{{article}}][util_prefix:articles]",

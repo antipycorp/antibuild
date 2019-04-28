@@ -88,12 +88,15 @@ func SaveConfig(configLocation string, cfg *Config) errors.Error {
 }
 
 //CleanConfig does everything for you
-func CleanConfig(configLocation string, ui uiLoggerSetter) (*Config, errors.Error) {
+func CleanConfig(configLocation string, ui uiLoggerSetter, useLog bool) (*Config, errors.Error) {
 	cfg, configErr := ParseConfig(configLocation)
 	if configErr != nil {
 		return nil, ErrFailedParse.SetRoot(configErr.GetRoot())
 	}
 
+	if !useLog {
+		return cfg, nil
+	}
 	file, err := os.OpenFile(cfg.LogConfig.File, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0660)
 	if err != nil {
 		return nil, ErrFailedCreateLog.SetRoot(err.Error())

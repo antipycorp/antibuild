@@ -48,7 +48,7 @@ var (
 //Start the build process
 func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSet bool, port string) {
 	ui := &UI.UI{}
-	cfg, err := config.CleanConfig(configLocation, ui)
+	cfg, err := config.CleanConfig(configLocation, ui, true)
 	if err != nil {
 		ui.Fatalf("Could not parse the config file " + err.Error())
 		ui.ShowResult()
@@ -103,7 +103,10 @@ func HeadlesStart(configLocation string, output io.Writer) {
 	ui.SetLogfile(output)
 	ui.SetPrettyPrint(false)
 
-	cfg, err := config.CleanConfig(configLocation, ui)
+	cfg, err := config.CleanConfig(configLocation, ui, false)
+	ui.SetLogfile(output)
+	ui.SetPrettyPrint(false)
+
 	if err != nil {
 		ui.Fatalf("could not parse the config file: %s", err.Error())
 		return

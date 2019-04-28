@@ -120,16 +120,13 @@ func watchBuild(cfg *config.Config, c *cache, configloc string, shutdown chan in
 			char, key, err := keyboard.GetKey()
 			if err != nil {
 				ui.Errorf("getting key failed: %s", err.Error())
-			} else if key == keyboard.KeyCtrlC || key == keyboard.KeyEsc {
+			} else if key == keyboard.KeyCtrlC || key == keyboard.KeyEsc || char == 'q' {
 				shutdown <- 1
 			} else {
 				keyChannel <- char
 			}
-
 		}
 	}()
-
-	keys := []rune("Rr")
 
 	for {
 		//listen for watcher events
@@ -144,11 +141,11 @@ func watchBuild(cfg *config.Config, c *cache, configloc string, shutdown chan in
 				break
 			}
 
-			ui.Infof("Refreshing because of page %s", e.Name)
+			ui.Infof("Refreshing because %s", e.Op)
 
 			if e.Name == configloc {
 				ui.Info("Changed file is config. Reloading...")
-				ncfg, err := config.CleanConfig(configloc, ui)
+				ncfg, err := config.CleanConfig(configloc, ui, true)
 				if err != nil {
 					ui.Fatalf("Failed to load config: %s", err.Error())
 					ui.ShowResult()
@@ -157,6 +154,8 @@ func watchBuild(cfg *config.Config, c *cache, configloc string, shutdown chan in
 					cfg = ncfg
 					c.configUpdate = true
 				}
+			} else {
+				ui.Infof("Refreshing because of page %s", e.Name)
 			}
 
 			err = startCachedParse(cfg, c)
@@ -169,9 +168,9 @@ func watchBuild(cfg *config.Config, c *cache, configloc string, shutdown chan in
 
 		case key := <-keyChannel:
 			switch key {
-			case keys[0]:
+			case 'R':
 				ui.Info("Reloading config...")
-				cfg, err = config.CleanConfig(configloc, ui)
+				cfg, err = config.CleanConfig(configloc, ui, true)
 				if err != nil {
 					failedToRender(cfg)
 					continue
@@ -179,16 +178,23 @@ func watchBuild(cfg *config.Config, c *cache, configloc string, shutdown chan in
 
 				c.configUpdate = true
 				err = startCachedParse(cfg, c)
-			case keys[1]:
-				c.configUpdate = true
-				err = startCachedParse(cfg, c)
-			}
+				if err != nil {
+					failedToRender(cfg)
+				} else {
+					ui.ShowResult()
+					websocket.SendUpdate()
+				}
 
-			if err != nil {
-				failedToRender(cfg)
-			} else {
-				ui.ShowResult()
-				websocket.SendUpdate()
+			case 'r':
+				ui.Info("Refreshing pages...")
+				err = startCachedParse(cfg, c)
+				if err != nil {
+					failedToRender(cfg)
+				} else {
+					ui.ShowResult()
+					websocket.SendUpdate()
+				}
+
 			}
 
 		case err, ok := <-watcher.Errors:
