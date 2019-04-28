@@ -219,7 +219,7 @@ func DeepCopy(cSite ConfigSite) ConfigSite {
 	return cSite
 }
 
-func doIterators2(cSite ConfigSite, log *ui.UI) ([]ConfigSite, errors.Error) {
+func doIterators(cSite ConfigSite, log *ui.UI) ([]ConfigSite, errors.Error) {
 	err := doIteratorVariables(&cSite)
 	if err != nil {
 		return nil, err
@@ -266,6 +266,7 @@ func doIterators2(cSite ConfigSite, log *ui.UI) ([]ConfigSite, errors.Error) {
 
 	usedVars = unique(usedVars)
 
+	log.Debugf("found %d variables to range over: %v", len(usedVars), usedVars)
 	options := make([][]string, len(usedVars))
 
 	for i, iOpts := range usedVars {
@@ -294,6 +295,8 @@ func doIterators2(cSite ConfigSite, log *ui.UI) ([]ConfigSite, errors.Error) {
 	for _, iOpts := range options {
 		olen *= len(iOpts)
 	}
+
+	log.Debugf("found %d values for the iterators: %v", olen, options)
 
 	var sites = make([]ConfigSite, olen)
 	sites[0] = cSite
@@ -331,7 +334,7 @@ func doIterators2(cSite ConfigSite, log *ui.UI) ([]ConfigSite, errors.Error) {
 			lastUpperBound = 0
 			currentLowerBound = 0
 		}
-
 	}
+
 	return sites, nil
 }
