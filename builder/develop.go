@@ -142,7 +142,7 @@ func watchBuild(cfg *config.Config, c *cache, configloc string, shutdown chan in
 				break
 			}
 
-			ui.Infof("Refreshing because %s", e.Op)
+			ui.Debugf("Refreshing because %s", e.Op)
 			root, _ := filepath.Abs(cfg.Folders.Templates)
 			file, _ := filepath.Abs(e.Name)
 
