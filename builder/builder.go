@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"path/filepath"
 	"reflect"
 	"time"
 
@@ -24,8 +25,9 @@ type cache struct {
 	rootPage site.ConfigSite
 	data     map[string]cacheData
 
-	configUpdate bool
-	checkData    bool
+	configUpdate   bool
+	checkData      bool
+	templateUpdate string //tha absolute path to the updated template
 }
 
 type cacheData struct {
@@ -43,6 +45,8 @@ var (
 	ErrNoOutputSpecified = errors.NewError("no output folder specified", 3)
 	//ErrFailedRemoveFile is for failling to remove the output folder.
 	ErrFailedRemoveFile = errors.NewError("failed removing output folder", 4)
+	//ErrFailedCache is for failing to do something in cache operations.
+	ErrFailedCache = errors.NewError("failed in determaning if the cache should be invalidated:", 4)
 )
 
 //Start the build process
@@ -201,8 +205,17 @@ func startCachedParse(cfg *config.Config, cache *cache) errors.Error {
 				}
 			}
 		}
-
-		if depChange || !datEqual || (s != nil && site.GetTemplateTree(s.Template) != site.GetTemplateTree(cd.site.Template)) || cache.configUpdate {
+		templateChange := false
+		for _, v := range sites[i].Templates {
+			abs, err := filepath.Abs(path.Join(cfg.Folders.Templates, v))
+			if err != nil {
+				return ErrFailedCache.SetRoot("the template path does not fit within the templates: " + v)
+			}
+			if abs == cache.templateUpdate {
+				templateChange = true
+			}
+		}
+		if depChange || !datEqual || templateChange || cache.configUpdate {
 			if s == nil {
 				var err errors.Error
 				s, err = site.Gather(sites[i], cfg.UILogger.(*UI.UI))
@@ -247,6 +260,7 @@ func startCachedParse(cfg *config.Config, cache *cache) errors.Error {
 	//the true state will need to be checked during the process so we leave them true until the end
 	cache.configUpdate = false
 	cache.checkData = false
+	cache.templateUpdate = ""
 
 	return nil
 }

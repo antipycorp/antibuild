@@ -15,6 +15,7 @@ import (
 	"gitlab.com/antipy/antibuild/cli/internal"
 	"gitlab.com/antipy/antibuild/cli/net/websocket"
 	UI "gitlab.com/antipy/antibuild/cli/ui"
+	"strings"
 )
 
 //watches files and folders and rebuilds when things change
@@ -142,6 +143,8 @@ func watchBuild(cfg *config.Config, c *cache, configloc string, shutdown chan in
 			}
 
 			ui.Infof("Refreshing because %s", e.Op)
+			root, _ := filepath.Abs(cfg.Folders.Templates)
+			file, _ := filepath.Abs(e.Name)
 
 			if e.Name == configloc {
 				ui.Info("Changed file is config. Reloading...")
@@ -154,6 +157,8 @@ func watchBuild(cfg *config.Config, c *cache, configloc string, shutdown chan in
 					cfg = ncfg
 					c.configUpdate = true
 				}
+			} else if strings.HasPrefix(file, root) {
+				c.templateUpdate = file
 			} else {
 				ui.Infof("Refreshing because of page %s", e.Name)
 			}
