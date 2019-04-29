@@ -182,6 +182,8 @@ func watchBuild(cfg *config.Config, c *cache, configloc string, shutdown chan in
 				}
 
 				c.configUpdate = true
+				c.checkData = true
+
 				err = startCachedParse(cfg, c)
 				if err != nil {
 					failedToRender(cfg)
@@ -192,6 +194,7 @@ func watchBuild(cfg *config.Config, c *cache, configloc string, shutdown chan in
 
 			case 'r':
 				ui.Info("Refreshing pages...")
+				c.checkData = true
 				err = startCachedParse(cfg, c)
 				if err != nil {
 					failedToRender(cfg)
