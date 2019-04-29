@@ -187,7 +187,6 @@ func startCachedParse(cfg *config.Config, cache *cache) errors.Error {
 
 		cd.dependencies = sites[i].Dependencies
 
-		os.Remove(path.Join(cfg.Folders.Output, cd.site.Slug))
 		var s *site.Site
 
 		datEqual := true

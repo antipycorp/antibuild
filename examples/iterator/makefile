@@ -13,8 +13,8 @@ debug: export DEBUG = 1
 debug: $(binary)
 	./$(binary) develop
 
-develop:
+develop: $(binary)
 	./$(binary) develop
 
 clean:
-	rm $(binary) $(binary).log mem.prof
+	rm $(binary) $(binary).log
