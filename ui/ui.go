@@ -127,6 +127,10 @@ func getIP() string {
 
 //Debug logs to the log file only
 func (ui *UI) Debug(err string) {
+	if !ui.DebugEnabled {
+		return
+	}
+
 	if ui.LogFile != nil && ui.DebugEnabled {
 		if ui.PrettyLog {
 			entry := debugPrefix + err

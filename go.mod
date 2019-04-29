@@ -22,7 +22,7 @@ require (
 	github.com/spf13/pflag v1.0.3 // indirect
 	github.com/stretchr/testify v1.3.0 // indirect
 	github.com/urld/fatdeps v0.1.0 // indirect
-	gitlab.com/antipy/antibuild/api v0.12.0-beta7
+	gitlab.com/antipy/antibuild/api v0.12.0
 	gitlab.com/antipy/antibuild/std/file v0.0.0-20190413160631-6d4cb57990b9
 	gitlab.com/antipy/antibuild/std/json v0.0.0-20190413160631-6d4cb57990b9
 	gitlab.com/antipy/antibuild/std/language v0.0.0-20190413160631-6d4cb57990b9

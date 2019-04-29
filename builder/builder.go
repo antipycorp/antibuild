@@ -165,16 +165,16 @@ func startCachedParse(cfg *config.Config, cache *cache) errors.Error {
 		return ErrFailedUnfold.SetRoot(err.Error())
 	}
 	updatedSites := make([]*site.Site, 0, len(sites))
-	for _, cSite := range sites {
+	for i := range sites {
 		depChange := false
 
 		var ok bool
 		var cd cacheData
-		if cd, ok = cache.data[cSite.Slug]; ok && !cache.configUpdate {
-			if len(cSite.Dependencies) != len(cd.dependencies) {
+		if cd, ok = cache.data[sites[i].Slug]; ok && !cache.configUpdate {
+			if len(sites[i].Dependencies) != len(cd.dependencies) {
 				depChange = true
 			} else {
-				for i, d := range cSite.Dependencies {
+				for i, d := range sites[i].Dependencies {
 					if d != cd.dependencies[i] {
 						depChange = true
 						break
@@ -185,14 +185,14 @@ func startCachedParse(cfg *config.Config, cache *cache) errors.Error {
 			depChange = true
 		}
 
-		cd.dependencies = cSite.Dependencies
+		cd.dependencies = sites[i].Dependencies
 
 		os.Remove(path.Join(cfg.Folders.Output, cd.site.Slug))
 		var s *site.Site
 
 		datEqual := true
 		if cache.checkData {
-			s, err := site.Gather(cSite, cfg.UILogger.(*UI.UI))
+			s, err := site.Gather(sites[i], cfg.UILogger.(*UI.UI))
 			if err != nil {
 				return err
 			}
@@ -206,7 +206,7 @@ func startCachedParse(cfg *config.Config, cache *cache) errors.Error {
 		if depChange || !datEqual || (s != nil && site.GetTemplateTree(s.Template) != site.GetTemplateTree(cd.site.Template)) || cache.configUpdate {
 			if s == nil {
 				var err errors.Error
-				s, err = site.Gather(cSite, cfg.UILogger.(*UI.UI))
+				s, err = site.Gather(sites[i], cfg.UILogger.(*UI.UI))
 				if err != nil {
 					return err
 				}
@@ -216,7 +216,7 @@ func startCachedParse(cfg *config.Config, cache *cache) errors.Error {
 		}
 
 		cd.shouldRemove = false
-		cache.data[cSite.Slug] = cd
+		cache.data[sites[i].Slug] = cd
 	}
 
 	if len(cfg.Modules.SPPs) > 0 {
