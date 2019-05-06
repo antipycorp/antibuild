@@ -7,7 +7,6 @@ package ui
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 
 	tm "github.com/buger/goterm"
@@ -22,7 +21,15 @@ type UI struct {
 	log            []string
 	infolog        []string
 	PrettyLog      bool
+	DebugEnabled   bool
 }
+
+var (
+	debugPrefix = tm.Color(tm.Bold("debug "), tm.WHITE)
+	infoPrefix  = tm.Color(tm.Bold("info "), tm.BLUE)
+	errorPrefix = tm.Color(tm.Bold("error "), tm.RED)
+	fatalPrefix = tm.Color(tm.Bold("Failed to build. \n\n"), tm.RED)
+)
 
 //ShowResult should be shown when something builds successfully
 func (ui *UI) ShowResult() {
@@ -93,7 +100,7 @@ func (ui *UI) showlog() {
 	tm.Clear()
 	tm.MoveCursor(1, 1)
 
-	tm.Print(tm.Color(tm.Bold("Build log:"), tm.BLUE) + "\n")
+	tm.Print(tm.Color(tm.Bold("Log:"), tm.BLUE) + "\n")
 
 	for _, e := range ui.infolog { //e for entry
 		tm.Print(e + "\n")
@@ -120,9 +127,13 @@ func getIP() string {
 
 //Debug logs to the log file only
 func (ui *UI) Debug(err string) {
-	if ui.LogFile != nil {
+	if !ui.DebugEnabled {
+		return
+	}
+
+	if ui.LogFile != nil && ui.DebugEnabled {
 		if ui.PrettyLog {
-			entry := tm.Color(tm.Bold("debug "), tm.WHITE) + err
+			entry := debugPrefix + err
 			ui.LogFile.Write([]byte(entry + "\n"))
 			return
 		}
@@ -132,12 +143,16 @@ func (ui *UI) Debug(err string) {
 
 //Debugf logs to the log file only
 func (ui *UI) Debugf(format string, a ...interface{}) {
+	if !ui.DebugEnabled {
+		return
+	}
+
 	ui.Debug(fmt.Sprintf(format, a...))
 }
 
 //Info logs helpfull information/warnings
 func (ui *UI) Info(err string) {
-	entry := tm.Color(tm.Bold("info "), tm.BLUE) + err
+	entry := infoPrefix + err
 	ui.infolog = append(ui.infolog, entry)
 	if ui.LogFile != nil {
 		if ui.PrettyLog {
@@ -156,11 +171,11 @@ func (ui *UI) Infof(format string, a ...interface{}) {
 
 //Error logs errors, these can later be followed up on with a fatal or have potential consequences for the outcome
 func (ui *UI) Error(err string) {
-	entry := tm.Color(tm.Bold("error "), tm.RED) + err
+	entry := errorPrefix + err
 	ui.log = append(ui.log, entry)
 	if ui.LogFile != nil {
 		if ui.PrettyLog {
-			ui.LogFile.Write([]byte(entry))
+			ui.LogFile.Write([]byte(entry + "\n"))
 			return
 		}
 		ui.LogFile.Write([]byte(err + "\n"))
@@ -174,13 +189,13 @@ func (ui *UI) Errorf(format string, a ...interface{}) {
 
 //Fatal should be called when in an unrecoverable state. EG: config file not found, template function not called etc.
 func (ui *UI) Fatal(err string) {
-	entry := tm.Color(tm.Bold("Failed to build. \n\n"), tm.RED) + err
+	entry := fatalPrefix + err
 	ui.log = append(ui.log, entry)
 	ui.failed = true
 
 	if ui.LogFile != nil {
 		if ui.PrettyLog {
-			ui.LogFile.Write([]byte(entry))
+			ui.LogFile.Write([]byte(entry + "\n"))
 			return
 		}
 		ui.LogFile.Write([]byte(err + "\n"))
@@ -195,13 +210,20 @@ func (ui *UI) Fatalf(format string, a ...interface{}) {
 //SetLogfile sets the output writer for the logger
 func (ui *UI) SetLogfile(file io.Writer) {
 	if file != nil {
+		ui.DebugEnabled = true
 		ui.LogFile = file
 	} else {
-		ui.LogFile = ioutil.Discard
+		ui.DebugEnabled = false
+		ui.LogFile = nil
 	}
 }
 
 //SetPrettyPrint this sets the setting for pretty printing,
 func (ui *UI) SetPrettyPrint(enabled bool) {
 	ui.PrettyLog = enabled
+}
+
+//ShouldEnableDebug enables/disables debug logging (performance)
+func (ui *UI) ShouldEnableDebug(enabled bool) {
+	ui.DebugEnabled = enabled
 }

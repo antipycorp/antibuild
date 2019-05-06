@@ -9,6 +9,9 @@ cache:
     - /apt-cache
     - /go/src/
 
+before_script:
+  - go mod download
+
 test:
   stage: test
   artifacts:
@@ -16,6 +19,21 @@ test:
       - test.txt
   script:
     - make test branch='${CI_COMMIT_REF_SLUG}'
+
+test_blog:
+  stage: test
+  script:
+  - cd examples/blog; go run ../../*.go build
+
+test_iterator:
+  stage: test
+  script:
+    - cd examples/iterator; go run ../../*.go build
+
+test_simplePage:
+  stage: test
+  script:
+    - cd examples/simplePage; go run ../../*.go build
 
 benchmark:
   stage: test

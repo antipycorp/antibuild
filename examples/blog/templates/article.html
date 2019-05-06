@@ -1,0 +1,12 @@
+{{ define "page" }}
+<h1>{{ .article.name }}</h1>
+<p>
+  {{ .article.published }}
+  |
+  <!--prettier-ignore-->
+  <a href="/authors/{{.article.author}}">{{ (index .authors .article.author).name}}</a>
+</p>
+<img style="width: 100%" src="{{.article.header_image}}" />
+<!--prettier-ignore-->
+{{ markdown_common .article_content }}
+{{ end }}

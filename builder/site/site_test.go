@@ -86,6 +86,43 @@ var unfoldTests = []unfoldPair{
 			"/index.html": "hello darkness my old friend",
 		},
 	},
+	unfoldPair{
+		in: site.ConfigSite{
+			Iterators: map[string]site.IteratorData{
+				"article": site.IteratorData{
+					Iterator: "ls",
+				},
+			},
+			Slug: "/{{article}}/index.html",
+			Data: []site.Data{
+				site.Data{
+					Loader:          "l",
+					LoaderArguments: "1",
+					Parser:          "p",
+				},
+			},
+			Templates: []string{
+				"t1",
+			},
+		},
+		out: []*site.Site{
+			&site.Site{
+				Slug: "/hello/index.html",
+				Data: tt.Data{
+					"data": "nothing",
+				},
+			},
+			&site.Site{
+				Slug: "/world/index.html",
+				Data: tt.Data{
+					"data": "nothing",
+				},
+			},
+		},
+		files: map[string]string{
+			"/index.html": "hello darkness my old friend",
+		},
+	},
 }
 
 func (l loader) Load(f string) []byte {
@@ -127,10 +164,11 @@ func (i iterator) GetPipe(variable string) pipeline.Pipe {
 	return nil
 }
 
-//Testunfold doesnt test template parsing, if anything failed it will be done during execute
+//Testunfold doesn't test template parsing, if anything failed it will be done during execute
 func TestUnfold(t *testing.T) {
 	for _, test := range unfoldTests {
-		dat, err := site.Unfold(&test.in, testUI)
+		in := site.DeepCopy(test.in)
+		dat, err := site.Unfold(&in, testUI)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -142,9 +180,20 @@ func TestUnfold(t *testing.T) {
 			}
 			test.res = append(test.res, s)
 		}
-
-		if test.res[0].Slug != test.out[0].Slug {
+		if len(test.out) != len(test.res) {
+			for _, v := range test.res {
+				print("\n" + v.Slug)
+			}
 			t.FailNow()
+		}
+		for i := 0; i < len(test.res); i++ {
+			if test.out[i].Slug != test.res[i].Slug {
+				print("should be: "+test.out[i].Slug+" but is: "+test.res[i].Slug+" for ", i, "\n")
+				for _, v := range test.res {
+					print(v.Slug + "\n")
+				}
+				t.FailNow()
+			}
 		}
 
 		for k := range test.out[0].Data {
@@ -157,7 +206,8 @@ func TestUnfold(t *testing.T) {
 
 func TestExecute(t *testing.T) {
 	for _, test := range unfoldTests {
-		dat, err := site.Unfold(&test.in, testUI)
+		in := site.DeepCopy(test.in)
+		dat, err := site.Unfold(&in, testUI)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -228,7 +278,8 @@ func BenchmarkUnfold(b *testing.B) {
 func genUnfold(benchID int) func(*testing.B) {
 	return func(b *testing.B) {
 		for n := 0; n < b.N; n++ {
-			site.Unfold(&benchMarks[benchID], testUI)
+			s := site.DeepCopy(benchMarks[benchID])
+			site.Unfold(&s, testUI)
 		}
 	}
 }
@@ -241,11 +292,15 @@ func BenchmarkGather(b *testing.B) {
 func genGather(benchID int) func(*testing.B) {
 	return func(b *testing.B) {
 		for n := 0; n < b.N; n++ {
-			site.Unfold(&benchMarks[benchID], testUI)
+			s := site.DeepCopy(benchMarks[benchID])
+
+			site.Unfold(&s, testUI)
 		}
-		var sites = make([]map[string]*site.ConfigSite, b.N)
+
+		var sites = make([][]site.ConfigSite, b.N)
 		for n := 0; n < b.N; n++ {
-			sites[n], _ = site.Unfold(&benchMarks[benchID], testUI)
+			s := site.DeepCopy(benchMarks[benchID])
+			sites[n], _ = site.Unfold(&s, testUI)
 		}
 
 		b.ResetTimer()
@@ -256,7 +311,6 @@ func genGather(benchID int) func(*testing.B) {
 					b.Fatal(err.Error())
 				}
 			}
-
 		}
 	}
 }

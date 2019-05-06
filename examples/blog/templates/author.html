@@ -1,0 +1,14 @@
+{{ define "page" }}
+<h1>{{ .author.name }}</h1>
+<p>{{ .author.focus }} | {{ .author.summary }}</p>
+{{ $author := .author}}
+{{ range $id, $article := .articles }}
+{{ if eq $article.author $author.id }}
+<div>
+  <h3>
+    <a href="/articles/{{$id}}">{{ $article.name }}</a>
+  </h3>
+</div>
+{{ end }}
+{{ end }}
+{{ end }}

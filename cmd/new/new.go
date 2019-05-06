@@ -5,7 +5,7 @@
 package new
 
 import (
-	"fmt"
+	"gitlab.com/antipy/antibuild/cli/modules"
 	"io/ioutil"
 	"log"
 	"os"
@@ -29,7 +29,7 @@ var (
 	//ErrInvalidName is for a failure moving the static folder
 	ErrInvalidName = errors.NewError("name does not match the requirements", 2)
 
-	moduleRepositoryURL   string
+	moduleRepositoryURL   = modules.STDRepo
 	templateRepositoryURL string
 )
 
@@ -39,22 +39,19 @@ var newCMD = &cobra.Command{
 	Short: "Make a new antibuild project.",
 	Long:  `Generate a new antibuild project. To get started run "antibuild new" and follow the prompts.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		moduleRepository, err := cmdInternal.GetModuleRepository(moduleRepositoryURL)
-		if err != nil {
-			fmt.Println("Failed to download module repository list.")
-			return
-		}
+		moduleRepository := &modules.ModuleRepository{}
+		moduleRepository.Download(moduleRepositoryURL)
 
 		templateRepository, err := cmdInternal.GetTemplateRepository(templateRepositoryURL)
 		if err != nil {
-			fmt.Println("Failed to download template repository list.")
+			println("Failed to download template repository list.")
 			return
 		}
 
 		var modules []string
 		var templates []string
 
-		for module := range moduleRepository {
+		for module := range *moduleRepository {
 			modules = append(modules, module)
 		}
 
@@ -105,35 +102,36 @@ var newCMD = &cobra.Command{
 
 		err = survey.Ask(newSurvey, &answers)
 		if err != nil {
-			fmt.Println(err.Error())
+			println(err.Error())
 			return
 		}
+		var modulesFinal = make([][2]string, len(answers.DefaultModules))
+		for i := range modules {
+			modulesFinal[i][0] = answers.DefaultModules[i]
+			modulesFinal[i][1] = moduleRepositoryURL
 
+		}
 		if _, err := ioutil.ReadDir(answers.Name); os.IsNotExist(err) {
 			downloadTemplate(templateRepository, answers.Template, answers.Name)
 
 			if len(answers.DefaultModules) > 0 {
-				installModules(moduleRepository, answers.DefaultModules, answers.Name)
+				installModules(modulesFinal, answers.Name)
 			}
 
-			fmt.Println("Success. Run these commands to get started:")
-			fmt.Println("")
-			fmt.Println("cd " + answers.Name)
-			fmt.Println("antibuild develop")
-			fmt.Println("")
-			fmt.Println("Need help? Look at our docs: https://build.antipy.com/get-started")
-			fmt.Println("")
-			fmt.Println("")
+			println("Success. Run these commands to get started:\n")
+			println("cd " + answers.Name)
+			println("antibuild develop\n")
+			println("Need help? Look at our docs: https://build.antipy.com/get-started\n\n")
 			return
 		}
 
-		fmt.Println("Failed.")
+		println("Failed.")
 	},
 }
 
 func downloadTemplate(templateRepository map[string]cmdInternal.TemplateRepositoryEntry, template string, outPath string) bool {
 	if _, ok := templateRepository[template]; !ok {
-		fmt.Println("The selected template is not available in this repository.")
+		println("The selected template is not available in this repository.")
 		return false
 	}
 
@@ -195,33 +193,33 @@ func downloadTemplate(templateRepository map[string]cmdInternal.TemplateReposito
 		log.Fatal(err)
 	}
 
-	fmt.Println("Downloaded template.")
+	println("Downloaded template.")
 	return true
 }
 
-func installModules(moduleRepository map[string]cmdInternal.ModuleRepositoryEntry, modules []string, outPath string) {
+func installModules(modules [][2]string, outPath string) {
 	cfg, err := config.GetConfig(filepath.Join(outPath, "config.json"))
 	if err != nil {
-		fmt.Println("Could not open config file to add modules. Module installation will be skipped.")
+		println("Could not open config file to add modules. Module installation will be skipped.")
 		return
 	}
 
 	for _, module := range modules {
-		cfg.Modules.Dependencies[module] = moduleRepositoryURL
+		cfg.Modules.Dependencies[module[0]] = module[1]
 	}
 
 	err = config.SaveConfig(filepath.Join(outPath, "config.json"), cfg)
 	if err != nil {
-		fmt.Println("Could not save config file after adding modules. Modules installation will be skipped.")
+		println("Could not save config file after adding modules. Modules installation will be skipped.")
 		return
 	}
 
-	fmt.Println("Please run 'antibuild modules install' to install your selected modules.")
+	println("Please run 'antibuild modules install' to install your selected modules.")
 }
 
 //SetCommands sets the commands for this package to the cmd argument
 func SetCommands(cmd *cobra.Command) {
-	newCMD.Flags().StringVarP(&moduleRepositoryURL, "modules", "m", "https://build.antipy.com/dl/modules.json", "The module repository list file to use. Default is \"https://build.antipy.com/dl/modules.json\"")
+	newCMD.Flags().StringVarP(&moduleRepositoryURL, "modules", "m", modules.STDRepo, "The module repository list file to use. Default is \"https://build.antipy.com/dl/modules.json\"")
 	newCMD.Flags().StringVarP(&templateRepositoryURL, "templates", "t", "https://build.antipy.com/dl/templates.json", "The template repository list file to use. Default is \"https://build.antipy.com/dl/templates.json\"")
 	cmd.AddCommand(newCMD)
 }

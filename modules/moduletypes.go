@@ -78,23 +78,11 @@ func getIterator(command string, host *host.ModuleHost) *iterator {
 }
 
 func (it *iterator) GetIterations(variable string) []string {
-	var ret []string
-
-	pipe := it.GetPipe(variable)
-	pipeline.ExecPipeline(nil, &ret, pipe)
-
-	return ret
-}
-
-func (it *iterator) GetPipe(variable string) pipeline.Pipe {
-	pipe := func(fileLoc string) errors.Error {
-		_, err := it.host.ExcecuteMethod("iterators_"+it.command, []interface{}{fileLoc, variable})
-		if err != nil {
-			return errors.Import(err)
-		}
-		return nil
+	output, err := it.host.ExcecuteMethod("iterators_"+it.command, []interface{}{variable})
+	if err != nil {
+		panic("get iterators: " + err.Error())
 	}
-	return pipe
+	return output.([]string)
 }
 
 /*
@@ -109,21 +97,23 @@ func getDataLoader(command string, host *host.ModuleHost) *dataLoader {
 }
 
 func (fl *dataLoader) Load(variable string) []byte {
-	var ret []byte
 
 	pipe := fl.GetPipe(variable)
-	pipeline.ExecPipeline(nil, &ret, pipe)
+	ret, _ := pipeline.ExecPipeline(nil, pipe)
 
 	return ret
 }
 
 func (fl *dataLoader) GetPipe(variable string) pipeline.Pipe {
-	pipe := func(fileLoc string) errors.Error {
-		_, err := fl.host.ExcecuteMethod("dataLoaders_"+fl.command, []interface{}{fileLoc, variable})
+	pipe := func(binary []byte) ([]byte, errors.Error) {
+		data, err := fl.host.ExcecuteMethod("dataLoaders_"+fl.command, []interface{}{variable})
 		if err != nil {
-			return errors.Import(err)
+			return nil, errors.Import(err)
 		}
-		return nil
+		if data == nil { //you cant convert nil to []byte, thus we need this check since it is 100% valid to have empty files
+			return nil, nil
+		}
+		return data.([]byte), nil
 	}
 	return pipe
 }
@@ -139,18 +129,22 @@ func (fp *dataParser) Parse(data []byte, variable string) tt.Data {
 	var ret tt.Data
 
 	pipe := fp.GetPipe(variable)
-	pipeline.ExecPipeline(data, &ret, pipe)
+	bytes, _ := pipeline.ExecPipeline(data, pipe)
+	ret.GobDecode(bytes)
 
 	return ret
 }
 
 func (fp *dataParser) GetPipe(variable string) pipeline.Pipe {
-	pipe := func(fileLoc string) errors.Error {
-		_, err := fp.host.ExcecuteMethod("dataParsers_"+fp.command, []interface{}{fileLoc, variable})
-		if err != nil {
-			return errors.Import(err)
+	pipe := func(binary []byte) ([]byte, errors.Error) {
+		if binary == nil { // no daata should not be parsed and just return nil
+			return nil, nil
 		}
-		return nil
+		data, err := fp.host.ExcecuteMethod("dataParsers_"+fp.command, []interface{}{variable}, binary...)
+		if err != nil {
+			return nil, errors.Import(err)
+		}
+		return data.([]byte), nil
 	}
 	return pipe
 }
@@ -164,20 +158,21 @@ func getDataPostProcessor(command string, host *host.ModuleHost) *dataPostProces
 
 func (dpp *dataPostProcessor) Process(data tt.Data, variable string) tt.Data {
 	var ret tt.Data
-
+	bin, _ := data.GobEncode()
 	pipe := dpp.GetPipe(variable)
-	pipeline.ExecPipeline(data, &ret, pipe)
+	bytes, _ := pipeline.ExecPipeline(bin, pipe)
+	ret.GobDecode(bytes)
 
 	return ret
 }
 
 func (dpp *dataPostProcessor) GetPipe(variable string) pipeline.Pipe {
-	pipe := func(fileLoc string) errors.Error {
-		_, err := dpp.host.ExcecuteMethod("dataPostProcessors_"+dpp.command, []interface{}{fileLoc, variable})
+	pipe := func(binary []byte) ([]byte, errors.Error) {
+		data, err := dpp.host.ExcecuteMethod("dataPostProcessors_"+dpp.command, []interface{}{variable}, binary...)
 		if err != nil {
-			return errors.Import(err)
+			return nil, errors.Import(err)
 		}
-		return nil
+		return data.([]byte), nil
 	}
 	return pipe
 }
@@ -202,7 +197,9 @@ func (spp *sitePostProcessor) Process(data []*site.Site, variable string) []*sit
 	}
 
 	pipe := spp.GetPipe(variable)
-	pipeline.ExecPipeline(send, &recieve, pipe)
+
+	bytes, _ := pipeline.ExecPipeline(apiSite.Encode(send), pipe)
+	recieve = apiSite.Decode(bytes)
 
 	ret := make([]*site.Site, 0, len(recieve))
 
@@ -218,22 +215,19 @@ func (spp *sitePostProcessor) Process(data []*site.Site, variable string) []*sit
 }
 
 func (spp *sitePostProcessor) GetPipe(variable string) pipeline.Pipe {
-	pipe := func(fileLoc string) errors.Error {
-		_, err := spp.host.ExcecuteMethod("sitePostProcessors_"+spp.command, []interface{}{fileLoc, variable})
+	pipe := func(binary []byte) ([]byte, errors.Error) {
+		data, err := spp.host.ExcecuteMethod("sitePostProcessors_"+spp.command, []interface{}{variable}, binary...)
 		if err != nil {
-			return errors.Import(err)
+			return nil, errors.Import(err)
 		}
-		return nil
+		return data.([]byte), nil
 	}
 	return pipe
 }
 
 //UnmarshalJSON unmarshals the json into a module config
 func (mc *ModuleConfig) UnmarshalJSON(data []byte) error {
-	if err := json.Unmarshal(data, &mc.Config); err != nil {
-		return err
-	}
-	return nil
+	return json.Unmarshal(data, &mc.Config)
 }
 
 //MarshalJSON marschals the data into json

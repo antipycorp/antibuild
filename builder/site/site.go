@@ -5,12 +5,12 @@
 package site
 
 import (
-	"crypto/md5"
-	"encoding/json"
 	"html/template"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
+	"text/template/parse"
 	"time"
 
 	"gitlab.com/antipy/antibuild/cli/modules/pipeline"
@@ -35,8 +35,9 @@ type (
 		Slug           string                  `json:"slug,omitempty"`
 		Templates      []string                `json:"templates,omitempty"`
 		Data           []Data                  `json:"data,omitempty"`
-		Sites          []*ConfigSite           `json:"sites,omitempty"`
+		Sites          []ConfigSite            `json:"sites,omitempty"`
 		IteratorValues map[string]string       `json:"-"`
+		Dependencies   []string                `json:"-"`
 	}
 
 	//DataLoader is a module that loads data
@@ -66,7 +67,11 @@ type (
 	//Iterator is a function thats able to post-process data
 	Iterator interface {
 		GetIterations(string) []string
-		GetPipe(string) pipeline.Pipe
+	}
+
+	pipeQue struct {
+		pipe []pipeline.Pipe
+		data tt.Data
 	}
 )
 
@@ -94,6 +99,7 @@ var (
 	OutputFolder string
 
 	globalTemplates = make(map[string]*template.Template)
+	subTemplates    = make(map[string]string)
 
 	//ErrFailedTemplate is when the template failed building
 	ErrFailedTemplate = errors.NewError("failed building template", 1)
@@ -105,6 +111,8 @@ var (
 	ErrFailedCreateFS = errors.NewError("couldn't create directory/file", 4)
 	//ErrUsingUnknownModule is when a user uses a module that is not registered.
 	ErrUsingUnknownModule = errors.NewError("module is used but not registered", 5)
+
+	pipeLines = make(map[string]pipeQue)
 )
 
 /*
@@ -118,8 +126,8 @@ var (
 */
 
 //Unfold the ConfigSite into a []ConfigSite
-func Unfold(configSite *ConfigSite, log *ui.UI) (map[string]*ConfigSite, errors.Error) {
-	var sites = make(map[string]*ConfigSite)
+func Unfold(configSite *ConfigSite, log *ui.UI) ([]ConfigSite, errors.Error) {
+	var sites []ConfigSite
 	globalTemplates = make(map[string]*template.Template, len(sites))
 
 	err := unfold(configSite, nil, &sites, log)
@@ -130,33 +138,55 @@ func Unfold(configSite *ConfigSite, log *ui.UI) (map[string]*ConfigSite, errors.
 	return sites, nil
 }
 
-func unfold(cSite *ConfigSite, parent *ConfigSite, sites *map[string]*ConfigSite, log *ui.UI) (err errors.Error) {
+func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]ConfigSite, log *ui.UI) (err errors.Error) {
 	if parent != nil {
-		log.Debugf("Unfolding child %s of parent %s", cSite.Slug, parent.Slug)
 		mergeConfigSite(cSite, parent)
-	} else {
-		log.Debugf("Unfolding %s", cSite.Slug)
 	}
+	log.Debugf("Unfolding " + cSite.Slug)
 
-	if len(cSite.Iterators) != 0 {
-		err := doIterators(cSite, sites, log)
-		if err != nil {
-			return err
-		}
-	}
+	numIncludedVars := numIncludedVars(*cSite)
 
 	//If this is the last in the chain, add it to the list of return values
-	if len(cSite.Sites) == 0 {
-		//append site to the list of sites that will be executed
-		(*sites)[string(hashConfigSite(cSite))] = cSite
+	if len(cSite.Sites) == 0 && numIncludedVars == 0 {
+		for _, v := range cSite.Data {
+			dep := v.Loader +
+				v.LoaderArguments +
+				v.Parser +
+				v.ParserArguments
+			for _, pp := range v.PostProcessors {
+				dep += pp.PostProcessor + pp.PostProcessorArguments
+			}
+			cSite.Dependencies = append(cSite.Dependencies, dep)
+		}
 
-		log.Debugf("Unfolded to %s", cSite.Slug)
+		//append site to the list of sites that will be executed
+		(*sites) = append(*sites, *cSite)
+		log.Debug("Unfolded to final site")
 
 		return nil
 	}
 
+	if numIncludedVars > 0 {
+		itSited, err := doIterators(*cSite, log)
+		if err != nil {
+			log.Fatalf("failled to do iterators: %v", err)
+			return err
+		}
+		for i := range itSited {
+			err := unfold(&itSited[i], nil, sites, log)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	} else {
+		// we might not have iterators values that we need right now
+		// but if we can parse them now then we dont need duplicate work
+		gatherIterators(cSite.Iterators)
+	}
+
 	for _, childSite := range cSite.Sites {
-		err = unfold(childSite, cSite, sites, log)
+		err = unfold(&childSite, cSite, sites, log)
 		if err != nil {
 			return err
 		}
@@ -168,7 +198,7 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *map[string]*ConfigSite
 //mergeConfigSite merges the src into the dst
 func mergeConfigSite(dst *ConfigSite, src *ConfigSite) {
 	if dst.Data != nil {
-		dst.Data = append(src.Data, dst.Data...) // just append
+		dst.Data = append(dst.Data, src.Data...) // just append
 	} else {
 		dst.Data = make([]Data, len(src.Data)) // or make a new one and fill it
 		for i, s := range src.Data {
@@ -177,7 +207,7 @@ func mergeConfigSite(dst *ConfigSite, src *ConfigSite) {
 	}
 
 	if dst.Templates != nil {
-		dst.Templates = append(src.Templates, dst.Templates...) // just append
+		dst.Templates = append(dst.Templates, src.Templates...) // just append
 	} else {
 		dst.Templates = make([]string, len(src.Templates)) // or make a new one and fill it
 		for i, s := range src.Templates {
@@ -185,53 +215,55 @@ func mergeConfigSite(dst *ConfigSite, src *ConfigSite) {
 		}
 	}
 
-	if dst.Iterators == nil {
-		dst.Iterators = make(map[string]IteratorData, len(src.Iterators)) // or make a new one and fill it
-	}
-
-	for i, s := range src.Iterators {
-		dst.Iterators[i] = s
+	if dst.Dependencies != nil {
+		dst.Dependencies = append(dst.Dependencies, src.Dependencies...) // just append
+	} else {
+		dst.Dependencies = make([]string, len(src.Dependencies)) // or make a new one and fill it
+		for i, s := range src.Dependencies {
+			dst.Dependencies[i] = s
+		}
 	}
 
 	if dst.IteratorValues == nil {
-		dst.IteratorValues = make(map[string]string, len(src.IteratorValues)) // or make a new one and fill it
+		dst.IteratorValues = make(map[string]string, len(src.IteratorValues)) // if none exist, make a new one to fill
 	}
 
 	for i, s := range src.IteratorValues {
 		dst.IteratorValues[i] = s
 	}
 
+	if dst.Iterators == nil {
+		dst.Iterators = make(map[string]IteratorData, len(src.Iterators)) // if none exist, make a new one to fill
+	}
+
+	for i, s := range src.Iterators {
+		dst.Iterators[i] = s
+	}
+
 	dst.Slug = src.Slug + dst.Slug
 }
 
-//collect iterators from modules
+//collect iterators from modules skiping over any already set values for obvious reasons
 func gatherIterators(iterators map[string]IteratorData) errors.Error {
 	for n, i := range iterators {
-		if len(i.List) == 0 {
-			var data []string
-
-			if _, ok := Iterators[i.Iterator]; !ok {
-				return ErrUsingUnknownModule.SetRoot(i.Iterator)
-			}
-
-			iPipe := Iterators[i.Iterator].GetPipe(i.IteratorArguments)
-
-			if iPipe != nil {
-				pipeline.ExecPipeline(nil, &data, iPipe)
-			} else {
-				data = Iterators[i.Iterator].GetIterations(i.IteratorArguments)
-			}
-
-			i.List = data
-			iterators[n] = i
+		if len(i.List) != 0 {
+			continue
 		}
+
+		if _, ok := Iterators[i.Iterator]; !ok {
+			return ErrUsingUnknownModule.SetRoot(i.Iterator)
+		}
+
+		i.List = Iterators[i.Iterator].GetIterations(i.IteratorArguments)
+
+		iterators[n] = i
 	}
 
 	return nil
 }
 
 // Gather after unfolding
-func Gather(cSite *ConfigSite, log *ui.UI) (*Site, errors.Error) {
+func Gather(cSite ConfigSite, log *ui.UI) (*Site, errors.Error) {
 	log.Debugf("Gathering information for %s", cSite.Slug)
 	log.Debugf("Site data: %v", cSite)
 
@@ -249,7 +281,7 @@ func Gather(cSite *ConfigSite, log *ui.UI) (*Site, errors.Error) {
 		return nil, ErrFailedGather.SetRoot(err.Error())
 	}
 
-	log.Debugf("Finished gathering for %s", cSite.Slug)
+	log.Debugf("Finished gathering")
 
 	return site, nil
 }
@@ -298,7 +330,8 @@ func gatherData(site *Site, files []Data) errors.Error {
 				pipes = append(pipes, dpp)
 			}
 
-			pipeline.ExecPipeline(nil, &data, pipes...)
+			bytes, _ := pipeline.ExecPipeline(nil, pipes...)
+			data.GobDecode(bytes)
 		} else {
 			fileData := DataLoaders[d.Loader].Load(d.LoaderArguments)
 			data = DataParsers[d.Parser].Parse(fileData, d.ParserArguments)
@@ -316,24 +349,25 @@ func gatherData(site *Site, files []Data) errors.Error {
 	return nil
 }
 
-//TODO optimize the SHIT out od this.
 func gatherTemplates(site *Site, templates []string) errors.Error {
-	var newTemplates = make([]string, len(templates))
-	for i, template := range templates {
+	finalTemplate := template.New("").Funcs(TemplateFunctions)
+	for _, tPath := range templates {
 		//prefix the templates with the TemplateFolder
-		newTemplates[i] = filepath.Join(TemplateFolder, template)
+		path := filepath.Join(TemplateFolder, tPath)
+		if _, ok := subTemplates[path]; !ok {
+			bytes, err := ioutil.ReadFile(path)
+			if err != nil {
+				return errors.Import(err)
+			}
+			subTemplates[path] = string(bytes)
+		}
+		finalTemplate.Parse(subTemplates[path])
 	}
-
-	var err error
 
 	//get the template with the TemplateFunctions initalized
 	id := randString(32)
-	template, err := template.New("").Funcs(TemplateFunctions).ParseFiles(newTemplates...)
-	if err != nil {
-		return errors.Import(err)
-	}
 
-	globalTemplates[id] = template
+	globalTemplates[id] = finalTemplate
 	site.Template = id
 
 	return nil
@@ -416,6 +450,14 @@ func executeTemplate(site *Site) errors.Error {
 	return nil
 }
 
+//GetTemplateTree gets the template according to
+func GetTemplateTree(template string) *parse.Tree {
+	if v, ok := globalTemplates[template]; ok {
+		return v.Tree
+	}
+	return nil
+}
+
 /*
 	HELPERS
 
@@ -447,10 +489,4 @@ func randString(n int) string {
 	}
 
 	return string(b)
-}
-
-func hashConfigSite(c *ConfigSite) []byte {
-	jsonBytes, _ := json.Marshal(c)
-	hash := md5.Sum(jsonBytes)
-	return hash[:]
 }

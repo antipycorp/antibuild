@@ -33,6 +33,16 @@ var (
 	shutdown chan int
 )
 
+//HostDebug host the /debug/pprof endpoint locally on port 5000
+func HostDebug() {
+	debug := http.Server{
+		Addr:        ":5000",
+		Handler:     http.DefaultServeMux,
+		ReadTimeout: time.Millisecond * 500,
+	}
+	go debug.ListenAndServe()
+}
+
 //HostLocally hosts output folder
 func HostLocally(output, port string) {
 	if shutdown == nil {
@@ -46,15 +56,6 @@ func HostLocally(output, port string) {
 	addr := ":" + port
 	if addr == ":" {
 		addr = ":8080"
-	}
-
-	if os.Getenv("DEBUG") == "1" {
-		debug := http.Server{
-			Addr:        ":5000",
-			Handler:     http.DefaultServeMux,
-			ReadTimeout: time.Millisecond * 500,
-		}
-		go debug.ListenAndServe()
 	}
 
 	//host a static file server from the output folder

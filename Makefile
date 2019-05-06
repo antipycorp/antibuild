@@ -48,19 +48,20 @@ build_arm:
 
 build_internal:
 	echo "Building antibuild for ${GOOS}/${GOARCH}";
-	go build -o ./dist/${GOOS}/${GOARCH}/antibuild main.go
+	go build -ldflags="-s -w" -o ./dist/${GOOS}/${GOARCH}/antibuild main.go
 
 bin:
 	go build -o antibuild main.go
 	mv antibuild ~/bin
 
 test:
-	go test ./...	> test.txt
+	go test ./... > test.txt
 
 benchcmp: $(shell which benchcmp)
 	go get golang.org/x/tools/cmd/benchcmp 
 
 benchmark: benchcmp
-	go test ./... -bench=. -run=^$ -test.benchmem=true > benchmark.txt
+	go mod vendor
+	go test ./... -bench=. -test.benchmem=true -run=^$ > benchmark.txt; true
 	-wget "https://gitlab.com/antipy/antibuild/cli/-/jobs/artifacts/$(branch)/raw/benchmark.txt?job=benchmark" -O benchmark_before.txt; true
 	-benchcmp benchmark_before.txt benchmark.txt > benchmark_change.txt; true

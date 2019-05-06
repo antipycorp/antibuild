@@ -10,6 +10,7 @@ import (
 
 	"gitlab.com/antipy/antibuild/api/host"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
+	"gitlab.com/antipy/antibuild/cli/modules"
 
 	"gitlab.com/antipy/antibuild/cli/builder/site"
 )
@@ -19,7 +20,7 @@ type (
 	Config struct {
 		LogConfig  log                         `json:"logging"`
 		Folders    Folder                      `json:"folders"`
-		Modules    Modules                     `json:"modules"`
+		Modules    modules.Modules             `json:"modules"`
 		Pages      *site.ConfigSite            `json:"pages"`
 		ModuleHost map[string]*host.ModuleHost `json:"-"`
 		UILogger   UIlogger                    `json:"-"`
@@ -30,13 +31,6 @@ type (
 		Static    string `json:"static"`
 		Output    string `json:"output"`
 		Modules   string `json:"modules"`
-	}
-
-	//Modules is the part of the config file that handles modules
-	Modules struct {
-		Dependencies map[string]string                 `json:"dependencies"`
-		Config       map[string]map[string]interface{} `json:"config,omitempty"`
-		SPPs         []string                          `json:"spps,omitempty"`
 	}
 )
 
@@ -94,12 +88,15 @@ func SaveConfig(configLocation string, cfg *Config) errors.Error {
 }
 
 //CleanConfig does everything for you
-func CleanConfig(configLocation string, ui uiLoggerSetter) (*Config, errors.Error) {
+func CleanConfig(configLocation string, ui uiLoggerSetter, useLog bool) (*Config, errors.Error) {
 	cfg, configErr := ParseConfig(configLocation)
 	if configErr != nil {
 		return nil, ErrFailedParse.SetRoot(configErr.GetRoot())
 	}
 
+	if !useLog {
+		return cfg, nil
+	}
 	file, err := os.OpenFile(cfg.LogConfig.File, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0660)
 	if err != nil {
 		return nil, ErrFailedCreateLog.SetRoot(err.Error())
@@ -107,6 +104,7 @@ func CleanConfig(configLocation string, ui uiLoggerSetter) (*Config, errors.Erro
 	file.Seek(0, 0)
 	ui.SetLogfile(file)
 	ui.SetPrettyPrint(cfg.LogConfig.PrettyPrint)
+	ui.ShouldEnableDebug(cfg.LogConfig.EnableDebug)
 
 	cfg.UILogger = ui
 	return cfg, nil
@@ -136,13 +134,15 @@ func (l *log) UnmarshalJSON(data []byte) error {
 		cfgl := struct {
 			File        string `json:"file"`
 			PrettyPrint bool   `json:"pretty_print"`
+			EnableDebug bool   `json:"enable_debug"`
 		}{}
 
 		if err := json.Unmarshal(data, &cfgl); err != nil {
 			return err
 		}
+
 		*l = cfgl //converts cfg to a propper configLog
-	default: //else just parse it ad a string
+	default: //else just parse it add a string
 		if err := json.Unmarshal(data, &l.File); err != nil {
 			return err
 		}

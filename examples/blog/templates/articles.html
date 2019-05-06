@@ -1,0 +1,10 @@
+{{ define "page" }}
+<h1>Articles</h1>
+{{ $authors := .authors }}
+{{ range $id, $article := .articles }}
+  <div>
+    <h2><a href="/articles/{{$id}}">{{.name}}</a></h2>
+    <p>{{$article.published}} || <a href="/authors/{{$article.author}}">{{ (index $authors $article.author).name}}</a></p>
+  </div>
+{{ end }}
+{{ end }}
