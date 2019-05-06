@@ -5,13 +5,14 @@
 package new
 
 import (
-	"gitlab.com/antipy/antibuild/cli/modules"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"reflect"
 	"regexp"
+
+	"gitlab.com/antipy/antibuild/cli/modules"
 
 	"github.com/spf13/cobra"
 	"gitlab.com/antipy/antibuild/cli/builder/config"
@@ -105,18 +106,20 @@ var newCMD = &cobra.Command{
 			println(err.Error())
 			return
 		}
-		var modulesFinal = make([][2]string, len(answers.DefaultModules))
+
+		/*modulesFinal := make([][3]string, len(answers.DefaultModules))
 		for i := range modules {
 			modulesFinal[i][0] = answers.DefaultModules[i]
-			modulesFinal[i][1] = moduleRepositoryURL
+			modulesFinal[i][1] = "latest"
+			modulesFinal[i][2] = moduleRepositoryURL
+		}*/
 
-		}
 		if _, err := ioutil.ReadDir(answers.Name); os.IsNotExist(err) {
 			downloadTemplate(templateRepository, answers.Template, answers.Name)
 
-			if len(answers.DefaultModules) > 0 {
+			/*if len(answers.DefaultModules) > 0 {
 				installModules(modulesFinal, answers.Name)
-			}
+			}*/
 
 			println("Success. Run these commands to get started:\n")
 			println("cd " + answers.Name)
@@ -168,7 +171,7 @@ func downloadTemplate(templateRepository map[string]cmdInternal.TemplateReposito
 
 		break
 	case "git":
-		err = internal.DownloadGit(dir, t.Source.URL)
+		err = internal.DownloadGit(dir, t.Source.URL, "master")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -197,15 +200,18 @@ func downloadTemplate(templateRepository map[string]cmdInternal.TemplateReposito
 	return true
 }
 
-func installModules(modules [][2]string, outPath string) {
+func installModules(ms [][3]string, outPath string) {
 	cfg, err := config.GetConfig(filepath.Join(outPath, "config.json"))
 	if err != nil {
 		println("Could not open config file to add modules. Module installation will be skipped.")
 		return
 	}
 
-	for _, module := range modules {
-		cfg.Modules.Dependencies[module[0]] = module[1]
+	for _, module := range ms {
+		cfg.Modules.Dependencies[module[0]] = &modules.Module{
+			Version:    module[1],
+			Repository: module[2],
+		}
 	}
 
 	err = config.SaveConfig(filepath.Join(outPath, "config.json"), cfg)

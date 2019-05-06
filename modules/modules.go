@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"gitlab.com/antipy/antibuild/api/host"
 	"gitlab.com/antipy/antibuild/cli/builder/site"
@@ -23,6 +24,7 @@ import (
 	abm_math "gitlab.com/antipy/antibuild/std/math/handler"
 	abm_noescape "gitlab.com/antipy/antibuild/std/noescape/handler"
 	abm_util "gitlab.com/antipy/antibuild/std/util/handler"
+	"gitlab.com/antipy/antibuild/std/version"
 	abm_yaml "gitlab.com/antipy/antibuild/std/yaml/handler"
 )
 
@@ -32,16 +34,22 @@ type (
 		name  string
 	}
 
-	//ModuleConfig contains the config for modules
+	// ModuleConfig contains the config for modules
 	ModuleConfig struct {
 		Config map[string]interface{}
 	}
-	//Modules is the part of the config file that handles modules
+
+	// Module with info about the path and version
+	Module struct {
+		Repository string
+		Version    string
+	}
+
+	// Modules is the part of the config file that handles modules
 	Modules struct {
-		Dependencies map[string]string       `json:"dependencies"`
+		Dependencies map[string]*Module      `json:"dependencies"`
 		Config       map[string]ModuleConfig `json:"config,omitempty"`
 		SPPs         []string                `json:"spps,omitempty"`
-		Repositories []string                `json:"repositories"`
 	}
 )
 
@@ -90,7 +98,7 @@ var (
 		},
 	}
 
-	loadedModules = make(map[string]string)
+	loadedModules = make(map[string]*Module)
 
 	//ErrModuleFailedStarting means a module failed to start
 	ErrModuleFailedStarting = errors.NewError("module failed to start", 1)
@@ -102,6 +110,9 @@ var (
 	ErrModuleFailedObtainFunctions = errors.NewError("failed to obtain registered functions", 4)
 	//ErrModuleFailedConfigure means we could not configure module
 	ErrModuleFailedConfigure = errors.NewError("failed to configure module", 5)
+
+	//ErrDependencyWrongFormat means a wrong format for a dependency
+	ErrDependencyWrongFormat = fmt.Errorf("dependency must be in the format 'json' or 'json@1.0.0'")
 )
 
 //LoadModules communicates with modules to load them.
@@ -111,58 +122,61 @@ func LoadModules(moduleRoot string, modules Modules, log host.Logger) (moduleHos
 	configs := modules.Config
 	moduleHost = make(map[string]*host.ModuleHost, len(deps))
 
-	for identifier, version := range deps {
-		if _, ok := loadedModules[identifier]; ok { //check if the module is still loaded,
-			if loadedModules[identifier] == version { //if the version is the same leave it be
+	for identifier, meta := range deps {
+		if _, ok := loadedModules[identifier]; ok { // check if the module is still loaded,
+			if loadedModules[identifier].Repository == meta.Repository && loadedModules[identifier].Version == meta.Version { // if the version is the same leave it be
 				continue
 			}
-			remModule(identifier, moduleHost) //else remove the old version and continue with loading the new version
+
+			remModule(identifier, moduleHost) // else remove the old version and continue with loading the new version
 		}
 
-		stdout, stdin, err := loadModule(identifier, version, moduleRoot)
+		stdout, stdin, versionLoaded, err := loadModule(identifier, meta, moduleRoot)
 		if err != nil {
 			return nil, err
 		}
 
 		var errr error
-		moduleHost[identifier], errr = host.Start(stdout, stdin, log)
+		moduleHost[identifier], errr = host.Start(stdout, stdin, log, versionLoaded)
 		if errr != nil {
 			return nil, ErrModuleFailedStarting.SetRoot(errr.Error())
 		}
 
 		setupModule(identifier, moduleHost[identifier], configs[identifier])
-		loadedModules[identifier] = version
+		loadedModules[identifier] = meta
 	}
+
 	return
 }
 
 //LoadModule Loads a specific module and is menth for hotloading, this
 //should not be used for initial setup. For initial setup use LoadModules.
-func LoadModule(moduleRoot, identifier, version string, moduleHost map[string]*host.ModuleHost, config ModuleConfig, log host.Logger) errors.Error {
+func LoadModule(moduleRoot string, identifier string, meta *Module, moduleHost map[string]*host.ModuleHost, config ModuleConfig, log host.Logger) errors.Error {
 	if _, ok := loadedModules[identifier]; ok {
-		if loadedModules[identifier] == version {
+		if loadedModules[identifier].Repository == meta.Repository && loadedModules[identifier].Version == meta.Version {
 			return nil
 		}
+
 		remModule(identifier, moduleHost)
 	}
 
 	defer func() {
-		loadedModules[identifier] = version
+		loadedModules[identifier] = meta
 	}()
 
-	stdout, stdin, err := loadModule(identifier, version, moduleRoot)
+	stdout, stdin, versionLoaded, err := loadModule(identifier, meta, moduleRoot)
 	if err != nil {
 		return err
 	}
 
 	var errr error
-	moduleHost[identifier], errr = host.Start(stdout, stdin, log)
+	moduleHost[identifier], errr = host.Start(stdout, stdin, log, versionLoaded)
 	if errr != nil {
 		return ErrModuleFailedStarting.SetRoot(errr.Error())
 	}
 
 	setupModule(identifier, moduleHost[identifier], config)
-	loadedModules[identifier] = version
+	loadedModules[identifier] = meta
 
 	return nil
 }
@@ -172,11 +186,11 @@ func remModule(identifier string, hosts map[string]*host.ModuleHost) {
 	delete(hosts, identifier)
 }
 
-func loadModule(name, version, path string) (io.Reader, io.Writer, errors.Error) {
+func loadModule(name string, meta *Module, path string) (io.Reader, io.Writer, string, errors.Error) {
 	//TODO: make this a log.debug thing
-	fmt.Printf("Loading module: %s@%s\n", name, version)
+	fmt.Printf("Loading module %s from %s at %s version\n", name, meta.Repository, meta.Version)
 
-	if v, ok := internalMods[name]; ok {
+	if v, ok := internalMods[name]; ok && (meta.Version == "internal" || meta.Version == version.Version) {
 		in, stdin := io.Pipe()
 		stdout, out := io.Pipe()
 
@@ -185,7 +199,7 @@ func loadModule(name, version, path string) (io.Reader, io.Writer, errors.Error)
 
 		go v.start(in2, out)
 
-		return stdout2, stdin, nil
+		return stdout2, stdin, meta.Version, nil
 	}
 
 	//prepare command and get nesecary data
@@ -193,21 +207,22 @@ func loadModule(name, version, path string) (io.Reader, io.Writer, errors.Error)
 
 	stdin, err := module.StdinPipe()
 	if nil != err {
-		return nil, nil, ErrModuleFailedObtainStdin.SetRoot(err.Error())
+		return nil, nil, "", ErrModuleFailedObtainStdin.SetRoot(err.Error())
 	}
 
 	stdout, err := module.StdoutPipe()
 	if nil != err {
-		return nil, nil, ErrModuleFailedObtainStdout.SetRoot(err.Error())
+		return nil, nil, "", ErrModuleFailedObtainStdout.SetRoot(err.Error())
 	}
 
 	module.Stderr = os.Stderr
 
 	//start module and initaite connection
 	if errr := module.Start(); errr != nil {
-		return nil, nil, ErrModuleFailedStarting.SetRoot(errr.Error())
+		return nil, nil, "", ErrModuleFailedStarting.SetRoot(errr.Error())
 	}
-	return stdout, stdin, nil
+
+	return stdout, stdin, meta.Version, nil
 }
 
 func setupModule(identifier string, moduleHost *host.ModuleHost, config ModuleConfig) errors.Error {
@@ -251,4 +266,76 @@ func setupModule(identifier string, moduleHost *host.ModuleHost, config ModuleCo
 	}
 
 	return nil
+}
+
+// UnmarshalJSON on a module
+func (m *Module) UnmarshalJSON(data []byte) error {
+	d := string(data)
+	d = strings.Trim(d, "\"")
+	split := strings.Split(d, "@")
+
+	if len(split) < 1 || len(split) > 2 {
+		return ErrDependencyWrongFormat
+	}
+
+	if split[0] == "" {
+		return ErrDependencyWrongFormat
+	}
+
+	m.Repository = split[0]
+
+	if len(split) == 2 {
+		if split[1] == "" {
+			return ErrDependencyWrongFormat
+		}
+		m.Version = split[1]
+	} else {
+		m.Version = "latest"
+	}
+
+	return nil
+}
+
+// ParseModuleString for config and cli
+func ParseModuleString(moduleString string) (m *Module, err error) {
+	m = new(Module)
+
+	d := moduleString
+	d = strings.Trim(d, "\"")
+	split := strings.SplitN(d, "@", -1)
+
+	if len(split) < 1 || len(split) > 2 {
+		err = ErrDependencyWrongFormat
+		return
+	}
+
+	if split[0] == "" {
+		err = ErrDependencyWrongFormat
+		return
+	}
+
+	m.Repository = split[0]
+
+	if len(split) == 2 {
+		if split[1] == "" {
+			err = ErrDependencyWrongFormat
+			return
+		}
+
+		m.Version = split[1]
+	} else {
+		m.Version = "latest"
+	}
+
+	return
+}
+
+// MarshalJSON on a module
+func (m *Module) MarshalJSON() ([]byte, error) {
+	v := ""
+	if m.Version != "" {
+		v = "@" + m.Version
+	}
+
+	return []byte("\"" + m.Repository + v + "\""), nil
 }

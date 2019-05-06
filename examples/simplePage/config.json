@@ -12,11 +12,11 @@
   },
   "modules": {
     "dependencies": {
-      "file": "https://build.antipy.com/dl/modules.json",
-      "json": "https://build.antipy.com/dl/modules.json",
-      "language": "https://build.antipy.com/dl/modules.json",
-      "yaml": "https://build.antipy.com/dl/modules.json",
-      "util": "https://build.antipy.com/dl/modules.json"
+      "file": "https://build.antipy.com/dl/modules.json@internal",
+      "json": "https://build.antipy.com/dl/modules.json@internal",
+      "language": "https://build.antipy.com/dl/modules.json@internal",
+      "yaml": "https://build.antipy.com/dl/modules.json@internal",
+      "util": "https://build.antipy.com/dl/modules.json@internal"
     },
     "config": {
       "language": {

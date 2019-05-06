@@ -179,15 +179,22 @@ func DownloadJSON(url string, data interface{}) error {
 }
 
 // DownloadGit clones a git repo
-func DownloadGit(path string, url string) error {
+func DownloadGit(path string, url string, version string) error {
 	err := os.MkdirAll(path, 0755)
 	if err != nil {
 		return err
 	}
 
-	cmd := exec.Command("git", "clone", url)
-	cmd.Dir = path
-	err = cmd.Run()
+	clone := exec.Command("git", "clone", url)
+	clone.Dir = path
+	err = clone.Run()
+	if err != nil {
+		return err
+	}
+
+	checkout := exec.Command("git", "checkout", version)
+	checkout.Dir = path
+	err = checkout.Run()
 	if err != nil {
 		return err
 	}
