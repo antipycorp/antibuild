@@ -5,8 +5,6 @@
 package modules
 
 import (
-	"encoding/json"
-
 	"gitlab.com/antipy/antibuild/cli/builder/site"
 
 	"github.com/jaicewizard/tt"
@@ -223,14 +221,4 @@ func (spp *sitePostProcessor) GetPipe(variable string) pipeline.Pipe {
 		return data.([]byte), nil
 	}
 	return pipe
-}
-
-//UnmarshalJSON unmarshals the json into a module config
-func (mc *ModuleConfig) UnmarshalJSON(data []byte) error {
-	return json.Unmarshal(data, &mc.Config)
-}
-
-//MarshalJSON marschals the data into json
-func (mc *ModuleConfig) MarshalJSON() ([]byte, error) {
-	return json.Marshal(mc.Config)
 }

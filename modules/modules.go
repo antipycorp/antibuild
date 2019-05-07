@@ -35,9 +35,7 @@ type (
 	}
 
 	// ModuleConfig contains the config for modules
-	ModuleConfig struct {
-		Config map[string]interface{}
-	}
+	ModuleConfig map[string]interface{}
 
 	// Module with info about the path and version
 	Module struct {
@@ -256,9 +254,9 @@ func setupModule(identifier string, moduleHost *host.ModuleHost, config ModuleCo
 		(*iterators)[identifier+"_"+function] = getIterator(function, moduleHost)
 	}
 
-	if config.Config != nil {
+	if config != nil {
 		output, err := moduleHost.ExcecuteMethod("internal_config", []interface{}{
-			config.Config,
+			config,
 		})
 		if err != nil || output != "module: ready" {
 			return ErrModuleFailedConfigure.SetRoot(err.Error())

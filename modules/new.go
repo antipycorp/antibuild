@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"gitlab.com/antipy/antibuild/cli/internal"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
@@ -40,8 +41,13 @@ type ModuleEntry struct {
 		URL          string `json:"url"`
 		SubDirectory string `json:"subdirectory"`
 	} `json:"source"`
-	Compiled      map[string]map[string]map[string]string `json:"compiled"`
-	LatestVersion string                                  `json:"latest"`
+	Compiled        map[string]map[string]map[string]string `json:"compiled"`
+	CompiledDynamic struct {
+		URL          string              `json:"url"`
+		Vesions      []string            `json:"versions"`
+		OSArchCombos map[string][]string `json:"os_arch_combos"`
+	} `json:"compiled_dymamic"`
+	LatestVersion string `json:"latest"`
 }
 
 //ModuleRepository is a repository for modules
@@ -78,6 +84,22 @@ func (me ModuleEntry) Install(version string, targetFile string) (string, errors
 
 	goos := runtime.GOOS
 	goarch := runtime.GOARCH
+
+	if me.CompiledDynamic.URL != "" && contains(me.CompiledDynamic.Vesions, version) {
+		if _, ok := me.CompiledDynamic.OSArchCombos[goos]; ok && contains(me.CompiledDynamic.OSArchCombos[goos], goarch) {
+			url := strings.ReplaceAll(me.CompiledDynamic.URL, "{{version}}", version)
+			url = strings.ReplaceAll(url, "{{os}}", goos)
+			url = strings.ReplaceAll(url, "{{arch}}", goarch)
+
+			err := internal.DownloadFile(targetFile, url, true)
+			if err != nil {
+				return "", ErrFailedModuleBinaryDownload.SetRoot(err.Error())
+			}
+
+			return version, nil
+		}
+	}
+
 	if _, ok := me.Compiled[version]; ok {
 		if _, ok := me.Compiled[version][goos]; ok {
 			if _, ok := me.Compiled[version][goos][goarch]; ok {
@@ -138,4 +160,14 @@ func InstallModule(name string, version string, repoURL string, filePrefix strin
 	}
 
 	return installedVersion, nil
+}
+
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+
+	return false
 }
