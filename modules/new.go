@@ -42,7 +42,7 @@ type ModuleEntry struct {
 		URL          string `json:"url"`
 		SubDirectory string `json:"subdirectory"`
 	} `json:"source"`
-	Compiled        map[string]map[string]map[string]string `json:"compiled"`
+	CompiledStatic  map[string]map[string]map[string]string `json:"compiled_static"`
 	CompiledDynamic struct {
 		URL          string              `json:"url"`
 		Vesions      []string            `json:"versions"`
@@ -86,6 +86,21 @@ func (me ModuleEntry) Install(version string, targetFile string) (string, errors
 	goos := runtime.GOOS
 	goarch := runtime.GOARCH
 
+	// static compiled modules
+	if _, ok := me.CompiledStatic[version]; ok {
+		if _, ok := me.CompiledStatic[version][goos]; ok {
+			if _, ok := me.CompiledStatic[version][goos][goarch]; ok {
+				err := internal.DownloadFile(targetFile, me.CompiledStatic[version][goos][goarch], true)
+				if err != nil {
+					return "", ErrFailedModuleBinaryDownload.SetRoot(err.Error())
+				}
+
+				return version, nil
+			}
+		}
+	}
+
+	// dynamic compiled modules
 	if me.CompiledDynamic.URL != "" && contains(me.CompiledDynamic.Vesions, version) {
 		if _, ok := me.CompiledDynamic.OSArchCombos[goos]; ok && contains(me.CompiledDynamic.OSArchCombos[goos], goarch) {
 			url := strings.ReplaceAll(me.CompiledDynamic.URL, "{{version}}", version)
@@ -103,18 +118,7 @@ func (me ModuleEntry) Install(version string, targetFile string) (string, errors
 		}
 	}
 
-	if _, ok := me.Compiled[version]; ok {
-		if _, ok := me.Compiled[version][goos]; ok {
-			if _, ok := me.Compiled[version][goos][goarch]; ok {
-				err := internal.DownloadFile(targetFile, me.Compiled[version][goos][goarch], true)
-				if err != nil {
-					return "", ErrFailedModuleBinaryDownload.SetRoot(err.Error())
-				}
-
-				return version, nil
-			}
-		}
-	}
+	// local compiled modules
 	dir, err := ioutil.TempDir("", "abm_"+me.Name)
 	if err != nil {
 		panic(err)
