@@ -15,8 +15,8 @@
       "file": "https://build.antipy.com/dl/modules.json@internal",
       "json": "https://build.antipy.com/dl/modules.json@internal",
       "language": "https://build.antipy.com/dl/modules.json@internal",
-      "yaml": "https://build.antipy.com/dl/modules.json@internal",
-      "util": "https://build.antipy.com/dl/modules.json@internal"
+      "util": "https://build.antipy.com/dl/modules.json@internal",
+      "yaml": "https://build.antipy.com/dl/modules.json@internal"
     },
     "config": {
       "language": {
@@ -27,7 +27,6 @@
     "spps": ["language_language"]
   },
   "pages": {
-    "slug": "",
     "templates": ["layout.html", "components/navbar.html"],
     "data": ["[file_file:data/layout.json][json_json]"],
     "sites": [
