@@ -1,12 +1,12 @@
 package modules
 
 import (
-	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"runtime"
 	"strings"
 
+	tm "github.com/buger/goterm"
 	"gitlab.com/antipy/antibuild/cli/internal"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
 )
@@ -86,16 +86,14 @@ func (me ModuleEntry) Install(version string, targetFile string) (string, errors
 	goos := runtime.GOOS
 	goarch := runtime.GOARCH
 
-	fmt.Println(me.CompiledDynamic)
-	fmt.Println(me.CompiledDynamic.URL != "")
-	fmt.Println(contains(me.CompiledDynamic.Vesions, version))
-	fmt.Println(me.CompiledDynamic.OSArchCombos[goos])
 	if me.CompiledDynamic.URL != "" && contains(me.CompiledDynamic.Vesions, version) {
 		if _, ok := me.CompiledDynamic.OSArchCombos[goos]; ok && contains(me.CompiledDynamic.OSArchCombos[goos], goarch) {
 			url := strings.ReplaceAll(me.CompiledDynamic.URL, "{{version}}", version)
 			url = strings.ReplaceAll(url, "{{os}}", goos)
 			url = strings.ReplaceAll(url, "{{arch}}", goarch)
 
+			tm.Print(tm.Color("Using "+tm.Bold(url), tm.BLUE) + tm.Color(" for download.", tm.BLUE) + "\n")
+			tm.Flush()
 			err := internal.DownloadFile(targetFile, url, true)
 			if err != nil {
 				return "", ErrFailedModuleBinaryDownload.SetRoot(err.Error())
@@ -148,6 +146,8 @@ func (me ModuleEntry) Install(version string, targetFile string) (string, errors
 //InstallModule installs a module
 func InstallModule(name string, version string, repoURL string, filePrefix string) (string, errors.Error) {
 	if version == "internal" {
+		tm.Print(tm.Color("Module is "+tm.Bold("internal"), tm.BLUE) + tm.Color(". There is no need to download.", tm.BLUE) + "\n")
+		tm.Flush()
 		return "internal", nil
 	}
 
