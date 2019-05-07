@@ -12,18 +12,16 @@
   },
   "modules": {
     "dependencies": {
-      "file": "https://build.antipy.com/dl/modules.json@internal",
-      "markdown": "https://build.antipy.com/dl/modules.json@internal",
-      "util": "https://build.antipy.com/dl/modules.json@internal",
-      "yaml": "https://build.antipy.com/dl/modules.json@internal"
+      "file": "https://build.antipy.com/dl/modules.json@latest",
+      "markdown": "https://build.antipy.com/dl/modules.json@latest",
+      "util": "https://build.antipy.com/dl/modules.json@latest",
+      "yaml": "https://build.antipy.com/dl/modules.json@latest"
     }
   },
   "pages": {
     "sites": [
       {
-        "templates": [
-          "layout.html"
-        ],
+        "templates": ["layout.html"],
         "sites": [
           {
             "iterators": {
@@ -40,9 +38,7 @@
                   "comment": "[file_all:data/articles/{{article}}/comments]"
                 },
                 "slug": "/index.html",
-                "templates": [
-                  "article_comment.html"
-                ],
+                "templates": ["article_comment.html"],
                 "data": [
                   "[range:comment][file_file:data/articles/{{article}}/comments/{{comment}}][yaml_yaml][util_prefix:{{comment}}]"
                 ]

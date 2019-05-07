@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"runtime"
@@ -46,7 +47,7 @@ type ModuleEntry struct {
 		URL          string              `json:"url"`
 		Vesions      []string            `json:"versions"`
 		OSArchCombos map[string][]string `json:"os_arch_combos"`
-	} `json:"compiled_dymamic"`
+	} `json:"compiled_dynamic"`
 	LatestVersion string `json:"latest"`
 }
 
@@ -85,6 +86,10 @@ func (me ModuleEntry) Install(version string, targetFile string) (string, errors
 	goos := runtime.GOOS
 	goarch := runtime.GOARCH
 
+	fmt.Println(me.CompiledDynamic)
+	fmt.Println(me.CompiledDynamic.URL != "")
+	fmt.Println(contains(me.CompiledDynamic.Vesions, version))
+	fmt.Println(me.CompiledDynamic.OSArchCombos[goos])
 	if me.CompiledDynamic.URL != "" && contains(me.CompiledDynamic.Vesions, version) {
 		if _, ok := me.CompiledDynamic.OSArchCombos[goos]; ok && contains(me.CompiledDynamic.OSArchCombos[goos], goarch) {
 			url := strings.ReplaceAll(me.CompiledDynamic.URL, "{{version}}", version)
