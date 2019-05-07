@@ -39,6 +39,8 @@ github.com/stretchr/testify v1.3.0 h1:TivCn/peBQ7UY8ooIcPgZFpTNSz0Q2U6UrFlUfqbe0
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 gitlab.com/antipy/antibuild/api v0.11.1-0.20190506161119-c9b12a1dff31 h1:V5M1GpdiK3Byd7zu7UV1gT/a/PE80bL1cO1mCz/ul2A=
 gitlab.com/antipy/antibuild/api v0.11.1-0.20190506161119-c9b12a1dff31/go.mod h1:JUyvnEFHSSqYGfDnJ5vZPashERgVdPJ/mq6YcrwMFbo=
+gitlab.com/antipy/antibuild/api v0.11.1-0.20190507000620-170946e8462e h1:XsLT/o+0RTCaAtMFwzISZqoDrsSR2BuWnjr2gIqSNcs=
+gitlab.com/antipy/antibuild/api v0.11.1-0.20190507000620-170946e8462e/go.mod h1:JUyvnEFHSSqYGfDnJ5vZPashERgVdPJ/mq6YcrwMFbo=
 gitlab.com/antipy/antibuild/api v0.12.0-beta2 h1:Unn8QJgC3nIXrEmS+EP4PSja3w8XtLdIa0LguCy8cbg=
 gitlab.com/antipy/antibuild/api v0.12.0-beta2/go.mod h1:vABBm9a/hpaLYci8gWk8p0cKJuBMINCDH+y39/t2cUM=
 gitlab.com/antipy/antibuild/std v0.11.0 h1:Ul8Kvf2Km6IOpbAdNcw18gpNQADWqhBpDpUfVB24qtI=

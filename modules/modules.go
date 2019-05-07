@@ -199,7 +199,7 @@ func loadModule(name string, meta *Module, path string) (io.Reader, io.Writer, s
 
 		go v.start(in2, out)
 
-		return stdout2, stdin, meta.Version, nil
+		return stdout2, stdin, version.Version, nil
 	}
 
 	//prepare command and get nesecary data
