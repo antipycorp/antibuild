@@ -34,9 +34,6 @@ type (
 		name  string
 	}
 
-	// ModuleConfig contains the config for modules
-	ModuleConfig map[string]interface{}
-
 	// Module with info about the path and version
 	Module struct {
 		Repository string
@@ -45,9 +42,9 @@ type (
 
 	// Modules is the part of the config file that handles modules
 	Modules struct {
-		Dependencies map[string]*Module      `json:"dependencies"`
-		Config       map[string]ModuleConfig `json:"config,omitempty"`
-		SPPs         []string                `json:"spps,omitempty"`
+		Dependencies map[string]*Module                `json:"dependencies"`
+		Config       map[string]map[string]interface{} `json:"config,omitempty"`
+		SPPs         []string                          `json:"spps,omitempty"`
 	}
 )
 
@@ -140,7 +137,11 @@ func LoadModules(moduleRoot string, modules Modules, log host.Logger) (moduleHos
 			return nil, ErrModuleFailedStarting.SetRoot(errr.Error())
 		}
 
-		setupModule(identifier, moduleHost[identifier], configs[identifier])
+		err = setupModule(identifier, moduleHost[identifier], configs[identifier])
+		if err != nil {
+			return nil, err
+		}
+
 		loadedModules[identifier] = meta
 	}
 
@@ -149,7 +150,7 @@ func LoadModules(moduleRoot string, modules Modules, log host.Logger) (moduleHos
 
 //LoadModule Loads a specific module and is menth for hotloading, this
 //should not be used for initial setup. For initial setup use LoadModules.
-func LoadModule(moduleRoot string, identifier string, meta *Module, moduleHost map[string]*host.ModuleHost, config ModuleConfig, log host.Logger) errors.Error {
+func LoadModule(moduleRoot string, identifier string, meta *Module, moduleHost map[string]*host.ModuleHost, config map[string]interface{}, log host.Logger) errors.Error {
 	if _, ok := loadedModules[identifier]; ok {
 		if loadedModules[identifier].Repository == meta.Repository && loadedModules[identifier].Version == meta.Version {
 			return nil
@@ -173,7 +174,11 @@ func LoadModule(moduleRoot string, identifier string, meta *Module, moduleHost m
 		return ErrModuleFailedStarting.SetRoot(errr.Error())
 	}
 
-	setupModule(identifier, moduleHost[identifier], config)
+	err = setupModule(identifier, moduleHost[identifier], config)
+	if err != nil {
+		return err
+	}
+
 	loadedModules[identifier] = meta
 
 	return nil
@@ -223,7 +228,7 @@ func loadModule(name string, meta *Module, path string) (io.Reader, io.Writer, s
 	return stdout, stdin, meta.Version, nil
 }
 
-func setupModule(identifier string, moduleHost *host.ModuleHost, config ModuleConfig) errors.Error {
+func setupModule(identifier string, moduleHost *host.ModuleHost, config map[string]interface{}) errors.Error {
 	methods, errr := moduleHost.AskMethods()
 	if errr != nil {
 		return ErrModuleFailedObtainFunctions.SetRoot(errr.Error())
