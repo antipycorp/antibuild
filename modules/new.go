@@ -149,6 +149,10 @@ func (me ModuleEntry) Install(version string, targetFile string) (string, errors
 
 //InstallModule installs a module
 func InstallModule(name string, version string, repoURL string, filePrefix string) (string, errors.Error) {
+	if repoURL == "std" {
+		repoURL = STDRepo
+	}
+
 	if version == "internal" {
 		tm.Print(tm.Color("Module is "+tm.Bold("internal"), tm.BLUE) + tm.Color(". There is no need to download.", tm.BLUE) + "\n")
 		tm.Flush()
