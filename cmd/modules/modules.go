@@ -61,7 +61,7 @@ var modulesAddCMD = &cobra.Command{
 			return
 		}
 
-		tm.Print(tm.Color("Downloading "+tm.Bold(newModule.Repository), tm.BLUE) + tm.Color(" from repository "+tm.Bold(repositoryFile), tm.BLUE) + "\n")
+		tm.Print(tm.Color("Downloading "+tm.Bold(newModule.Repository), tm.BLUE) + tm.Color(" at version  "+tm.Bold(newModule.Version), tm.BLUE) + "\n")
 		tm.Flush()
 
 		installedVersion, err := modules.InstallModule(newModule.Repository, newModule.Version, repositoryFile, cfg.Folders.Modules)
@@ -86,7 +86,7 @@ var modulesAddCMD = &cobra.Command{
 			return
 		}
 
-		tm.Print(tm.Color("Finished downloading "+tm.Bold(newModule.Repository), tm.GREEN) + "\n \n")
+		tm.Print(tm.Color("Finished downloading "+tm.Bold(newModule.Repository), tm.GREEN) + tm.Color(" at version "+tm.Bold(installedVersion), tm.GREEN) + "\n \n")
 		tm.Flush()
 
 		return
