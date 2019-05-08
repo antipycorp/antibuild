@@ -126,7 +126,12 @@ func (me ModuleEntry) Install(version string, targetFile string) (string, errors
 
 	switch me.Source.Type {
 	case "git":
-		err = internal.DownloadGit(dir, me.Source.URL, version)
+		v := version
+		if me.Source.SubDirectory != "" {
+			v = me.Source.SubDirectory + "/" + version
+		}
+
+		err = internal.DownloadGit(dir, me.Source.URL, v)
 		if err != nil {
 			return "", ErrFailedGitRepositoryDownload.SetRoot(err.Error())
 		}
