@@ -40,7 +40,7 @@ var modulesAddCMD = &cobra.Command{
 		"a",
 	},
 	Short: "Get a module",
-	Long:  `Adds and downloads a module. Uses the standard repository (` + modules.STDRepo + `) by default.`,
+	Long:  `Adds and downloads a module. Uses the standard repository (` + modules.STDRepo + `) by default. Use -m to change.`,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg, err := config.GetConfig(configFile)
