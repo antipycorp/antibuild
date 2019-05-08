@@ -5,6 +5,7 @@ go 1.12
 require (
 	github.com/Netflix/go-expect v0.0.0-20180928190340-9d1f4485533b // indirect
 	github.com/buger/goterm v0.0.0-20181115115552-c206103e1f37
+	github.com/docker/cli v0.0.0-20190506213505-d88565df0c2d
 	github.com/eiannone/keyboard v0.0.0-20190314115158-7169d0afeb4f
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/gorilla/websocket v1.4.0
@@ -20,7 +21,14 @@ require (
 	github.com/spf13/pflag v1.0.3 // indirect
 	github.com/stretchr/testify v1.3.0 // indirect
 	gitlab.com/antipy/antibuild/api v0.11.1-0.20190507000620-170946e8462e
-	gitlab.com/antipy/antibuild/std v0.12.0-beta2.0.20190506173929-9384741fd948
+	gitlab.com/antipy/antibuild/std/file v0.0.0-20190508204339-f2c6f3da0513
+	gitlab.com/antipy/antibuild/std/json v0.0.0-20190508204339-f2c6f3da0513
+	gitlab.com/antipy/antibuild/std/language v0.0.0-20190508204339-f2c6f3da0513
+	gitlab.com/antipy/antibuild/std/markdown v0.0.0-20190508204339-f2c6f3da0513
+	gitlab.com/antipy/antibuild/std/math v0.0.0-20190508204339-f2c6f3da0513
+	gitlab.com/antipy/antibuild/std/noescape v0.0.0-20190508204339-f2c6f3da0513
+	gitlab.com/antipy/antibuild/std/util v0.0.0-20190508204339-f2c6f3da0513
+	gitlab.com/antipy/antibuild/std/yaml v0.0.0-20190508204339-f2c6f3da0513
 	golang.org/x/crypto v0.0.0-20190404164418-38d8ce5564a5 // indirect
 	gopkg.in/AlecAivazis/survey.v1 v1.7.0
 )

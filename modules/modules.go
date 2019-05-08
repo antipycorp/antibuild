@@ -24,14 +24,14 @@ import (
 	abm_math "gitlab.com/antipy/antibuild/std/math/handler"
 	abm_noescape "gitlab.com/antipy/antibuild/std/noescape/handler"
 	abm_util "gitlab.com/antipy/antibuild/std/util/handler"
-	"gitlab.com/antipy/antibuild/std/version"
 	abm_yaml "gitlab.com/antipy/antibuild/std/yaml/handler"
 )
 
 type (
 	internalMod struct {
-		start func(io.Reader, io.Writer)
-		name  string
+		start   func(io.Reader, io.Writer)
+		name    string
+		version string
 	}
 
 	// Module with info about the path and version
@@ -60,36 +60,44 @@ var (
 
 	internalMods = map[string]internalMod{
 		"file": internalMod{
-			name:  "file",
-			start: abm_file.Handler,
+			name:    "file",
+			start:   abm_file.Handler,
+			version: abm_file.Version,
 		},
 		"json": internalMod{
-			name:  "json",
-			start: abm_json.Handler,
+			name:    "json",
+			start:   abm_json.Handler,
+			version: abm_json.Version,
 		},
 		"language": internalMod{
-			name:  "language",
-			start: abm_language.Handler,
+			name:    "language",
+			start:   abm_language.Handler,
+			version: abm_language.Version,
 		},
 		"markdown": internalMod{
-			name:  "markdown",
-			start: abm_markdown.Handler,
+			name:    "markdown",
+			start:   abm_markdown.Handler,
+			version: abm_markdown.Version,
 		},
 		"math": internalMod{
-			name:  "math",
-			start: abm_math.Handler,
+			name:    "math",
+			start:   abm_math.Handler,
+			version: abm_math.Version,
 		},
 		"noescape": internalMod{
-			name:  "noescape",
-			start: abm_noescape.Handler,
+			name:    "noescape",
+			start:   abm_noescape.Handler,
+			version: abm_noescape.Version,
 		},
 		"util": internalMod{
-			name:  "util",
-			start: abm_util.Handler,
+			name:    "util",
+			start:   abm_util.Handler,
+			version: abm_util.Version,
 		},
 		"yaml": internalMod{
-			name:  "yaml",
-			start: abm_yaml.Handler,
+			name:    "yaml",
+			start:   abm_yaml.Handler,
+			version: abm_yaml.Version,
 		},
 	}
 
@@ -193,7 +201,7 @@ func loadModule(name string, meta *Module, path string) (io.Reader, io.Writer, s
 	//TODO: make this a log.debug thing
 	fmt.Printf("Loading module %s from %s at %s version\n", name, meta.Repository, meta.Version)
 
-	if v, ok := internalMods[name]; ok && (meta.Version == "internal" || meta.Version == version.Version) {
+	if v, ok := internalMods[name]; ok && (meta.Version == "internal" || meta.Version == v.version) {
 		in, stdin := io.Pipe()
 		stdout, out := io.Pipe()
 
@@ -202,7 +210,7 @@ func loadModule(name string, meta *Module, path string) (io.Reader, io.Writer, s
 
 		go v.start(in2, out)
 
-		return stdout2, stdin, version.Version, nil
+		return stdout2, stdin, v.version, nil
 	}
 
 	//prepare command and get nesecary data
