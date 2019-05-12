@@ -1,0 +1,5 @@
+{
+  "name": "Dev Env",
+  "dockerFile": "Dockerfile",
+  "extensions": ["esbenp.prettier-vscode", "rust-lang.rust", "ms-vscode.go"]
+}

@@ -1,0 +1,36 @@
+{
+  "files.autoSave": "afterDelay",
+  "files.associations": {
+    "*.html": "html"
+  },
+  "editor.tabSize": 2,
+  "editor.detectIndentation": false,
+  "editor.formatOnSave": true,
+  "git.enableSmartCommit": true,
+  "git.autofetch": true,
+  "git.confirmSync": false,
+  "explorer.confirmDelete": false,
+  "breadcrumbs.enabled": true,
+  "html.format.indentInnerHtml": true,
+  "javascript.updateImportsOnFileMove.enabled": "always",
+  "prettier.trailingComma": "es5",
+  "prettier.jsxBracketSameLine": true,
+  "prettier.jsxSingleQuote": true,
+  "prettier.singleQuote": true,
+  "go.gopath": "/home/developer/go",
+  "go.useLanguageServer": true,
+  "go.languageServerExperimentalFeatures": {
+    "diagnostics": true
+  },
+  "[go]": {
+    "editor.snippetSuggestions": "none",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": true
+    }
+  },
+  "gopls": {
+    "usePlaceholders": true,
+    "enhancedHover": true
+  }
+}
