@@ -21,7 +21,7 @@ var fallbackUI = ui.UI{
 }
 
 var configFile string
-var repositoryFile = modules.STDRepo
+var repositoryFile = ""
 
 // modulesCMD represents the modules command
 var modulesCMD = &cobra.Command{
@@ -40,7 +40,7 @@ var modulesAddCMD = &cobra.Command{
 		"a",
 	},
 	Short: "Get a module",
-	Long:  `Adds and downloads a module. Uses the standard repository (` + modules.STDRepo + `) by default. Use -m to change.`,
+	Long:  `Adds and downloads a module. Uses the standard repository (` + modules.STDRepo + `) by default. Will use repos in the global config if not found in std. Use -m to force a repo.`,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg, err := config.GetConfig(configFile)
@@ -53,7 +53,7 @@ var modulesAddCMD = &cobra.Command{
 			return
 		}
 
-		newModule, errr := modules.ParseModuleString(args[0])
+		newModule, errr := config.ParseModuleString(args[0])
 		if errr != nil {
 			tm.Print(tm.Color("Module is not valid.", tm.RED) +
 				"\n \n")
@@ -61,20 +61,17 @@ var modulesAddCMD = &cobra.Command{
 			return
 		}
 
-		tm.Print(tm.Color("Downloading "+tm.Bold(newModule.Repository), tm.BLUE) + tm.Color(" at version  "+tm.Bold(newModule.Version), tm.BLUE) + "\n")
+		tm.Print(tm.Color("Installing "+tm.Bold(newModule.Repository), tm.BLUE) + "\n")
 		tm.Flush()
 
-		installedVersion, err := modules.InstallModule(newModule.Repository, newModule.Version, repositoryFile, cfg.Folders.Modules)
+		installedModule, err := modules.InstallModule(newModule.Repository, newModule.Version, repositoryFile, cfg.Folders.Modules)
 
 		checkModuleErr(err)
 		if err != nil {
 			return
 		}
 
-		cfg.Modules.Dependencies[newModule.Repository] = &modules.Module{
-			Repository: repositoryFile,
-			Version:    installedVersion,
-		}
+		cfg.Modules.Dependencies[newModule.Repository] = installedModule
 
 		err = config.SaveConfig(configFile, cfg)
 		if err != nil {
@@ -86,7 +83,7 @@ var modulesAddCMD = &cobra.Command{
 			return
 		}
 
-		tm.Print(tm.Color("Finished downloading "+tm.Bold(newModule.Repository), tm.GREEN) + tm.Color(" at version "+tm.Bold(installedVersion), tm.GREEN) + "\n \n")
+		tm.Print(tm.Color("Finished installing "+tm.Bold(newModule.Repository), tm.GREEN) + tm.Color(" at version "+tm.Bold(installedModule.Version), tm.GREEN) + tm.Color(" from "+tm.Bold(installedModule.Repository), tm.GREEN) + "\n \n")
 		tm.Flush()
 
 		return
@@ -168,16 +165,13 @@ var modulesInstallCMD = &cobra.Command{
 			tm.Print(tm.Color("Downloading "+tm.Bold(moduleName), tm.BLUE) + tm.Color(" from repository "+tm.Bold(repositoryFile), tm.BLUE) + "\n")
 			tm.Flush()
 
-			installedVersion, err := modules.InstallModule(moduleName, module.Version, module.Repository, cfg.Folders.Modules)
+			installedModule, err := modules.InstallModule(moduleName, module.Version, module.Repository, cfg.Folders.Modules)
 			checkModuleErr(err)
 			if err != nil {
 				return
 			}
 
-			cfg.Modules.Dependencies[moduleName] = &modules.Module{
-				Repository: repositoryFile,
-				Version:    installedVersion,
-			}
+			cfg.Modules.Dependencies[moduleName] = installedModule
 
 			err = config.SaveConfig(configFile, cfg)
 			if err != nil {
@@ -253,9 +247,14 @@ func checkModuleErr(err errors.Error) {
 func SetCommands(cmd *cobra.Command) {
 	modulesInstallCMD.Flags().StringVarP(&configFile, "config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
 	modulesAddCMD.Flags().StringVarP(&configFile, "config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
-	modulesAddCMD.Flags().StringVarP(&repositoryFile, "modules", "m", modules.STDRepo, "The module repository to use.")
+	modulesAddCMD.Flags().StringVarP(&repositoryFile, "modules", "m", "", "The module repository to use.")
 	modulesRemoveCMD.Flags().StringVarP(&configFile, "config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
 
+	reposCMD.AddCommand(reposListCMD)
+	reposCMD.AddCommand(reposAddCMD)
+	reposCMD.AddCommand(reposRemoveCMD)
+
+	modulesCMD.AddCommand(reposCMD)
 	modulesCMD.AddCommand(modulesInstallCMD)
 	modulesCMD.AddCommand(modulesAddCMD)
 	modulesCMD.AddCommand(modulesRemoveCMD)

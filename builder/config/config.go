@@ -6,11 +6,14 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
+	"github.com/kirsle/configdir"
 	"gitlab.com/antipy/antibuild/api/host"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
-	"gitlab.com/antipy/antibuild/cli/modules"
 
 	"gitlab.com/antipy/antibuild/cli/builder/site"
 )
@@ -20,17 +23,31 @@ type (
 	Config struct {
 		LogConfig  log                         `json:"logging"`
 		Folders    Folder                      `json:"folders"`
-		Modules    modules.Modules             `json:"modules"`
+		Modules    Modules                     `json:"modules"`
 		Pages      *site.ConfigSite            `json:"pages"`
 		ModuleHost map[string]*host.ModuleHost `json:"-"`
 		UILogger   UIlogger                    `json:"-"`
 	}
+
 	//Folder is the part of the config file that handles folders
 	Folder struct {
 		Templates string `json:"templates"`
 		Static    string `json:"static"`
 		Output    string `json:"output"`
 		Modules   string `json:"modules"`
+	}
+
+	// Modules is the part of the config file that handles modules
+	Modules struct {
+		Dependencies map[string]*Module                `json:"dependencies"`
+		Config       map[string]map[string]interface{} `json:"config,omitempty"`
+		SPPs         []string                          `json:"spps,omitempty"`
+	}
+
+	// Module with info about the path and version
+	Module struct {
+		Repository string
+		Version    string
 	}
 )
 
@@ -47,6 +64,9 @@ var (
 	ErrNoOutputFolder = errors.NewError("output folder not set", 5)
 	//ErrFailedCreateLog is for a failure in gathering files.
 	ErrFailedCreateLog = errors.NewError("could not open log file", 6)
+
+	//ErrDependencyWrongFormat means a wrong format for a dependency
+	ErrDependencyWrongFormat = fmt.Errorf("dependency must be in the format 'json' or 'json@1.0.0'")
 )
 
 //GetConfig gets the config file. DOES NOT CHECK FOR MISSING INFORMATION!!
@@ -148,4 +168,160 @@ func (l *log) UnmarshalJSON(data []byte) error {
 		}
 	}
 	return nil
+}
+
+// LoadDefaultGlobal config file
+func LoadDefaultGlobal() error {
+	configPath := configdir.LocalConfig("antibuild")
+	err := configdir.MakePath(configPath)
+	if err != nil {
+		return err
+	}
+	configFile := filepath.Join(configPath, "config.json")
+
+	DefaultGlobalConfig, err = OpenGlobalConfig(configFile)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// SaveDefaultGlobal config file
+func SaveDefaultGlobal() error {
+	configPath := configdir.LocalConfig("antibuild")
+	err := configdir.MakePath(configPath)
+	if err != nil {
+		return err
+	}
+	configFile := filepath.Join(configPath, "config.json")
+
+	err = DefaultGlobalConfig.Save(configFile)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// DefaultGlobalConfig that gets auto opened
+var DefaultGlobalConfig *GlobalConfig
+
+// GlobalConfig is a global antibuild configuration
+type GlobalConfig struct {
+	Repositories []string `json:"repositories"`
+}
+
+// OpenGlobalConfig opens and parses a global config file
+func OpenGlobalConfig(path string) (*GlobalConfig, error) {
+	c := new(GlobalConfig)
+
+	f, err := os.Open(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			c = &GlobalConfig{Repositories: []string{}}
+			err = c.Save(path)
+			if err != nil {
+				return nil, err
+			}
+			return OpenGlobalConfig(path)
+		}
+
+		return nil, err
+	}
+	defer f.Close()
+
+	err = json.NewDecoder(f).Decode(c)
+	if err != nil {
+		return nil, err
+	}
+
+	return c, nil
+}
+
+// Save the global config
+func (c *GlobalConfig) Save(path string) error {
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+
+	err = json.NewEncoder(f).Encode(c)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// UnmarshalJSON on a module
+func (m *Module) UnmarshalJSON(data []byte) error {
+	d := string(data)
+	d = strings.Trim(d, "\"")
+	split := strings.Split(d, "@")
+
+	if len(split) < 1 || len(split) > 2 {
+		return ErrDependencyWrongFormat
+	}
+
+	if split[0] == "" {
+		return ErrDependencyWrongFormat
+	}
+
+	m.Repository = split[0]
+
+	if len(split) == 2 {
+		if split[1] == "" {
+			return ErrDependencyWrongFormat
+		}
+		m.Version = split[1]
+	} else {
+		m.Version = "latest"
+	}
+
+	return nil
+}
+
+// ParseModuleString for config and cli
+func ParseModuleString(moduleString string) (m *Module, err error) {
+	m = new(Module)
+
+	d := moduleString
+	d = strings.Trim(d, "\"")
+	split := strings.SplitN(d, "@", -1)
+
+	if len(split) < 1 || len(split) > 2 {
+		err = ErrDependencyWrongFormat
+		return
+	}
+
+	if split[0] == "" {
+		err = ErrDependencyWrongFormat
+		return
+	}
+
+	m.Repository = split[0]
+
+	if len(split) == 2 {
+		if split[1] == "" {
+			err = ErrDependencyWrongFormat
+			return
+		}
+
+		m.Version = split[1]
+	} else {
+		m.Version = "latest"
+	}
+
+	return
+}
+
+// MarshalJSON on a module
+func (m *Module) MarshalJSON() ([]byte, error) {
+	v := ""
+	if m.Version != "" {
+		v = "@" + m.Version
+	}
+
+	return []byte("\"" + m.Repository + v + "\""), nil
 }

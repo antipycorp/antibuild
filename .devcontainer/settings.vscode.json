@@ -18,6 +18,8 @@
   "prettier.jsxSingleQuote": true,
   "prettier.singleQuote": true,
   "go.gopath": "/home/developer/go",
+  "go.inferGopath": false,
+  "go.formatTool": "goimports",
   "go.useLanguageServer": true,
   "go.languageServerExperimentalFeatures": {
     "diagnostics": true

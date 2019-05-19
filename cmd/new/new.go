@@ -208,7 +208,7 @@ func installModules(ms [][3]string, outPath string) {
 	}
 
 	for _, module := range ms {
-		cfg.Modules.Dependencies[module[0]] = &modules.Module{
+		cfg.Modules.Dependencies[module[0]] = &config.Module{
 			Version:    module[1],
 			Repository: module[2],
 		}

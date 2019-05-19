@@ -11,9 +11,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"gitlab.com/antipy/antibuild/api/host"
+	"gitlab.com/antipy/antibuild/cli/builder/config"
 	"gitlab.com/antipy/antibuild/cli/builder/site"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
 
@@ -32,19 +32,6 @@ type (
 		start   func(io.Reader, io.Writer)
 		name    string
 		version string
-	}
-
-	// Module with info about the path and version
-	Module struct {
-		Repository string
-		Version    string
-	}
-
-	// Modules is the part of the config file that handles modules
-	Modules struct {
-		Dependencies map[string]*Module                `json:"dependencies"`
-		Config       map[string]map[string]interface{} `json:"config,omitempty"`
-		SPPs         []string                          `json:"spps,omitempty"`
 	}
 )
 
@@ -101,7 +88,7 @@ var (
 		},
 	}
 
-	loadedModules = make(map[string]*Module)
+	loadedModules = make(map[string]*config.Module)
 
 	//ErrModuleFailedStarting means a module failed to start
 	ErrModuleFailedStarting = errors.NewError("module failed to start", 1)
@@ -113,14 +100,11 @@ var (
 	ErrModuleFailedObtainFunctions = errors.NewError("failed to obtain registered functions", 4)
 	//ErrModuleFailedConfigure means we could not configure module
 	ErrModuleFailedConfigure = errors.NewError("failed to configure module", 5)
-
-	//ErrDependencyWrongFormat means a wrong format for a dependency
-	ErrDependencyWrongFormat = fmt.Errorf("dependency must be in the format 'json' or 'json@1.0.0'")
 )
 
 //LoadModules communicates with modules to load them.
 //Although this should be used for initial setup, for hoatloading modules use LoadModule.
-func LoadModules(moduleRoot string, modules Modules, log host.Logger) (moduleHost map[string]*host.ModuleHost, err errors.Error) {
+func LoadModules(moduleRoot string, modules config.Modules, log host.Logger) (moduleHost map[string]*host.ModuleHost, err errors.Error) {
 	deps := modules.Dependencies
 	configs := modules.Config
 	moduleHost = make(map[string]*host.ModuleHost, len(deps))
@@ -158,7 +142,7 @@ func LoadModules(moduleRoot string, modules Modules, log host.Logger) (moduleHos
 
 //LoadModule Loads a specific module and is menth for hotloading, this
 //should not be used for initial setup. For initial setup use LoadModules.
-func LoadModule(moduleRoot string, identifier string, meta *Module, moduleHost map[string]*host.ModuleHost, config map[string]interface{}, log host.Logger) errors.Error {
+func LoadModule(moduleRoot string, identifier string, meta *config.Module, moduleHost map[string]*host.ModuleHost, config map[string]interface{}, log host.Logger) errors.Error {
 	if _, ok := loadedModules[identifier]; ok {
 		if loadedModules[identifier].Repository == meta.Repository && loadedModules[identifier].Version == meta.Version {
 			return nil
@@ -197,7 +181,7 @@ func remModule(identifier string, hosts map[string]*host.ModuleHost) {
 	delete(hosts, identifier)
 }
 
-func loadModule(name string, meta *Module, path string) (io.Reader, io.Writer, string, errors.Error) {
+func loadModule(name string, meta *config.Module, path string) (io.Reader, io.Writer, string, errors.Error) {
 	//TODO: make this a log.debug thing
 	fmt.Printf("Loading module %s from %s at %s version\n", name, meta.Repository, meta.Version)
 
@@ -277,76 +261,4 @@ func setupModule(identifier string, moduleHost *host.ModuleHost, config map[stri
 	}
 
 	return nil
-}
-
-// UnmarshalJSON on a module
-func (m *Module) UnmarshalJSON(data []byte) error {
-	d := string(data)
-	d = strings.Trim(d, "\"")
-	split := strings.Split(d, "@")
-
-	if len(split) < 1 || len(split) > 2 {
-		return ErrDependencyWrongFormat
-	}
-
-	if split[0] == "" {
-		return ErrDependencyWrongFormat
-	}
-
-	m.Repository = split[0]
-
-	if len(split) == 2 {
-		if split[1] == "" {
-			return ErrDependencyWrongFormat
-		}
-		m.Version = split[1]
-	} else {
-		m.Version = "latest"
-	}
-
-	return nil
-}
-
-// ParseModuleString for config and cli
-func ParseModuleString(moduleString string) (m *Module, err error) {
-	m = new(Module)
-
-	d := moduleString
-	d = strings.Trim(d, "\"")
-	split := strings.SplitN(d, "@", -1)
-
-	if len(split) < 1 || len(split) > 2 {
-		err = ErrDependencyWrongFormat
-		return
-	}
-
-	if split[0] == "" {
-		err = ErrDependencyWrongFormat
-		return
-	}
-
-	m.Repository = split[0]
-
-	if len(split) == 2 {
-		if split[1] == "" {
-			err = ErrDependencyWrongFormat
-			return
-		}
-
-		m.Version = split[1]
-	} else {
-		m.Version = "latest"
-	}
-
-	return
-}
-
-// MarshalJSON on a module
-func (m *Module) MarshalJSON() ([]byte, error) {
-	v := ""
-	if m.Version != "" {
-		v = "@" + m.Version
-	}
-
-	return []byte("\"" + m.Repository + v + "\""), nil
 }

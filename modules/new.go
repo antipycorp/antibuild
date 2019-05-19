@@ -6,6 +6,8 @@ import (
 	"runtime"
 	"strings"
 
+	"gitlab.com/antipy/antibuild/cli/builder/config"
+
 	tm "github.com/buger/goterm"
 	"gitlab.com/antipy/antibuild/cli/internal"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
@@ -18,7 +20,7 @@ const (
 
 var (
 	//ErrNotExist means the module does not exist in the repository
-	ErrNotExist = errors.NewError("module does not exist the repository", 1)
+	ErrNotExist = errors.NewError("module does not exist in the repository", 1)
 	//ErrNoLatestSpecified means the module binary download failed
 	ErrNoLatestSpecified = errors.NewError("the module repository did not specify a latest version", 2)
 	//ErrFailedModuleBinaryDownload means the module binary download failed
@@ -31,6 +33,8 @@ var (
 	ErrFailedModuleBuild = errors.NewError("failed to build the module from repository source", 21)
 	//ErrFailedModuleRepositoryDownload means the module repository list download failed
 	ErrFailedModuleRepositoryDownload = errors.NewError("failed downloading the module repository list", 22)
+	//ErrFailedGlobalConfigLoad means loading the global config failed
+	ErrFailedGlobalConfigLoad = errors.NewError("failed to load global config", 31)
 )
 
 // ModuleEntry is a single entry for a module repository file
@@ -153,31 +157,57 @@ func (me ModuleEntry) Install(version string, targetFile string) (string, errors
 }
 
 //InstallModule installs a module
-func InstallModule(name string, version string, repoURL string, filePrefix string) (string, errors.Error) {
-	if repoURL == "std" {
-		repoURL = STDRepo
+func InstallModule(name string, version string, repoURL string, filePrefix string) (*config.Module, errors.Error) {
+	var repoURLs []string
+
+	if repoURL == "" {
+		err := config.LoadDefaultGlobal()
+		if err != nil {
+			tm.Print(tm.Color("Could not load global config file: "+err.Error(), tm.RED) + "\n")
+			tm.Flush()
+		}
+
+		repoURLs = []string{
+			STDRepo,
+		}
+		repoURLs = append(repoURLs, config.DefaultGlobalConfig.Repositories...)
+	} else {
+		repoURLs = []string{
+			repoURL,
+		}
 	}
 
-	if version == "internal" {
-		tm.Print(tm.Color("Module is "+tm.Bold("internal"), tm.BLUE) + tm.Color(". There is no need to download.", tm.BLUE) + "\n")
-		tm.Flush()
-		return "internal", nil
+	for _, rURL := range repoURLs {
+		repo := &ModuleRepository{}
+		var err errors.Error
+
+		err = repo.Download(rURL)
+		if err != nil {
+			return nil, err
+		}
+
+		if version == "internal" {
+			if _, ok := (*repo)[name]; ok {
+				tm.Print(tm.Color("Module is "+tm.Bold("internal"), tm.BLUE) + tm.Color(". There is no need to download.", tm.BLUE) + "\n")
+				tm.Flush()
+				return &config.Module{Repository: rURL, Version: "internal"}, nil
+			}
+
+			continue
+		}
+
+		installedVersion, err := repo.Install(name, version, filepath.Join(filePrefix, "abm_"+name))
+		if err != nil {
+			if err.GetCode() == ErrNotExist.GetCode() {
+				continue
+			}
+			return nil, err
+		}
+
+		return &config.Module{Repository: rURL, Version: installedVersion}, nil
 	}
 
-	repo := &ModuleRepository{}
-	var err errors.Error
-
-	err = repo.Download(repoURL)
-	if err != nil {
-		return "", err
-	}
-
-	installedVersion, err := repo.Install(name, version, filepath.Join(filePrefix, "abm_"+name))
-	if err != nil {
-		return "", err
-	}
-
-	return installedVersion, nil
+	return nil, ErrNotExist.SetRoot("module does not exist in any repository")
 }
 
 func contains(s []string, e string) bool {
