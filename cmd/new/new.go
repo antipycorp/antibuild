@@ -12,8 +12,6 @@ import (
 	"reflect"
 	"regexp"
 
-	"gitlab.com/antipy/antibuild/cli/modules"
-
 	"github.com/spf13/cobra"
 	"gitlab.com/antipy/antibuild/cli/builder/config"
 	cmdInternal "gitlab.com/antipy/antibuild/cli/cmd/internal"
@@ -30,7 +28,6 @@ var (
 	//ErrInvalidName is for a failure moving the static folder
 	ErrInvalidName = errors.NewError("name does not match the requirements", 2)
 
-	moduleRepositoryURL   = modules.STDRepo
 	templateRepositoryURL string
 )
 
@@ -40,21 +37,13 @@ var newCMD = &cobra.Command{
 	Short: "Make a new antibuild project.",
 	Long:  `Generate a new antibuild project. To get started run "antibuild new" and follow the prompts.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		moduleRepository := &modules.ModuleRepository{}
-		moduleRepository.Download(moduleRepositoryURL)
-
 		templateRepository, err := cmdInternal.GetTemplateRepository(templateRepositoryURL)
 		if err != nil {
 			println("Failed to download template repository list.")
 			return
 		}
 
-		var modules []string
 		var templates []string
-
-		for module := range *moduleRepository {
-			modules = append(modules, module)
-		}
 
 		for template := range templateRepository {
 			templates = append(templates, template)
@@ -86,19 +75,11 @@ var newCMD = &cobra.Command{
 					Options: templates,
 				},
 			},
-			{
-				Name: "default_modules",
-				Prompt: &survey.MultiSelect{
-					Message: "Select any modules you want to pre install now (can also not choose any):",
-					Options: modules,
-				},
-			},
 		}
 
 		answers := struct {
-			Name           string   `survey:"name"`
-			Template       string   `survey:"template"`
-			DefaultModules []string `survey:"default_modules"`
+			Name     string `survey:"name"`
+			Template string `survey:"template"`
 		}{}
 
 		err = survey.Ask(newSurvey, &answers)
@@ -107,19 +88,8 @@ var newCMD = &cobra.Command{
 			return
 		}
 
-		/*modulesFinal := make([][3]string, len(answers.DefaultModules))
-		for i := range modules {
-			modulesFinal[i][0] = answers.DefaultModules[i]
-			modulesFinal[i][1] = "latest"
-			modulesFinal[i][2] = moduleRepositoryURL
-		}*/
-
 		if _, err := ioutil.ReadDir(answers.Name); os.IsNotExist(err) {
 			downloadTemplate(templateRepository, answers.Template, answers.Name)
-
-			/*if len(answers.DefaultModules) > 0 {
-				installModules(modulesFinal, answers.Name)
-			}*/
 
 			println("Success. Run these commands to get started:\n")
 			println("cd " + answers.Name)
@@ -225,7 +195,6 @@ func installModules(ms [][3]string, outPath string) {
 
 //SetCommands sets the commands for this package to the cmd argument
 func SetCommands(cmd *cobra.Command) {
-	newCMD.Flags().StringVarP(&moduleRepositoryURL, "modules", "m", modules.STDRepo, "The module repository list file to use. Default is \"https://build.antipy.com/dl/modules.json\"")
 	newCMD.Flags().StringVarP(&templateRepositoryURL, "templates", "t", "https://build.antipy.com/dl/templates.json", "The template repository list file to use. Default is \"https://build.antipy.com/dl/templates.json\"")
 	cmd.AddCommand(newCMD)
 }
