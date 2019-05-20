@@ -204,9 +204,9 @@ func DownloadGit(path string, url string, version string) error {
 		return err
 	}
 
-	clone := exec.Command("git", "clone", url)
-	clone.Dir = path
-	err = clone.Run()
+	cloneCMD := exec.Command("git", "clone", url)
+	cloneCMD.Dir = path
+	err = cloneCMD.Run()
 	if err != nil {
 		return err
 	}
