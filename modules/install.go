@@ -15,7 +15,7 @@ import (
 
 const (
 	// STDRepo is the default module repository
-	STDRepo = "https://build.antipy.com/dl/modules.json"
+	STDRepo = "build.antipy.com/std"
 )
 
 var (
@@ -87,6 +87,8 @@ func (me ModuleEntry) Install(version string, targetFile string) (string, errors
 		version = me.LatestVersion
 	}
 
+	targetFile += "@" + version
+
 	goos := runtime.GOOS
 	goarch := runtime.GOARCH
 
@@ -123,7 +125,7 @@ func (me ModuleEntry) Install(version string, targetFile string) (string, errors
 	}
 
 	// local compiled modules
-	dir, err := ioutil.TempDir("", "abm_"+me.Name)
+	dir, err := ioutil.TempDir("", "abm_"+me.Name+"@"+version)
 	if err != nil {
 		panic(err)
 	}
@@ -186,11 +188,11 @@ func InstallModule(name string, version string, repoURL string, filePrefix strin
 			return nil, err
 		}
 
-		if version == "internal" {
+		if internal, ok := InternalModules[name]; ok && internal.version == version && internal.repository == rURL {
 			if _, ok := (*repo)[name]; ok {
-				tm.Print(tm.Color("Module is "+tm.Bold("internal"), tm.BLUE) + tm.Color(". There is no need to download.", tm.BLUE) + "\n")
+				tm.Print(tm.Color("Module is available "+tm.Bold("internally"), tm.BLUE) + tm.Color(". There is no need to download.", tm.BLUE) + "\n")
 				tm.Flush()
-				return &config.Module{Repository: rURL, Version: "internal"}, nil
+				return &config.Module{Repository: rURL, Version: version}, nil
 			}
 
 			continue

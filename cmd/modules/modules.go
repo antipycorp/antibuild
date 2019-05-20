@@ -21,7 +21,7 @@ var fallbackUI = ui.UI{
 }
 
 var configFile string
-var repositoryFile = ""
+var repositoryFile string
 
 // modulesCMD represents the modules command
 var modulesCMD = &cobra.Command{
@@ -196,7 +196,8 @@ func checkModuleErr(err errors.Error) {
 			tm.Print("" +
 				tm.Color(tm.Bold("Failed to download module."), tm.RED) + "\n" +
 				"\n" +
-				"   The module you are trying to download has a pre-built binary for your architecture and os but it failed to download. The server might be down. \n" +
+				"The module you are trying to download has a pre-built binary for your architecture and os but it failed to download. The server might be down. \n" +
+				"   More info: " + err.GetRoot() + " \n" +
 				"\n")
 		case modules.ErrNotExist.GetCode():
 			tm.Print("" +

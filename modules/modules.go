@@ -29,9 +29,9 @@ import (
 
 type (
 	internalMod struct {
-		start   func(io.Reader, io.Writer)
-		name    string
-		version string
+		start      func(io.Reader, io.Writer)
+		version    string
+		repository string
 	}
 )
 
@@ -45,46 +45,47 @@ var (
 
 	iterators = &site.Iterators
 
-	internalMods = map[string]internalMod{
+	// InternalModules that the are integrated into the antibuild binary
+	InternalModules = map[string]internalMod{
 		"file": internalMod{
-			name:    "file",
-			start:   abm_file.Handler,
-			version: abm_file.Version,
+			start:      abm_file.Handler,
+			version:    abm_file.Version,
+			repository: STDRepo,
 		},
 		"json": internalMod{
-			name:    "json",
-			start:   abm_json.Handler,
-			version: abm_json.Version,
+			start:      abm_json.Handler,
+			version:    abm_json.Version,
+			repository: STDRepo,
 		},
 		"language": internalMod{
-			name:    "language",
-			start:   abm_language.Handler,
-			version: abm_language.Version,
+			start:      abm_language.Handler,
+			version:    abm_language.Version,
+			repository: STDRepo,
 		},
 		"markdown": internalMod{
-			name:    "markdown",
-			start:   abm_markdown.Handler,
-			version: abm_markdown.Version,
+			start:      abm_markdown.Handler,
+			version:    abm_markdown.Version,
+			repository: STDRepo,
 		},
 		"math": internalMod{
-			name:    "math",
-			start:   abm_math.Handler,
-			version: abm_math.Version,
+			start:      abm_math.Handler,
+			version:    abm_math.Version,
+			repository: STDRepo,
 		},
 		"noescape": internalMod{
-			name:    "noescape",
-			start:   abm_noescape.Handler,
-			version: abm_noescape.Version,
+			start:      abm_noescape.Handler,
+			version:    abm_noescape.Version,
+			repository: STDRepo,
 		},
 		"util": internalMod{
-			name:    "util",
-			start:   abm_util.Handler,
-			version: abm_util.Version,
+			start:      abm_util.Handler,
+			version:    abm_util.Version,
+			repository: STDRepo,
 		},
 		"yaml": internalMod{
-			name:    "yaml",
-			start:   abm_yaml.Handler,
-			version: abm_yaml.Version,
+			start:      abm_yaml.Handler,
+			version:    abm_yaml.Version,
+			repository: STDRepo,
 		},
 	}
 
@@ -185,7 +186,7 @@ func loadModule(name string, meta *config.Module, path string) (io.Reader, io.Wr
 	//TODO: make this a log.debug thing
 	fmt.Printf("Loading module %s from %s at %s version\n", name, meta.Repository, meta.Version)
 
-	if v, ok := internalMods[name]; ok && (meta.Version == "internal" || meta.Version == v.version) {
+	if v, ok := InternalModules[name]; ok && (meta.Version == v.version) {
 		in, stdin := io.Pipe()
 		stdout, out := io.Pipe()
 
@@ -198,7 +199,7 @@ func loadModule(name string, meta *config.Module, path string) (io.Reader, io.Wr
 	}
 
 	//prepare command and get nesecary data
-	module := exec.Command(filepath.Join(path, "abm_"+name))
+	module := exec.Command(filepath.Join(path, "abm_"+name+"@"+meta.Version))
 
 	stdin, err := module.StdinPipe()
 	if nil != err {
