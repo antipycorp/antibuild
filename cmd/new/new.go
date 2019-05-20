@@ -28,8 +28,10 @@ var (
 	//ErrInvalidName is for a failure moving the static folder
 	ErrInvalidName = errors.NewError("name does not match the requirements", 2)
 
+	// templateRepositoryURL default value gets assigned by cobra when parsing flags
 	templateRepositoryURL string
-	templateBranch        string
+	// templateBranch default value gets assigned by cobra when parsing flags
+	templateBranch string
 )
 
 // newCMD represents the new command

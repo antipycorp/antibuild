@@ -21,6 +21,8 @@ var fallbackUI = ui.UI{
 }
 
 var configFile string
+
+// repositoryFile default value gets assigned by cobra when parsing flags
 var repositoryFile string
 
 // modulesCMD represents the modules command
