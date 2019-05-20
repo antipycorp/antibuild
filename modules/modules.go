@@ -6,12 +6,12 @@ package modules
 
 import (
 	"bufio"
-	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 
+	"github.com/blang/semver"
 	"gitlab.com/antipy/antibuild/api/host"
 	"gitlab.com/antipy/antibuild/cli/builder/config"
 	"gitlab.com/antipy/antibuild/cli/builder/site"
@@ -63,10 +63,10 @@ func LoadModules(moduleRoot string, modules config.Modules, log host.Logger) (mo
 				continue
 			}
 
-			remModule(identifier, moduleHost) // else remove the old version and continue with loading the new version
+			remModule(identifier, moduleHost)
 		}
 
-		stdout, stdin, versionLoaded, err := loadModule(identifier, meta, moduleRoot)
+		stdout, stdin, versionLoaded, err := loadModule(identifier, meta, moduleRoot, log)
 		if err != nil {
 			return nil, err
 		}
@@ -103,7 +103,7 @@ func LoadModule(moduleRoot string, identifier string, meta *config.Module, modul
 		loadedModules[identifier] = meta
 	}()
 
-	stdout, stdin, versionLoaded, err := loadModule(identifier, meta, moduleRoot)
+	stdout, stdin, versionLoaded, err := loadModule(identifier, meta, moduleRoot, log)
 	if err != nil {
 		return err
 	}
@@ -129,20 +129,32 @@ func remModule(identifier string, hosts map[string]*host.ModuleHost) {
 	delete(hosts, identifier)
 }
 
-func loadModule(name string, meta *config.Module, path string) (io.Reader, io.Writer, string, errors.Error) {
+func loadModule(name string, meta *config.Module, path string, log host.Logger) (io.Reader, io.Writer, string, errors.Error) {
 	//TODO: make this a log.debug thing
-	fmt.Printf("Loading module %s from %s at %s version\n", name, meta.Repository, meta.Version)
+	log.Infof("Loading module %s from %s at %s version", name, meta.Repository, meta.Version)
 
-	if v, ok := InternalModules[name]; ok && (meta.Version == v.version) {
-		in, stdin := io.Pipe()
-		stdout, out := io.Pipe()
+	if v, ok := InternalModules[name]; ok && (meta.Repository == v.repository) {
+		if meta.Version == v.version {
+			in, stdin := io.Pipe()
+			stdout, out := io.Pipe()
 
-		in2 := bufio.NewReader(in)
-		stdout2 := bufio.NewReader(stdout)
+			in2 := bufio.NewReader(in)
+			stdout2 := bufio.NewReader(stdout)
 
-		go v.start(in2, out)
+			go v.start(in2, out)
 
-		return stdout2, stdin, v.version, nil
+			return stdout2, stdin, v.version, nil
+		}
+
+		internalVersion, err := semver.Make(v.version)
+		if err == nil {
+			requestedVersion, err := semver.Make(meta.Version)
+			if err == nil {
+				if internalVersion.GT(requestedVersion) {
+					log.Infof("Module %s has a more up to date internal version available: %s", name, v.version)
+				}
+			}
+		}
 	}
 
 	//prepare command and get nesecary data
