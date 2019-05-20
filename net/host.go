@@ -76,7 +76,7 @@ func HostLocally(output, port string) {
 	if err != nil && err != http.ErrServerClosed {
 		if strings.Contains(err.Error(), "address already in use") {
 			tm.Clear()
-			tm.MoveCursor(0, 0)
+			tm.MoveCursor(1, 1)
 			tm.Printf("The port %s is already being used by a different program."+"\n\n", tm.Bold(tm.Color(port, tm.RED)))
 			tm.Flush()
 			os.Exit(0)
