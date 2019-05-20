@@ -29,6 +29,7 @@ var (
 	ErrInvalidName = errors.NewError("name does not match the requirements", 2)
 
 	templateRepositoryURL string
+	templateBranch        string
 )
 
 // newCMD represents the new command
@@ -141,7 +142,7 @@ func downloadTemplate(templateRepository map[string]cmdInternal.TemplateReposito
 
 		break
 	case "git":
-		err = internal.DownloadGit(dir, t.Source.URL, "master")
+		err = internal.DownloadGit(dir, t.Source.URL, templateBranch)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -196,5 +197,6 @@ func installModules(ms [][3]string, outPath string) {
 //SetCommands sets the commands for this package to the cmd argument
 func SetCommands(cmd *cobra.Command) {
 	newCMD.Flags().StringVarP(&templateRepositoryURL, "templates", "t", "https://build.antipy.com/dl/templates.json", "The template repository list file to use. Default is \"https://build.antipy.com/dl/templates.json\"")
+	newCMD.Flags().StringVarP(&templateBranch, "branch", "b", "master", "The branch to pull the template from if using git.")
 	cmd.AddCommand(newCMD)
 }
