@@ -6,7 +6,6 @@ package config
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -66,7 +65,7 @@ var (
 	ErrFailedCreateLog = errors.NewError("could not open log file", 6)
 
 	//ErrDependencyWrongFormat means a wrong format for a dependency
-	ErrDependencyWrongFormat = fmt.Errorf("dependency must be in the format 'json' or 'json@1.0.0'")
+	ErrDependencyWrongFormat = errors.NewError("dependency must be in the format 'json' or 'json@1.0.0'", 101)
 )
 
 //GetConfig gets the config file. DOES NOT CHECK FOR MISSING INFORMATION!!
@@ -283,7 +282,7 @@ func (m *Module) UnmarshalJSON(data []byte) error {
 }
 
 // ParseModuleString for config and cli
-func ParseModuleString(moduleString string) (m *Module, err error) {
+func ParseModuleString(moduleString string) (m *Module, err errors.Error) {
 	m = new(Module)
 
 	d := moduleString

@@ -53,8 +53,8 @@ var modulesAddCMD = &cobra.Command{
 			return
 		}
 
-		newModule, errr := config.ParseModuleString(args[0])
-		if errr != nil {
+		newModule, err := config.ParseModuleString(args[0])
+		if err != nil {
 			tm.Print(tm.Color("Module is not valid.", tm.RED) +
 				"\n \n")
 			tm.Flush()
