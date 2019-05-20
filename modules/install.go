@@ -20,6 +20,9 @@ import (
 const (
 	// STDRepo is the default module repository
 	STDRepo = "build.antipy.com/std"
+
+	// NoRepositorySpecified is when you dont pass the -m flag
+	NoRepositorySpecified = ""
 )
 
 var (
@@ -166,7 +169,7 @@ func (me ModuleEntry) Install(version string, targetFile string) (string, errors
 func InstallModule(name string, version string, repoURL string, filePrefix string) (*config.Module, errors.Error) {
 	var repoURLs []string
 
-	if repoURL == "" {
+	if repoURL == NoRepositorySpecified {
 		err := config.LoadDefaultGlobal()
 		if err != nil {
 			tm.Print(tm.Color("Could not load global config file: "+err.Error(), tm.RED) + "\n")

@@ -20,11 +20,6 @@ var fallbackUI = ui.UI{
 	PrettyLog:      true,
 }
 
-var configFile string
-
-// repositoryFile default value gets assigned by cobra when parsing flags
-var repositoryFile string
-
 // modulesCMD represents the modules command
 var modulesCMD = &cobra.Command{
 	Use: "modules",
@@ -45,6 +40,9 @@ var modulesAddCMD = &cobra.Command{
 	Long:  `Adds and downloads a module. Uses the standard repository (` + modules.STDRepo + `) by default. Will use repos in the global config if not found in std. Use -m to force a repo.`,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+		configFile := *cmd.Flags().StringP("config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
+		repositoryFile := *cmd.Flags().StringP("modules", "m", modules.NoRepositorySpecified, "The module repository to use.")
+
 		cfg, err := config.GetConfig(configFile)
 		if err != nil {
 			tm.Print(tm.Color("Config is not valid.", tm.RED) +
@@ -102,6 +100,8 @@ var modulesRemoveCMD = &cobra.Command{
 	Long:  `Removes and deletes a module.`,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+		configFile := *cmd.Flags().StringP("config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
+
 		cfg, err := config.GetConfig(configFile)
 		if err != nil {
 			tm.Print(tm.Color("Config is not valid.", tm.RED) +
@@ -153,6 +153,8 @@ var modulesInstallCMD = &cobra.Command{
 	Short: "Install all modules defined in the config file.",
 	Long:  `Will install all modules defined in the config file at the right versions and OS/ARCH.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		configFile := *cmd.Flags().StringP("config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
+
 		cfg, err := config.GetConfig(configFile)
 		if err != nil {
 			tm.Print(tm.Color("Config is not valid.", tm.RED) +
@@ -164,7 +166,7 @@ var modulesInstallCMD = &cobra.Command{
 		}
 
 		for moduleName, module := range cfg.Modules.Dependencies {
-			tm.Print(tm.Color("Downloading "+tm.Bold(moduleName), tm.BLUE) + tm.Color(" from repository "+tm.Bold(repositoryFile), tm.BLUE) + "\n")
+			tm.Print(tm.Color("Downloading "+tm.Bold(moduleName), tm.BLUE) + tm.Color(" from repository "+tm.Bold(module.Repository), tm.BLUE) + "\n")
 			tm.Flush()
 
 			installedModule, err := modules.InstallModule(moduleName, module.Version, module.Repository, cfg.Folders.Modules)
@@ -248,11 +250,6 @@ func checkModuleErr(err errors.Error) {
 
 //SetCommands sets the commands for this package to the cmd argument
 func SetCommands(cmd *cobra.Command) {
-	modulesInstallCMD.Flags().StringVarP(&configFile, "config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
-	modulesAddCMD.Flags().StringVarP(&configFile, "config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
-	modulesAddCMD.Flags().StringVarP(&repositoryFile, "modules", "m", "", "The module repository to use.")
-	modulesRemoveCMD.Flags().StringVarP(&configFile, "config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
-
 	reposCMD.AddCommand(reposListCMD)
 	reposCMD.AddCommand(reposAddCMD)
 	reposCMD.AddCommand(reposRemoveCMD)

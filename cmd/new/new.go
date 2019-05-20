@@ -27,11 +27,6 @@ var (
 	ErrInvalidInput = errors.NewError("invalid input", 1)
 	//ErrInvalidName is for a failure moving the static folder
 	ErrInvalidName = errors.NewError("name does not match the requirements", 2)
-
-	// templateRepositoryURL default value gets assigned by cobra when parsing flags
-	templateRepositoryURL string
-	// templateBranch default value gets assigned by cobra when parsing flags
-	templateBranch string
 )
 
 // newCMD represents the new command
@@ -40,6 +35,9 @@ var newCMD = &cobra.Command{
 	Short: "Make a new antibuild project.",
 	Long:  `Generate a new antibuild project. To get started run "antibuild new" and follow the prompts.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		templateRepositoryURL := *cmd.Flags().StringP("templates", "t", "https://build.antipy.com/dl/templates.json", "The template repository list file to use. Default is \"https://build.antipy.com/dl/templates.json\"")
+		templateBranch := *cmd.Flags().StringP("branch", "b", "master", "The branch to pull the template from if using git.")
+
 		templateRepository, err := cmdInternal.GetTemplateRepository(templateRepositoryURL)
 		if err != nil {
 			println("Failed to download template repository list.")
@@ -92,7 +90,7 @@ var newCMD = &cobra.Command{
 		}
 
 		if _, err := ioutil.ReadDir(answers.Name); os.IsNotExist(err) {
-			downloadTemplate(templateRepository, answers.Template, answers.Name)
+			downloadTemplate(templateRepository, answers.Template, answers.Name, templateBranch)
 
 			println("Success. Run these commands to get started:\n")
 			println("cd " + answers.Name)
@@ -105,7 +103,7 @@ var newCMD = &cobra.Command{
 	},
 }
 
-func downloadTemplate(templateRepository map[string]cmdInternal.TemplateRepositoryEntry, template string, outPath string) bool {
+func downloadTemplate(templateRepository map[string]cmdInternal.TemplateRepositoryEntry, template string, outPath string, templateBranch string) bool {
 	if _, ok := templateRepository[template]; !ok {
 		println("The selected template is not available in this repository.")
 		return false
@@ -198,7 +196,5 @@ func installModules(ms [][3]string, outPath string) {
 
 //SetCommands sets the commands for this package to the cmd argument
 func SetCommands(cmd *cobra.Command) {
-	newCMD.Flags().StringVarP(&templateRepositoryURL, "templates", "t", "https://build.antipy.com/dl/templates.json", "The template repository list file to use. Default is \"https://build.antipy.com/dl/templates.json\"")
-	newCMD.Flags().StringVarP(&templateBranch, "branch", "b", "master", "The branch to pull the template from if using git.")
 	cmd.AddCommand(newCMD)
 }

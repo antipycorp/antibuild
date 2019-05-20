@@ -66,23 +66,10 @@ func LoadModules(moduleRoot string, modules config.Modules, log host.Logger) (mo
 			remModule(identifier, moduleHost)
 		}
 
-		stdout, stdin, versionLoaded, err := loadModule(identifier, meta, moduleRoot, log)
+		err := LoadModule(moduleRoot, identifier, meta, moduleHost, configs[identifier], log)
 		if err != nil {
 			return nil, err
 		}
-
-		var errr error
-		moduleHost[identifier], errr = host.Start(stdout, stdin, log, versionLoaded)
-		if errr != nil {
-			return nil, ErrModuleFailedStarting.SetRoot(errr.Error())
-		}
-
-		err = setupModule(identifier, moduleHost[identifier], configs[identifier])
-		if err != nil {
-			return nil, err
-		}
-
-		loadedModules[identifier] = meta
 	}
 
 	return
@@ -90,7 +77,7 @@ func LoadModules(moduleRoot string, modules config.Modules, log host.Logger) (mo
 
 //LoadModule Loads a specific module and is menth for hotloading, this
 //should not be used for initial setup. For initial setup use LoadModules.
-func LoadModule(moduleRoot string, identifier string, meta *config.Module, moduleHost map[string]*host.ModuleHost, config map[string]interface{}, log host.Logger) errors.Error {
+func LoadModule(moduleRoot string, identifier string, meta *config.Module, moduleHost map[string]*host.ModuleHost, cfg map[string]interface{}, log host.Logger) errors.Error {
 	if _, ok := loadedModules[identifier]; ok {
 		if loadedModules[identifier].Repository == meta.Repository && loadedModules[identifier].Version == meta.Version {
 			return nil
@@ -114,7 +101,7 @@ func LoadModule(moduleRoot string, identifier string, meta *config.Module, modul
 		return ErrModuleFailedStarting.SetRoot(errr.Error())
 	}
 
-	err = setupModule(identifier, moduleHost[identifier], config)
+	err = setupModule(identifier, moduleHost[identifier], cfg)
 	if err != nil {
 		return err
 	}
