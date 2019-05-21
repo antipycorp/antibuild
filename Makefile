@@ -61,7 +61,7 @@ benchcmp: $(shell which benchcmp)
 	go get golang.org/x/tools/cmd/benchcmp 
 
 benchmark: benchcmp
-	go mod vendor
+	go mod download
 	go test ./... -bench=. -test.benchmem=true -run=^$ > benchmark.txt; true
 	-wget "https://gitlab.com/antipy/antibuild/cli/-/jobs/artifacts/$(branch)/raw/benchmark.txt?job=benchmark" -O benchmark_before.txt; true
 	-benchcmp benchmark_before.txt benchmark.txt > benchmark_change.txt; true
