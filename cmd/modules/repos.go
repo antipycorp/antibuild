@@ -1,7 +1,7 @@
 package modules
 
 import (
-	tm "github.com/buger/goterm"
+	tm "github.com/lucacasonato/goterm"
 	"github.com/spf13/cobra"
 	"gitlab.com/antipy/antibuild/cli/builder/config"
 )
@@ -27,7 +27,7 @@ var reposListCMD = &cobra.Command{
 		err := config.LoadDefaultGlobal()
 		if err != nil {
 			tm.Print(tm.Color("Could not load global config file: "+err.Error()+"\n", tm.RED))
-			tm.Flush()
+			tm.FlushAll()
 			return
 		}
 
@@ -35,7 +35,7 @@ var reposListCMD = &cobra.Command{
 			tm.Print(repo + "\n")
 		}
 
-		tm.Flush()
+		tm.FlushAll()
 	},
 }
 
@@ -52,14 +52,14 @@ var reposAddCMD = &cobra.Command{
 		err := config.LoadDefaultGlobal()
 		if err != nil {
 			tm.Print(tm.Color("Could not load global config file: "+err.Error(), tm.RED) + "\n")
-			tm.Flush()
+			tm.FlushAll()
 			return
 		}
 
 		for _, repo := range config.DefaultGlobalConfig.Repositories {
 			if repo == args[0] {
 				tm.Print(tm.Color("This repository is already added.", tm.RED) + "\n")
-				tm.Flush()
+				tm.FlushAll()
 				return
 			}
 		}
@@ -68,12 +68,12 @@ var reposAddCMD = &cobra.Command{
 		err = config.SaveDefaultGlobal()
 		if err != nil {
 			tm.Print(tm.Color("Could not save global config file: "+err.Error(), tm.RED) + "\n")
-			tm.Flush()
+			tm.FlushAll()
 			return
 		}
 
 		tm.Print(tm.Color("Done.", tm.GREEN) + "\n")
-		tm.Flush()
+		tm.FlushAll()
 	},
 }
 
@@ -89,7 +89,7 @@ var reposRemoveCMD = &cobra.Command{
 		err := config.LoadDefaultGlobal()
 		if err != nil {
 			tm.Print(tm.Color("Could not load global config file: "+err.Error(), tm.RED) + "\n")
-			tm.Flush()
+			tm.FlushAll()
 			return
 		}
 
@@ -100,18 +100,18 @@ var reposRemoveCMD = &cobra.Command{
 				err = config.SaveDefaultGlobal()
 				if err != nil {
 					tm.Print(tm.Color("Could not save global config file: "+err.Error(), tm.RED) + "\n")
-					tm.Flush()
+					tm.FlushAll()
 					return
 				}
 
 				tm.Print(tm.Color("Done.", tm.GREEN) + "\n")
-				tm.Flush()
+				tm.FlushAll()
 				return
 			}
 		}
 
 		tm.Print(tm.Color("This repository is not in the global config.", tm.RED) + "\n")
-		tm.Flush()
+		tm.FlushAll()
 		return
 	},
 }

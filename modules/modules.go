@@ -118,7 +118,7 @@ func remModule(identifier string, hosts map[string]*host.ModuleHost) {
 
 func loadModule(name string, meta *config.Module, path string, log host.Logger) (io.Reader, io.Writer, string, errors.Error) {
 	//TODO: make this a log.debug thing
-	log.Infof("Loading module %s from %s at %s version", name, meta.Repository, meta.Version)
+	log.Debugf("Loading module %s from %s at %s version", name, meta.Repository, meta.Version)
 
 	if v, ok := InternalModules[name]; ok && (meta.Repository == v.repository) {
 		if meta.Version == v.version {

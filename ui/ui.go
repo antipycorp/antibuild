@@ -9,7 +9,7 @@ import (
 	"io"
 	"net"
 
-	tm "github.com/buger/goterm"
+	tm "github.com/lucacasonato/goterm"
 )
 
 //UI is the way to display stuff on the console.
@@ -33,8 +33,8 @@ var (
 
 //ShowResult should be shown when something builds successfully
 func (ui *UI) ShowResult() {
+	tm.MoveCursor(0, 0)
 	tm.Clear()
-	tm.MoveCursor(1, 1)
 
 	if len(ui.log) != 0 {
 		if ui.failed {
@@ -92,20 +92,21 @@ func (ui *UI) ShowResult() {
 		ui.infolog = make([]string, 0)
 	}
 
-	tm.Flush()
+	tm.FlushAll()
 	ui.failed = false
 }
 
 func (ui *UI) showlog() {
+	tm.MoveCursor(0, 0)
 	tm.Clear()
-	tm.MoveCursor(1, 1)
 
 	tm.Print(tm.Color(tm.Bold("Log:"), tm.BLUE) + "\n")
 
 	for _, e := range ui.infolog { //e for entry
 		tm.Print(e + "\n")
 	}
-	tm.Flush()
+
+	tm.FlushAll()
 }
 
 func getIP() string {
@@ -159,9 +160,9 @@ func (ui *UI) Info(err string) {
 			ui.LogFile.Write([]byte(entry + "\n"))
 			return
 		}
+
 		ui.LogFile.Write([]byte(err + "\n"))
 	}
-	ui.showlog()
 }
 
 //Infof logs helpfull information/warnings

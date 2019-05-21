@@ -7,7 +7,7 @@ package modules
 import (
 	"os"
 
-	tm "github.com/buger/goterm"
+	tm "github.com/lucacasonato/goterm"
 	"github.com/spf13/cobra"
 	"gitlab.com/antipy/antibuild/cli/builder/config"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
@@ -49,7 +49,7 @@ var modulesAddCMD = &cobra.Command{
 				"This error message might help: " +
 				tm.Color(err.Error(), tm.WHITE) +
 				"\n \n")
-			tm.Flush()
+			tm.FlushAll()
 			return
 		}
 
@@ -57,12 +57,12 @@ var modulesAddCMD = &cobra.Command{
 		if err != nil {
 			tm.Print(tm.Color("Module is not valid.", tm.RED) +
 				"\n \n")
-			tm.Flush()
+			tm.FlushAll()
 			return
 		}
 
 		tm.Print(tm.Color("Installing "+tm.Bold(newModule.Repository), tm.BLUE) + "\n")
-		tm.Flush()
+		tm.FlushAll()
 
 		installedModule, err := modules.InstallModule(newModule.Repository, newModule.Version, repositoryFile, cfg.Folders.Modules)
 
@@ -79,12 +79,12 @@ var modulesAddCMD = &cobra.Command{
 				"This error message might help: " +
 				tm.Color(err.Error(), tm.WHITE) +
 				"\n \n")
-			tm.Flush()
+			tm.FlushAll()
 			return
 		}
 
 		tm.Print(tm.Color("Finished installing "+tm.Bold(newModule.Repository), tm.GREEN) + tm.Color(" at version "+tm.Bold(installedModule.Version), tm.GREEN) + tm.Color(" from "+tm.Bold(installedModule.Repository), tm.GREEN) + "\n \n")
-		tm.Flush()
+		tm.FlushAll()
 
 		return
 	},
@@ -108,7 +108,7 @@ var modulesRemoveCMD = &cobra.Command{
 				"This error message might help: " +
 				tm.Color(err.Error(), tm.WHITE) +
 				"\n \n")
-			tm.Flush()
+			tm.FlushAll()
 			return
 		}
 
@@ -116,7 +116,7 @@ var modulesRemoveCMD = &cobra.Command{
 
 		if cfg.Modules.Dependencies[newModule].Repository == "" {
 			tm.Print(tm.Color(tm.Bold("The module "+newModule+" can not be removed because it is not installed!"), tm.RED))
-			tm.Flush()
+			tm.FlushAll()
 			return
 		}
 
@@ -128,7 +128,7 @@ var modulesRemoveCMD = &cobra.Command{
 				"This error message might help: " +
 				tm.Color(err.Error(), tm.WHITE) +
 				"\n \n")
-			tm.Flush()
+			tm.FlushAll()
 			return
 		}
 
@@ -138,7 +138,7 @@ var modulesRemoveCMD = &cobra.Command{
 		}
 
 		tm.Print(tm.Color("Removed the module "+tm.Bold(newModule), tm.GREEN) + "\n \n")
-		tm.Flush()
+		tm.FlushAll()
 
 		return
 	},
@@ -161,13 +161,13 @@ var modulesInstallCMD = &cobra.Command{
 				"This error message might help: " +
 				tm.Color(err.Error(), tm.WHITE) +
 				"\n \n")
-			tm.Flush()
+			tm.FlushAll()
 			return
 		}
 
 		for moduleName, module := range cfg.Modules.Dependencies {
 			tm.Print(tm.Color("Downloading "+tm.Bold(moduleName), tm.BLUE) + tm.Color(" from repository "+tm.Bold(module.Repository), tm.BLUE) + "\n")
-			tm.Flush()
+			tm.FlushAll()
 
 			installedModule, err := modules.InstallModule(moduleName, module.Version, module.Repository, cfg.Folders.Modules)
 			checkModuleErr(err)
@@ -183,12 +183,12 @@ var modulesInstallCMD = &cobra.Command{
 					"This error message might help: " +
 					tm.Color(err.Error(), tm.WHITE) +
 					"\n \n")
-				tm.Flush()
+				tm.FlushAll()
 				return
 			}
 
 			tm.Print(tm.Color("Finished downloading "+tm.Bold(moduleName), tm.GREEN) + "\n \n")
-			tm.Flush()
+			tm.FlushAll()
 		}
 	},
 }
@@ -244,7 +244,7 @@ func checkModuleErr(err errors.Error) {
 				"\n")
 		}
 
-		tm.Flush()
+		tm.FlushAll()
 	}
 }
 
