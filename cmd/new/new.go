@@ -29,14 +29,17 @@ var (
 	ErrInvalidName = errors.NewError("name does not match the requirements", 2)
 )
 
+const defaultTemplateRepositoryURL = "https://build.antipy.com/dl/templates.json"
+const defaultTemplateBranch = "master"
+
 // newCMD represents the new command
 var newCMD = &cobra.Command{
 	Use:   "new",
 	Short: "Make a new antibuild project.",
 	Long:  `Generate a new antibuild project. To get started run "antibuild new" and follow the prompts.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		templateRepositoryURL := *cmd.Flags().StringP("templates", "t", "https://build.antipy.com/dl/templates.json", "The template repository list file to use. Default is \"https://build.antipy.com/dl/templates.json\"")
-		templateBranch := *cmd.Flags().StringP("branch", "b", "master", "The branch to pull the template from if using git.")
+		templateRepositoryURL := *cmd.Flags().StringP("templates", "t", defaultTemplateRepositoryURL, "The template repository list file to use. Default is \"https://build.antipy.com/dl/templates.json\"")
+		templateBranch := *cmd.Flags().StringP("branch", "b", defaultTemplateBranch, "The branch to pull the template from if using git.")
 
 		templateRepository, err := cmdInternal.GetTemplateRepository(templateRepositoryURL)
 		if err != nil {
