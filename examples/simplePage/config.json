@@ -12,28 +12,39 @@
   },
   "modules": {
     "dependencies": {
-      "file": "https://build.antipy.com/dl/modules.json",
-      "json": "https://build.antipy.com/dl/modules.json",
-      "language": "https://build.antipy.com/dl/modules.json",
-      "yaml": "https://build.antipy.com/dl/modules.json",
-      "util": "https://build.antipy.com/dl/modules.json"
+      "file": "build.antipy.com/std@0.13.0",
+      "json": "build.antipy.com/std@0.13.0",
+      "language": "build.antipy.com/std@0.13.0",
+      "util": "build.antipy.com/std@0.13.0",
+      "yaml": "build.antipy.com/std@0.13.0"
     },
     "config": {
       "language": {
         "default": "en",
-        "languages": ["en", "nl"]
+        "languages": [
+          "en",
+          "nl"
+        ]
       }
     },
-    "spps": ["language_language"]
+    "spps": [
+      "language_language"
+    ]
   },
   "pages": {
-    "slug": "",
-    "templates": ["layout.html", "components/navbar.html"],
-    "data": ["[file_file:data/layout.json][json_json]"],
+    "templates": [
+      "layout.html",
+      "components/navbar.html"
+    ],
+    "data": [
+      "[file_file:data/layout.json][json_json]"
+    ],
     "sites": [
       {
         "slug": "/index.html",
-        "templates": ["home.html"],
+        "templates": [
+          "home.html"
+        ],
         "data": [
           "[file_file:data/home.yaml][yaml_yaml]",
           "[file_file:data/test.yaml][yaml_yaml][util_prefix:test]"

@@ -447,6 +447,8 @@ func executeTemplate(site *Site) errors.Error {
 		return ErrFailedTemplate.SetRoot(err.Error())
 	}
 
+	file.Close() // we have to do this otherwise antibuild silently crashes on NTFS filesystems
+
 	return nil
 }
 

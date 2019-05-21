@@ -5,7 +5,6 @@
 package net
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -17,6 +16,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 
+	tm "github.com/buger/goterm"
 	ws "gitlab.com/antipy/antibuild/cli/net/websocket"
 )
 
@@ -75,7 +75,10 @@ func HostLocally(output, port string) {
 	err := server.ListenAndServe()
 	if err != nil && err != http.ErrServerClosed {
 		if strings.Contains(err.Error(), "address already in use") {
-			fmt.Printf("The port %s is already being used by a different program.", port)
+			tm.Clear()
+			tm.MoveCursor(1, 1)
+			tm.Printf("The port %s is already being used by a different program."+"\n\n", tm.Bold(tm.Color(port, tm.RED)))
+			tm.Flush()
 			os.Exit(0)
 		}
 

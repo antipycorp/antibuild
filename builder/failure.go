@@ -55,4 +55,6 @@ func failedToRender(cfg *config.Config) {
 	if err != nil {
 		cfg.UILogger.Fatalf("Could not place the 'error' file %s", err.Error())
 	}
+
+	cfg.UILogger.ShowResult()
 }

@@ -10,12 +10,13 @@ import (
 
 	"github.com/eiannone/keyboard"
 
+	"strings"
+
 	"github.com/fsnotify/fsnotify"
 	"gitlab.com/antipy/antibuild/cli/builder/config"
 	"gitlab.com/antipy/antibuild/cli/internal"
 	"gitlab.com/antipy/antibuild/cli/net/websocket"
 	UI "gitlab.com/antipy/antibuild/cli/ui"
-	"strings"
 )
 
 //watches files and folders and rebuilds when things change

@@ -142,7 +142,6 @@ func startCachedParse(cfg *config.Config, cache *cache) errors.Error {
 
 	//if there is a config update reload all modules
 	if cache.configUpdate {
-
 		moduleHost, err := modules.LoadModules(cfg.Folders.Modules, cfg.Modules, cfg.UILogger)
 		if err != nil {
 			cfg.UILogger.Fatal(err.Error())

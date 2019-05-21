@@ -14,8 +14,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
+// Unzip a zip file
 func Unzip(src string, dest string) ([]string, error) {
 	var filenames []string
 
@@ -75,11 +77,18 @@ func Unzip(src string, dest string) ([]string, error) {
 	return filenames, nil
 }
 
+// ErrFileNotExist means a file does not exist
 var ErrFileNotExist = errors.New("file does not exist")
 
-func DownloadFile(filepath string, url string, executable bool) error {
+// DownloadFile a file using http
+func DownloadFile(path string, url string, executable bool) error {
+	err := os.MkdirAll(filepath.Dir(path), 0777)
+	if err != nil {
+		return err
+	}
+
 	// Create the file
-	out, err := os.Create(filepath)
+	out, err := os.Create(path)
 	if err != nil {
 		return err
 	}
@@ -93,7 +102,7 @@ func DownloadFile(filepath string, url string, executable bool) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		os.Remove(filepath)
+		os.Remove(path)
 		return ErrFileNotExist
 	}
 
@@ -110,6 +119,7 @@ func DownloadFile(filepath string, url string, executable bool) error {
 	return nil
 }
 
+// GenCopy copies a file or a dir depending on the type
 func GenCopy(src, dest string, info os.FileInfo) error {
 	if info.IsDir() {
 		return DirCopy(src, dest, info)
@@ -117,6 +127,7 @@ func GenCopy(src, dest string, info os.FileInfo) error {
 	return FileCopy(src, dest, info)
 }
 
+// FileCopy copies a file
 func FileCopy(src, dest string, info os.FileInfo) error {
 
 	if err := os.MkdirAll(filepath.Dir(dest), os.ModePerm); err != nil {
@@ -143,8 +154,8 @@ func FileCopy(src, dest string, info os.FileInfo) error {
 	return err
 }
 
+// DirCopy copies a directory
 func DirCopy(srcdir, destdir string, info os.FileInfo) error {
-
 	if err := os.MkdirAll(destdir, info.Mode()); err != nil {
 		return err
 	}
@@ -165,6 +176,14 @@ func DirCopy(srcdir, destdir string, info os.FileInfo) error {
 
 // DownloadJSON file from the internet to a data object
 func DownloadJSON(url string, data interface{}) error {
+	if strings.HasPrefix(url, "http://") {
+		return errors.New("only https json downloads are supported")
+	}
+
+	if !strings.HasPrefix(url, "https://") {
+		url = "https://" + url
+	}
+
 	resp, err := http.Get(url)
 	if err != nil {
 		return err
@@ -179,15 +198,22 @@ func DownloadJSON(url string, data interface{}) error {
 }
 
 // DownloadGit clones a git repo
-func DownloadGit(path string, url string) error {
+func DownloadGit(path string, url string, version string) error {
 	err := os.MkdirAll(path, 0755)
 	if err != nil {
 		return err
 	}
 
-	cmd := exec.Command("git", "clone", url)
-	cmd.Dir = path
-	err = cmd.Run()
+	cloneCMD := exec.Command("git", "clone", url)
+	cloneCMD.Dir = path
+	err = cloneCMD.Run()
+	if err != nil {
+		return err
+	}
+
+	checkout := exec.Command("git", "checkout", version)
+	checkout.Dir = path
+	err = checkout.Run()
 	if err != nil {
 		return err
 	}
