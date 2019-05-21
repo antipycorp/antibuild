@@ -75,25 +75,8 @@ func (m *ModuleRepository) Download(url string) errors.Error {
 	return nil
 }
 
-//Install installs a module from a repository
-func (m ModuleRepository) Install(name string, version string, targetFile string) (string, errors.Error) {
-	if v, ok := m[name]; ok {
-		return v.Install(version, targetFile)
-	}
-
-	return "", ErrNotExist
-}
-
 //Install installs a module from a module entry
 func (me ModuleEntry) Install(version string, targetFile string) (string, errors.Error) {
-	if version == "latest" {
-		if me.LatestVersion == "" {
-			return "", ErrNoLatestSpecified
-		}
-
-		version = me.LatestVersion
-	}
-
 	targetFile += "@" + version
 
 	goos := runtime.GOOS
@@ -195,25 +178,31 @@ func InstallModule(name string, version string, repoURL string, filePrefix strin
 			return nil, err
 		}
 
-		if internal, ok := InternalModules[name]; ok && internal.version == version && internal.repository == rURL {
-			if _, ok := (*repo)[name]; ok {
+		if me, ok := (*repo)[name]; ok {
+			if version == "latest" {
+				if me.LatestVersion == "" {
+					return nil, ErrNoLatestSpecified
+				}
+
+				version = me.LatestVersion
+			}
+
+			if internal, ok := InternalModules[name]; ok && internal.version == version && internal.repository == rURL {
 				tm.Print(tm.Color("Module is available "+tm.Bold("internally"), tm.BLUE) + tm.Color(". There is no need to download.", tm.BLUE) + "\n")
 				tm.Flush()
 				return &config.Module{Repository: rURL, Version: version}, nil
 			}
 
-			continue
-		}
-
-		installedVersion, err := repo.Install(name, version, filepath.Join(filePrefix, "abm_"+name))
-		if err != nil {
-			if err.GetCode() == ErrNotExist.GetCode() {
-				continue
+			installedVersion, err := me.Install(version, filepath.Join(filePrefix, "abm_"+name))
+			if err != nil {
+				if err.GetCode() == ErrNotExist.GetCode() {
+					continue
+				}
+				return nil, err
 			}
-			return nil, err
-		}
 
-		return &config.Module{Repository: rURL, Version: installedVersion}, nil
+			return &config.Module{Repository: rURL, Version: installedVersion}, nil
+		}
 	}
 
 	return nil, ErrNotExist.SetRoot("module does not exist in any repository")
