@@ -16,7 +16,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 
-	tm "github.com/buger/goterm"
+	tm "github.com/lucacasonato/goterm"
 	ws "gitlab.com/antipy/antibuild/cli/net/websocket"
 )
 
@@ -78,7 +78,7 @@ func HostLocally(output, port string) {
 			tm.Clear()
 			tm.MoveCursor(1, 1)
 			tm.Printf("The port %s is already being used by a different program."+"\n\n", tm.Bold(tm.Color(port, tm.RED)))
-			tm.Flush()
+			tm.FlushAll()
 			os.Exit(0)
 		}
 

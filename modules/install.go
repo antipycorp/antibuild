@@ -12,7 +12,7 @@ import (
 
 	"gitlab.com/antipy/antibuild/cli/builder/config"
 
-	tm "github.com/buger/goterm"
+	tm "github.com/lucacasonato/goterm"
 	"gitlab.com/antipy/antibuild/cli/internal"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
 )
@@ -104,7 +104,7 @@ func (me ModuleEntry) Install(version string, targetFile string) (string, errors
 			url = strings.ReplaceAll(url, "{{arch}}", goarch)
 
 			tm.Print(tm.Color("Using "+tm.Bold(url), tm.BLUE) + tm.Color(" for download.", tm.BLUE) + "\n")
-			tm.Flush()
+			tm.FlushAll()
 			err := internal.DownloadFile(targetFile, url, true)
 			if err != nil {
 				return "", ErrFailedModuleBinaryDownload.SetRoot(err.Error())
@@ -156,7 +156,7 @@ func InstallModule(name string, version string, repoURL string, filePrefix strin
 		err := config.LoadDefaultGlobal()
 		if err != nil {
 			tm.Print(tm.Color("Could not load global config file: "+err.Error(), tm.RED) + "\n")
-			tm.Flush()
+			tm.FlushAll()
 		}
 
 		repoURLs = []string{
@@ -189,7 +189,7 @@ func InstallModule(name string, version string, repoURL string, filePrefix strin
 
 			if internal, ok := InternalModules[name]; ok && internal.version == version && internal.repository == rURL {
 				tm.Print(tm.Color("Module is available "+tm.Bold("internally"), tm.BLUE) + tm.Color(". There is no need to download.", tm.BLUE) + "\n")
-				tm.Flush()
+				tm.FlushAll()
 				return &config.Module{Repository: rURL, Version: version}, nil
 			}
 

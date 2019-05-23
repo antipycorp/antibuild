@@ -5,7 +5,6 @@ go 1.12
 require (
 	github.com/Netflix/go-expect v0.0.0-20180928190340-9d1f4485533b // indirect
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/buger/goterm v0.0.0-20181115115552-c206103e1f37
 	github.com/docker/cli v0.0.0-20190506213505-d88565df0c2d
 	github.com/eiannone/keyboard v0.0.0-20190314115158-7169d0afeb4f
 	github.com/fsnotify/fsnotify v1.4.7
@@ -16,6 +15,7 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/kirsle/configdir v0.0.0-20170128060238-e45d2f54772f
 	github.com/kr/pty v1.1.1 // indirect
+	github.com/lucacasonato/goterm v0.0.0-20190521161903-c8362851c682
 	github.com/mattn/go-colorable v0.1.1 // indirect
 	github.com/mattn/go-isatty v0.0.7 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
