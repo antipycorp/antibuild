@@ -215,6 +215,8 @@ func startCachedParse(cfg *config.Config, cache *cache) errors.Error {
 			}
 		}
 		if depChange || !datEqual || templateChange || cache.configUpdate {
+			path := filepath.Join(TemplateFolder, tPath)
+			site.RemoveTemplate(path)
 			if s == nil {
 				var err errors.Error
 				s, err = site.Gather(sites[i], cfg.UILogger.(*UI.UI))

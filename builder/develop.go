@@ -144,7 +144,7 @@ func watchBuild(cfg *config.Config, c *cache, configloc string, shutdown chan in
 			}
 
 			ui.Debugf("Refreshing because %s", e.Op)
-			root, _ := filepath.Abs(cfg.Folders.Templates)
+			templateRoot, _ := filepath.Abs(cfg.Folders.Templates)
 			file, _ := filepath.Abs(e.Name)
 
 			if e.Name == configloc {
@@ -158,7 +158,7 @@ func watchBuild(cfg *config.Config, c *cache, configloc string, shutdown chan in
 					cfg = ncfg
 					c.configUpdate = true
 				}
-			} else if strings.HasPrefix(file, root) {
+			} else if strings.HasPrefix(file, templateRoot) {
 				c.templateUpdate = file
 			} else {
 				ui.Infof("Refreshing because of page %s", e.Name)
