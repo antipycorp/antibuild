@@ -262,6 +262,10 @@ func gatherIterators(iterators map[string]IteratorData) errors.Error {
 	return nil
 }
 
+// Cleans a template from the template cache
+func RemoveTemplate(path string){
+	delete(subTemplates, path)
+}
 // Gather after unfolding
 func Gather(cSite ConfigSite, log *ui.UI) (*Site, errors.Error) {
 	log.Debugf("Gathering information for %s", cSite.Slug)
