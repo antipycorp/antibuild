@@ -206,17 +206,19 @@ func startCachedParse(cfg *config.Config, cache *cache) errors.Error {
 		}
 		templateChange := false
 		for _, v := range sites[i].Templates {
+
 			abs, err := filepath.Abs(path.Join(cfg.Folders.Templates, v))
 			if err != nil {
 				return ErrFailedCache.SetRoot("the template path does not fit within the templates: " + v)
 			}
 			if abs == cache.templateUpdate {
+				path := filepath.Join(site.TemplateFolder, v)
+				site.RemoveTemplate(path)
+
 				templateChange = true
 			}
 		}
 		if depChange || !datEqual || templateChange || cache.configUpdate {
-			path := filepath.Join(TemplateFolder, tPath)
-			site.RemoveTemplate(path)
 			if s == nil {
 				var err errors.Error
 				s, err = site.Gather(sites[i], cfg.UILogger.(*UI.UI))
