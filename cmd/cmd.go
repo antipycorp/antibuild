@@ -32,7 +32,6 @@ var (
 		Long:  `Build a Antibuild project and export into the output folder. Will also install any dependencies.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			configFileBuildCMD := *cmd.Flags().StringP("config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
-
 			builder.Start(false, false, configFileBuildCMD, true, "")
 		},
 	}

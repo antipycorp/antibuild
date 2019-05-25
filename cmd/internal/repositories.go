@@ -4,7 +4,7 @@
 
 package internal
 
-import "gitlab.com/antipy/antibuild/cli/internal"
+import "gitlab.com/antipy/antibuild/cli/internal/download"
 
 // TemplateRepositoryEntry is a single entry for a template repository file
 type TemplateRepositoryEntry struct {
@@ -19,6 +19,6 @@ type TemplateRepositoryEntry struct {
 
 // GetTemplateRepository from a url
 func GetTemplateRepository(url string) (repo map[string]TemplateRepositoryEntry, err error) {
-	err = internal.DownloadJSON(url, &repo)
+	err = download.JSON(url, &repo)
 	return
 }

@@ -13,14 +13,13 @@ import (
 	"strings"
 
 	"github.com/fsnotify/fsnotify"
-	"gitlab.com/antipy/antibuild/cli/builder/config"
+	localConfig "gitlab.com/antipy/antibuild/cli/configuration/local"
 	"gitlab.com/antipy/antibuild/cli/internal"
-	"gitlab.com/antipy/antibuild/cli/net/websocket"
-	UI "gitlab.com/antipy/antibuild/cli/ui"
+	UI "gitlab.com/antipy/antibuild/cli/internal/log"
 )
 
 //watches files and folders and rebuilds when things change
-func buildOnRefresh(cfg *config.Config, configLocation string, ui *UI.UI) {
+func buildOnRefresh(cfg *localConfig.Config, configLocation string, ui *UI.UI) {
 	cache, err := startParse(cfg)
 	if err != nil {
 		cfg.UILogger.Fatal(err.Error())
@@ -38,7 +37,7 @@ func buildOnRefresh(cfg *config.Config, configLocation string, ui *UI.UI) {
 	watchBuild(cfg, cache, configLocation, shutdown, ui)
 }
 
-func staticWatch(src, dst string, shutdown chan int, log config.UIlogger) {
+func staticWatch(src, dst string, shutdown chan int, log localConfig.UIlogger) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Errorf("could not open a file watcher: %s", err.Error())
@@ -86,7 +85,7 @@ func staticWatch(src, dst string, shutdown chan int, log config.UIlogger) {
 }
 
 //! modules will not be able to call a refresh and thus we can only use the (local) templates as a source
-func watchBuild(cfg *config.Config, c *cache, configloc string, shutdown chan int, ui *UI.UI) {
+func watchBuild(cfg *localConfig.Config, c *cache, configloc string, shutdown chan int, ui *UI.UI) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		ui.Errorf("could not open a file watcher: %s", err.Error())
@@ -120,11 +119,12 @@ func watchBuild(cfg *config.Config, c *cache, configloc string, shutdown chan in
 	go func() {
 		for {
 			char, key, err := keyboard.GetKey()
-			if err != nil {
+			switch {
+			case err != nil:
 				ui.Errorf("getting key failed: %s", err.Error())
-			} else if key == keyboard.KeyCtrlC || key == keyboard.KeyEsc || char == 'q' {
+			case key == keyboard.KeyCtrlC || key == keyboard.KeyEsc || char == 'q':
 				shutdown <- 1
-			} else {
+			default:
 				keyChannel <- char
 			}
 		}
@@ -147,10 +147,12 @@ func watchBuild(cfg *config.Config, c *cache, configloc string, shutdown chan in
 			templateRoot, _ := filepath.Abs(cfg.Folders.Templates)
 			file, _ := filepath.Abs(e.Name)
 
-			if e.Name == configloc {
+			switch {
+			case e.Name == configloc:
 				ui.Info("Changed file is config. Reloading...")
-				ncfg, err := config.CleanConfig(configloc, ui, true)
+				ncfg, err := localConfig.CleanConfig(configloc, ui, true)
 				if err != nil {
+					failedToLoadConfig(ui, cfg.Folders.Output)
 					ui.Fatalf("Failed to load config: %s", err.Error())
 					ui.ShowResult()
 					continue
@@ -158,10 +160,11 @@ func watchBuild(cfg *config.Config, c *cache, configloc string, shutdown chan in
 					cfg = ncfg
 					c.configUpdate = true
 				}
-			} else if strings.HasPrefix(file, templateRoot) {
+			case strings.HasPrefix(file, templateRoot):
 				c.templateUpdate = file
-			} else {
+			default:
 				ui.Infof("Refreshing because of page %s", e.Name)
+
 			}
 
 			err = startCachedParse(cfg, c)
@@ -169,16 +172,16 @@ func watchBuild(cfg *config.Config, c *cache, configloc string, shutdown chan in
 				failedToRender(cfg)
 			} else {
 				ui.ShowResult()
-				websocket.SendUpdate()
+				//websocket.SendUpdate()
 			}
 
 		case key := <-keyChannel:
 			switch key {
 			case 'R':
 				ui.Info("Reloading config...")
-				cfg, err = config.CleanConfig(configloc, ui, true)
+				cfg, err = localConfig.CleanConfig(configloc, ui, true)
 				if err != nil {
-					failedToRender(cfg)
+					failedToLoadConfig(ui, cfg.Folders.Output)
 					continue
 				}
 
@@ -190,7 +193,7 @@ func watchBuild(cfg *config.Config, c *cache, configloc string, shutdown chan in
 					failedToRender(cfg)
 				} else {
 					ui.ShowResult()
-					websocket.SendUpdate()
+					//websocket.SendUpdate()
 				}
 
 			case 'r':
@@ -201,7 +204,7 @@ func watchBuild(cfg *config.Config, c *cache, configloc string, shutdown chan in
 					failedToRender(cfg)
 				} else {
 					ui.ShowResult()
-					websocket.SendUpdate()
+					//websocket.SendUpdate()
 				}
 
 			}

@@ -3,7 +3,7 @@ package modules
 import (
 	tm "github.com/lucacasonato/goterm"
 	"github.com/spf13/cobra"
-	"gitlab.com/antipy/antibuild/cli/builder/config"
+	globalConfig "gitlab.com/antipy/antibuild/cli/configuration/global"
 )
 
 // reposCMD represents the repositories command
@@ -24,14 +24,14 @@ var reposListCMD = &cobra.Command{
 	},
 	Short: "List all repositories in the global antibuild config file.",
 	Run: func(cmd *cobra.Command, args []string) {
-		err := config.LoadDefaultGlobal()
+		err := globalConfig.LoadDefaultGlobal()
 		if err != nil {
 			tm.Print(tm.Color("Could not load global config file: "+err.Error()+"\n", tm.RED))
 			tm.FlushAll()
 			return
 		}
 
-		for _, repo := range config.DefaultGlobalConfig.Repositories {
+		for _, repo := range globalConfig.DefaultGlobalConfig.Repositories {
 			tm.Print(repo + "\n")
 		}
 
@@ -49,14 +49,14 @@ var reposAddCMD = &cobra.Command{
 	Long:  `Adds a repository that is used to try to pull modules from when adding modules.`,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		err := config.LoadDefaultGlobal()
+		err := globalConfig.LoadDefaultGlobal()
 		if err != nil {
 			tm.Print(tm.Color("Could not load global config file: "+err.Error(), tm.RED) + "\n")
 			tm.FlushAll()
 			return
 		}
 
-		for _, repo := range config.DefaultGlobalConfig.Repositories {
+		for _, repo := range globalConfig.DefaultGlobalConfig.Repositories {
 			if repo == args[0] {
 				tm.Print(tm.Color("This repository is already added.", tm.RED) + "\n")
 				tm.FlushAll()
@@ -64,8 +64,8 @@ var reposAddCMD = &cobra.Command{
 			}
 		}
 
-		config.DefaultGlobalConfig.Repositories = append(config.DefaultGlobalConfig.Repositories, args[0])
-		err = config.SaveDefaultGlobal()
+		globalConfig.DefaultGlobalConfig.Repositories = append(globalConfig.DefaultGlobalConfig.Repositories, args[0])
+		err = globalConfig.SaveDefaultGlobal()
 		if err != nil {
 			tm.Print(tm.Color("Could not save global config file: "+err.Error(), tm.RED) + "\n")
 			tm.FlushAll()
@@ -86,18 +86,18 @@ var reposRemoveCMD = &cobra.Command{
 	Short: "Remove a repository from the global antibuild config file.",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		err := config.LoadDefaultGlobal()
+		err := globalConfig.LoadDefaultGlobal()
 		if err != nil {
 			tm.Print(tm.Color("Could not load global config file: "+err.Error(), tm.RED) + "\n")
 			tm.FlushAll()
 			return
 		}
 
-		for i, repo := range config.DefaultGlobalConfig.Repositories {
+		for i, repo := range globalConfig.DefaultGlobalConfig.Repositories {
 			if repo == args[0] {
-				config.DefaultGlobalConfig.Repositories = append(config.DefaultGlobalConfig.Repositories[:i], config.DefaultGlobalConfig.Repositories[i+1:]...)
+				globalConfig.DefaultGlobalConfig.Repositories = append(globalConfig.DefaultGlobalConfig.Repositories[:i], globalConfig.DefaultGlobalConfig.Repositories[i+1:]...)
 
-				err = config.SaveDefaultGlobal()
+				err = globalConfig.SaveDefaultGlobal()
 				if err != nil {
 					tm.Print(tm.Color("Could not save global config file: "+err.Error(), tm.RED) + "\n")
 					tm.FlushAll()
@@ -112,6 +112,5 @@ var reposRemoveCMD = &cobra.Command{
 
 		tm.Print(tm.Color("This repository is not in the global config.", tm.RED) + "\n")
 		tm.FlushAll()
-		return
 	},
 }

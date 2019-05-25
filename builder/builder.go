@@ -12,13 +12,13 @@ import (
 	"reflect"
 	"time"
 
-	"gitlab.com/antipy/antibuild/cli/builder/config"
-	"gitlab.com/antipy/antibuild/cli/builder/site"
+	localConfig "gitlab.com/antipy/antibuild/cli/configuration/local"
+	"gitlab.com/antipy/antibuild/cli/engine/modules"
+	"gitlab.com/antipy/antibuild/cli/engine/site"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
-	"gitlab.com/antipy/antibuild/cli/modules"
-	"gitlab.com/antipy/antibuild/cli/net"
+	"gitlab.com/antipy/antibuild/cli/internal/net"
 
-	UI "gitlab.com/antipy/antibuild/cli/ui"
+	UI "gitlab.com/antipy/antibuild/cli/internal/log"
 )
 
 type cache struct {
@@ -52,10 +52,9 @@ var (
 //Start the build process
 func Start(isRefreshEnabled bool, isHost bool, configLocation string, isConfigSet bool, port string) {
 	ui := &UI.UI{}
-	cfg, err := config.CleanConfig(configLocation, ui, true)
+	cfg, err := localConfig.CleanConfig(configLocation, ui, true)
 	if err != nil {
-		ui.Fatalf("Could not parse the config file " + err.Error())
-		ui.ShowResult()
+		failedToLoadConfig(ui, "public/")
 		return
 	}
 
@@ -107,7 +106,7 @@ func HeadlesStart(configLocation string, output io.Writer) {
 	ui.SetLogfile(output)
 	ui.SetPrettyPrint(false)
 
-	cfg, err := config.CleanConfig(configLocation, ui, false)
+	cfg, err := localConfig.CleanConfig(configLocation, ui, false)
 	ui.SetLogfile(output)
 	ui.SetPrettyPrint(false)
 
@@ -133,7 +132,7 @@ func HeadlesStart(configLocation string, output io.Writer) {
 	}
 }
 
-func startCachedParse(cfg *config.Config, cache *cache) errors.Error {
+func startCachedParse(cfg *localConfig.Config, cache *cache) errors.Error {
 	start := time.Now()
 
 	if cfg.Folders.Output == "" {
@@ -194,7 +193,8 @@ func startCachedParse(cfg *config.Config, cache *cache) errors.Error {
 
 		datEqual := true
 		if cache.checkData {
-			s, err := site.Gather(sites[i], cfg.UILogger.(*UI.UI))
+			var err errors.Error
+			s, err = site.Gather(sites[i], cfg.UILogger.(*UI.UI))
 			if err != nil {
 				return err
 			}
@@ -268,7 +268,7 @@ func startCachedParse(cfg *config.Config, cache *cache) errors.Error {
 	return nil
 }
 
-func startParse(cfg *config.Config) (*cache, errors.Error) {
+func startParse(cfg *localConfig.Config) (*cache, errors.Error) {
 	cache := &cache{
 		rootPage:     *cfg.Pages,
 		data:         make(map[string]cacheData),
@@ -276,15 +276,6 @@ func startParse(cfg *config.Config) (*cache, errors.Error) {
 		checkData:    false,
 	}
 	return cache, startCachedParse(cfg, cache)
-}
-
-func contains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
 }
 
 func findTopEmptyDir(base, rel string) error {

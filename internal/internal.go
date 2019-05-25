@@ -5,119 +5,13 @@
 package internal
 
 import (
-	"archive/zip"
-	"encoding/json"
-	"errors"
 	"io"
 	"io/ioutil"
-	"net/http"
+	"math/rand"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
+	"time"
 )
-
-// Unzip a zip file
-func Unzip(src string, dest string) ([]string, error) {
-	var filenames []string
-
-	r, err := zip.OpenReader(src)
-	if err != nil {
-		return filenames, err
-	}
-	defer r.Close()
-
-	for _, f := range r.File {
-		rc, err := f.Open()
-		if err != nil {
-			return filenames, err
-		}
-		defer rc.Close()
-
-		// Store filename/path for returning and using later on
-		fpath := filepath.Join(dest, f.Name)
-
-		prefix := filepath.Clean(dest) + string(os.PathSeparator)
-
-		// Check for CVE-2018-8008. AKA ZipSlip
-		if !(len(fpath) >= len(prefix) && fpath[0:len(prefix)] == prefix) { // strings.HasPrefix(fpath, prefix) removed in order to remove the dependency
-			return filenames, errors.New(fpath + ": illegal file path")
-		}
-
-		filenames = append(filenames, fpath)
-
-		if f.FileInfo().IsDir() {
-
-			// Make Folder
-			os.MkdirAll(fpath, os.ModePerm)
-
-		} else {
-
-			// Make File
-			if err = os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
-				return filenames, err
-			}
-
-			outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
-			if err != nil {
-				return filenames, err
-			}
-
-			_, err = io.Copy(outFile, rc)
-
-			// Close the file without defer to close before next iteration of loop
-			outFile.Close()
-
-			if err != nil {
-				return filenames, err
-			}
-
-		}
-	}
-	return filenames, nil
-}
-
-// ErrFileNotExist means a file does not exist
-var ErrFileNotExist = errors.New("file does not exist")
-
-// DownloadFile a file using http
-func DownloadFile(path string, url string, executable bool) error {
-	err := os.MkdirAll(filepath.Dir(path), 0777)
-	if err != nil {
-		return err
-	}
-
-	// Create the file
-	out, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	// Get the data
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		os.Remove(path)
-		return ErrFileNotExist
-	}
-
-	// Write the body to file
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
-		return err
-	}
-
-	if executable == true {
-		out.Chmod(0777)
-	}
-
-	return nil
-}
 
 // GenCopy copies a file or a dir depending on the type
 func GenCopy(src, dest string, info os.FileInfo) error {
@@ -174,61 +68,41 @@ func DirCopy(srcdir, destdir string, info os.FileInfo) error {
 	return nil
 }
 
-// DownloadJSON file from the internet to a data object
-func DownloadJSON(url string, data interface{}) error {
-	if strings.HasPrefix(url, "http://") {
-		return errors.New("only https json downloads are supported")
+var srcRand = rand.NewSource(time.Now().UnixNano())
+
+const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+const (
+	letterIdxBits = 6                    // 6 bits to represent a letter index
+	letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
+	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
+)
+
+// RandString generates a random string
+func RandString(n int) string {
+	b := make([]byte, n)
+	// A src.Int63() generates 63 random bits, enough for letterIdxMax characters!
+	for i, cache, remain := n-1, srcRand.Int63(), letterIdxMax; i >= 0; {
+		if remain == 0 {
+			cache, remain = srcRand.Int63(), letterIdxMax
+		}
+		if idx := int(cache & letterIdxMask); idx < len(letterBytes) {
+			b[i] = letterBytes[idx]
+			i--
+		}
+		cache >>= letterIdxBits
+		remain--
 	}
 
-	if !strings.HasPrefix(url, "https://") {
-		url = "https://" + url
-	}
-
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-
-	err = json.NewDecoder(resp.Body).Decode(&data)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return string(b)
 }
 
-// DownloadGit clones a git repo
-func DownloadGit(path string, url string, version string) error {
-	err := os.MkdirAll(path, 0755)
-	if err != nil {
-		return err
+//Contains cecks is a string slice contains a certain string
+func Contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
 	}
 
-	cloneCMD := exec.Command("git", "clone", url)
-	cloneCMD.Dir = path
-	err = cloneCMD.Run()
-	if err != nil {
-		return err
-	}
-
-	checkout := exec.Command("git", "checkout", version)
-	checkout.Dir = path
-	err = checkout.Run()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// CompileFromSource compiles a go program
-func CompileFromSource(path string, outFile string) error {
-	cmd := exec.Command("go", "build", "-o", outFile, filepath.Join(path, "main.go"))
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return false
 }

@@ -26,7 +26,6 @@ Antibuild is written in Golang and can be extended by modules written in Golang.
 		Short: "Prints the version of antibuild and exits succesfully.",
 		Run: func(cmd *cobra.Command, args []string) {
 			println(version)
-			return
 		},
 	}
 )

@@ -9,7 +9,7 @@ import (
 	"log"
 	"os"
 
-	"gitlab.com/antipy/antibuild/cli/builder/config"
+	localConfig "gitlab.com/antipy/antibuild/cli/configuration/local"
 )
 
 var (
@@ -23,9 +23,8 @@ var (
 			"</html>")
 )
 
-func failedToLoadConfig(log config.Logger, output string) {
-	var err error
-	err = os.MkdirAll(output, 0700)
+func failedToLoadConfig(log localConfig.Logger, output string) {
+	err := os.MkdirAll(output, 0700)
 	if err != nil {
 		log.Fatalf("could not place error file in place: %s", err.Error())
 	}
@@ -35,7 +34,7 @@ func failedToLoadConfig(log config.Logger, output string) {
 	}
 }
 
-func failedToRender(cfg *config.Config) {
+func failedToRender(cfg *localConfig.Config) {
 	var err error
 	if cfg.Folders.Output == "" {
 		cfg.UILogger.Fatal("Output folder is not set.")

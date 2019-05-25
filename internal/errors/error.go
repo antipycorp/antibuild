@@ -10,6 +10,7 @@ import (
 )
 
 type (
+
 	//Error is an ierror struct used in antibuild
 	Error interface {
 		Error() string
