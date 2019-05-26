@@ -95,7 +95,9 @@ var reposRemoveCMD = &cobra.Command{
 
 		for i, repo := range globalConfig.DefaultGlobalConfig.Repositories {
 			if repo == args[0] {
-				globalConfig.DefaultGlobalConfig.Repositories = append(globalConfig.DefaultGlobalConfig.Repositories[:i], globalConfig.DefaultGlobalConfig.Repositories[i+1:]...)
+				globalConfig.DefaultGlobalConfig.Repositories = append(
+					globalConfig.DefaultGlobalConfig.Repositories[:i],
+					globalConfig.DefaultGlobalConfig.Repositories[i+1:]...)
 
 				err = globalConfig.SaveDefaultGlobal()
 				if err != nil {

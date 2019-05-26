@@ -13,7 +13,7 @@ import (
 	"regexp"
 
 	"github.com/spf13/cobra"
-	cmdInternal "gitlab.com/antipy/antibuild/cli/cmd/internal"
+	"gitlab.com/antipy/antibuild/cli/cli/templates"
 	"gitlab.com/antipy/antibuild/cli/internal"
 	"gitlab.com/antipy/antibuild/cli/internal/download"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
@@ -32,24 +32,22 @@ var (
 	//ErrInvalidName is for a failure moving the static folder
 	ErrInvalidName = errors.NewError("name does not match the requirements", 2)
 
-	newProjectSurvey = []*survey.Question{
-		{
-			Name:   "name",
-			Prompt: &survey.Input{Message: "What should the name of the project be?"},
-			Validate: func(input interface{}) error {
-				var in string
-				var ok bool
-				if in, ok = input.(string); !ok {
-					return ErrInvalidInput.SetRoot("input is of type " + reflect.TypeOf(input).String() + "not string")
-				}
+	newProjecQuestion = survey.Question{
+		Name:   "name",
+		Prompt: &survey.Input{Message: "What should the name of the project be?"},
+		Validate: func(input interface{}) error {
+			var in string
+			var ok bool
+			if in, ok = input.(string); !ok {
+				return ErrInvalidInput.SetRoot("input is of type " + reflect.TypeOf(input).String() + "not string")
+			}
 
-				match := nameregex.MatchString(in)
+			match := nameregex.MatchString(in)
 
-				if !match {
-					return ErrInvalidName.SetRoot("the name should be at least 3 characters and only include a-z and -")
-				}
-				return nil
-			},
+			if !match {
+				return ErrInvalidName.SetRoot("the name should be at least 3 characters and only include a-z and -")
+			}
+			return nil
 		},
 	}
 )
@@ -60,10 +58,12 @@ var newCMD = &cobra.Command{
 	Short: "Make a new antibuild project.",
 	Long:  `Generate a new antibuild project. To get started run "antibuild new" and follow the prompts.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		templateRepositoryURL := *cmd.Flags().StringP("templates", "t", defaultTemplateRepositoryURL, "The template repository list file to use. Default is \"https://build.antipy.com/dl/templates.json\"")
-		templateBranch := *cmd.Flags().StringP("branch", "b", defaultTemplateBranch, "The branch to pull the template from if using git.")
+		templateRepositoryURL := *cmd.Flags().StringP("templates", "t", defaultTemplateRepositoryURL,
+			"The template repository list file to use. Default is \"https://build.antipy.com/dl/templates.json\"")
+		templateBranch := *cmd.Flags().StringP("branch", "b", defaultTemplateBranch,
+			"The branch to pull the template from if using git.")
 
-		templateRepository, err := cmdInternal.GetTemplateRepository(templateRepositoryURL)
+		templateRepository, err := templates.GetTemplateRepository(templateRepositoryURL)
 		if err != nil {
 			println("Failed to download template repository list.")
 			return
@@ -75,7 +75,8 @@ var newCMD = &cobra.Command{
 			templates = append(templates, template)
 		}
 
-		newProjectSurvey = append(newProjectSurvey,
+		newProjectSurvey := []*survey.Question{
+			&newProjecQuestion,
 			&survey.Question{
 				Name: "template",
 				Prompt: &survey.Select{
@@ -83,7 +84,7 @@ var newCMD = &cobra.Command{
 					Options: templates,
 				},
 			},
-		)
+		}
 
 		answers := struct {
 			Name     string `survey:"name"`
@@ -111,7 +112,7 @@ var newCMD = &cobra.Command{
 	},
 }
 
-func downloadTemplate(templateRepository map[string]cmdInternal.TemplateEntry, template, outPath, templateBranch string) bool {
+func downloadTemplate(templateRepository map[string]templates.TemplateEntry, template, outPath, templateBranch string) bool {
 	if _, ok := templateRepository[template]; !ok {
 		println("The selected template is not available in this repository.")
 		return false

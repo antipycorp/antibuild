@@ -2,7 +2,7 @@
 //
 // Licensed under the MIT License
 
-package internal
+package templates
 
 import "gitlab.com/antipy/antibuild/cli/internal/download"
 

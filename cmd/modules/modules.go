@@ -9,7 +9,7 @@ import (
 
 	tm "github.com/lucacasonato/goterm"
 	"github.com/spf13/cobra"
-	modulesInstall "gitlab.com/antipy/antibuild/cli/cli/modules"
+	modulesRepo "gitlab.com/antipy/antibuild/cli/cli/modules"
 	localConfig "gitlab.com/antipy/antibuild/cli/configuration/local"
 	"gitlab.com/antipy/antibuild/cli/engine/modules"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
@@ -39,11 +39,14 @@ var modulesAddCMD = &cobra.Command{
 		"a",
 	},
 	Short: "Get a module",
-	Long:  `Adds and downloads a module. Uses the standard repository (` + modules.STDRepo + `) by default. Will use repos in the global config if not found in std. Use -m to force a repo.`,
-	Args:  cobra.ExactArgs(1),
+	Long: `Adds and downloads a module. Uses the standard repository (` + modules.STDRepo +
+		`) by default. Will use repos in the global config if not found in std. Use -m to force a repo.`,
+	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		configFile := *cmd.Flags().StringP("config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
-		repositoryFile := *cmd.Flags().StringP("modules", "m", modulesInstall.NoRepositorySpecified, "The module repository to use.")
+		configFile := *cmd.Flags().StringP("config", "c", "config.json",
+			"Config file that should be used for building. If not specified will use config.json")
+		repositoryFile := *cmd.Flags().StringP("modules", "m", modulesRepo.NoRepositorySpecified,
+			"The module repository to use.")
 		cfg, err := localConfig.GetConfig(configFile)
 		if err != nil {
 			tm.Print(tm.Color("Config is not valid.", tm.RED) +
@@ -65,7 +68,8 @@ var modulesAddCMD = &cobra.Command{
 		tm.Print(tm.Color("Installing "+tm.Bold(newModule.Repository), tm.BLUE) + "\n")
 		tm.FlushAll()
 
-		installedModule, err := modulesInstall.InstallModule(newModule.Repository, newModule.Version, repositoryFile, cfg.Folders.Modules)
+		installedModule, err := modulesRepo.InstallModule(newModule.Repository,
+			newModule.Version, repositoryFile, cfg.Folders.Modules)
 
 		checkModuleErr(err)
 		if err != nil {
@@ -84,7 +88,8 @@ var modulesAddCMD = &cobra.Command{
 			return
 		}
 
-		tm.Print(tm.Color("Finished installing "+tm.Bold(newModule.Repository), tm.GREEN) + tm.Color(" at version "+tm.Bold(installedModule.Version), tm.GREEN) + tm.Color(" from "+tm.Bold(installedModule.Repository), tm.GREEN) + "\n \n")
+		tm.Print(tm.Color("Finished installing "+tm.Bold(newModule.Repository), tm.GREEN) +
+			tm.Color(" at version "+tm.Bold(installedModule.Version), tm.GREEN) + tm.Color(" from "+tm.Bold(installedModule.Repository), tm.GREEN) + "\n \n")
 		tm.FlushAll()
 	},
 }
@@ -99,7 +104,8 @@ var modulesRemoveCMD = &cobra.Command{
 	Long:  `Removes and deletes a module.`,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		configFile := *cmd.Flags().StringP("config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
+		configFile := *cmd.Flags().StringP("config", "c", "config.json",
+			"Config file that should be used for building. If not specified will use config.json")
 
 		cfg, err := localConfig.GetConfig(configFile)
 		if err != nil {
@@ -163,10 +169,11 @@ var modulesInstallCMD = &cobra.Command{
 		}
 
 		for moduleName, module := range cfg.Modules.Dependencies {
-			tm.Print(tm.Color("Downloading "+tm.Bold(moduleName), tm.BLUE) + tm.Color(" from repository "+tm.Bold(module.Repository), tm.BLUE) + "\n")
+			tm.Print(tm.Color("Downloading "+tm.Bold(moduleName), tm.BLUE) +
+				tm.Color(" from repository "+tm.Bold(module.Repository), tm.BLUE) + "\n")
 			tm.FlushAll()
 
-			installedModule, err := modulesInstall.InstallModule(moduleName, module.Version, module.Repository, cfg.Folders.Modules)
+			installedModule, err := modulesRepo.InstallModule(moduleName, module.Version, module.Repository, cfg.Folders.Modules)
 			checkModuleErr(err)
 			if err != nil {
 				return
@@ -193,38 +200,38 @@ var modulesInstallCMD = &cobra.Command{
 func checkModuleErr(err errors.Error) {
 	if err != nil {
 		switch err.GetCode() {
-		case modulesInstall.ErrFailedModuleBinaryDownload.GetCode():
+		case modulesRepo.ErrFailedModuleBinaryDownload.GetCode():
 			tm.Print("" +
 				tm.Color(tm.Bold("Failed to download module."), tm.RED) + "\n" +
 				"\n" +
 				"The module you are trying to download has a pre-built binary for your architecture and os but it failed to download. The server might be down. \n" +
 				"   More info: " + err.GetRoot() + " \n" +
 				"\n")
-		case modulesInstall.ErrNotExist.GetCode():
+		case modulesRepo.ErrNotExist.GetCode():
 			tm.Print("" +
 				tm.Color(tm.Bold("Module is not found."), tm.RED) + "\n" +
 				"\n" +
 				"   The module you requested is not listed in the module repository specified.\nIs the name of the module spelled correctly?\n" +
 				"\n")
-		case modulesInstall.ErrFailedModuleRepositoryDownload.GetCode():
+		case modulesRepo.ErrFailedModuleRepositoryDownload.GetCode():
 			tm.Print("" +
 				tm.Color(tm.Bold("Failed to query the repository."), tm.RED) + "\n" +
 				"\n" +
 				"   The repository that was specified, or any in the config file, are not valid repositories. Make sure you specified the correct url.\n" +
 				"\n")
-		case modulesInstall.ErrFailedGitRepositoryDownload.GetCode():
+		case modulesRepo.ErrFailedGitRepositoryDownload.GetCode():
 			tm.Print("" +
 				tm.Color(tm.Bold("Failed to download git repository for module."), tm.RED) + "\n" +
 				"\n" +
 				"   The source code could not be cloned from repository the git repository. Do you have Git installed?\n" +
 				"\n")
-		case modulesInstall.ErrFailedModuleBuild.GetCode():
+		case modulesRepo.ErrFailedModuleBuild.GetCode():
 			tm.Print("" +
 				tm.Color(tm.Bold("Failed to build module form source."), tm.RED) + "\n" +
 				"\n" +
 				"   The module could not be built from repository source. Make sure you have Go installed.\n" +
 				"\n")
-		case modulesInstall.ErrUnkownSourceRepositoryType.GetCode():
+		case modulesRepo.ErrUnkownSourceRepositoryType.GetCode():
 			tm.Print("" +
 				tm.Color(tm.Bold("The repository is invalid."), tm.RED) + "\n" +
 				"\n" +

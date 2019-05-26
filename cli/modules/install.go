@@ -99,7 +99,8 @@ func InstallModule(name string, version string, repoURL string, filePrefix strin
 			}
 
 			if modules.MatchesInternalModule(name, version, rURL) == modules.HaveSameVersion {
-				tm.Print(tm.Color("Module is available "+tm.Bold("internally"), tm.BLUE) + tm.Color(". There is no need to download.", tm.BLUE) + "\n")
+				tm.Print(tm.Color("Module is available "+tm.Bold("internally"), tm.BLUE) +
+					tm.Color(". There is no need to download.", tm.BLUE) + "\n")
 				tm.FlushAll()
 				return &modules.Module{Repository: rURL, Version: version}, nil
 			}
