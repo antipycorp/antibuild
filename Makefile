@@ -48,10 +48,10 @@ build_arm:
 
 build_internal:
 	echo "Building antibuild for ${GOOS}/${GOARCH}";
-	go build -ldflags="-s -w" -o ./dist/${GOOS}/${GOARCH}/antibuild main.go
+	go build -ldflags="-s -w" -o ./dist/${GOOS}/${GOARCH}/antibuild *.go
 
 bin:
-	go build -o antibuild main.go
+	go build -o antibuild *.go
 	mv antibuild ~/bin
 
 test:

@@ -4,9 +4,7 @@
 
 package main
 
-import "gitlab.com/antipy/antibuild/cli/cli"
-
 func main() {
-	// Start the cli
-	cli.Run()
+	// Start the cmd
+	Run()
 }

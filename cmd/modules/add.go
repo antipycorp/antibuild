@@ -7,7 +7,7 @@ package modules
 import (
 	tm "github.com/lucacasonato/goterm"
 	"github.com/spf13/cobra"
-	"gitlab.com/antipy/antibuild/cli/cli/modules/repositories"
+	"gitlab.com/antipy/antibuild/cli/cmd/modules/repositories"
 	localConfig "gitlab.com/antipy/antibuild/cli/configuration/local"
 	"gitlab.com/antipy/antibuild/cli/engine/modules"
 )

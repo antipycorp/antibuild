@@ -5,7 +5,7 @@
 package modules
 
 import (
-	"gitlab.com/antipy/antibuild/cli/cli/modules/repositories"
+	"gitlab.com/antipy/antibuild/cli/cmd/modules/repositories"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
 
 	tm "github.com/lucacasonato/goterm"

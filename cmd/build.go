@@ -2,7 +2,7 @@
 //
 // Licensed under the MIT License
 
-package cli
+package main
 
 import (
 	"github.com/spf13/cobra"

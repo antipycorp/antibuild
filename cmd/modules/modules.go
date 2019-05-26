@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	tm "github.com/lucacasonato/goterm"
-	"gitlab.com/antipy/antibuild/cli/cli/modules/repositories"
+	"gitlab.com/antipy/antibuild/cli/cmd/modules/repositories"
 	globalConfig "gitlab.com/antipy/antibuild/cli/configuration/global"
 	"gitlab.com/antipy/antibuild/cli/engine/modules"
 	"gitlab.com/antipy/antibuild/cli/internal"

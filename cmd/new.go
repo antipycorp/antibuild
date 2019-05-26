@@ -2,7 +2,7 @@
 //
 // Licensed under the MIT License
 
-package cli
+package main
 
 import (
 	"os"
@@ -11,7 +11,7 @@ import (
 	"regexp"
 
 	"github.com/spf13/cobra"
-	"gitlab.com/antipy/antibuild/cli/cli/templates"
+	"gitlab.com/antipy/antibuild/cli/cmd/templates"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
 	"gopkg.in/AlecAivazis/survey.v1"
 )
