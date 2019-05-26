@@ -6,7 +6,7 @@ debugflags = -gcflags=all="-N -l"
 
 branch = $(shell git rev-parse --abbrev-ref HEAD)
 
-$(binary): $(shell find . -name '*.go' -type f)
+$(binary): $(shell find . -name 'cmd/*.go' -type f)
 	go build -o $(outbinary)
 
 clean:
@@ -48,10 +48,10 @@ build_arm:
 
 build_internal:
 	echo "Building antibuild for ${GOOS}/${GOARCH}";
-	go build -ldflags="-s -w" -o ./dist/${GOOS}/${GOARCH}/antibuild *.go
+	go build -ldflags="-s -w" -o ./dist/${GOOS}/${GOARCH}/antibuild cmd/*.go
 
 bin:
-	go build -o antibuild *.go
+	go build -o antibuild cmd/*.go
 	mv antibuild ~/bin
 
 test:
