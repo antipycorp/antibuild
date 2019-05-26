@@ -22,15 +22,15 @@ require (
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/pflag v1.0.3 // indirect
 	github.com/stretchr/testify v1.3.0 // indirect
-	gitlab.com/antipy/antibuild/api v0.11.1-0.20190507000620-170946e8462e
-	gitlab.com/antipy/antibuild/std/file v0.0.0-20190520114513-aced529fb864
-	gitlab.com/antipy/antibuild/std/json v0.0.0-20190520114513-aced529fb864
-	gitlab.com/antipy/antibuild/std/language v0.0.0-20190520114513-aced529fb864
-	gitlab.com/antipy/antibuild/std/markdown v0.0.0-20190520114513-aced529fb864
-	gitlab.com/antipy/antibuild/std/math v0.0.0-20190520114513-aced529fb864
-	gitlab.com/antipy/antibuild/std/noescape v0.0.0-20190520114513-aced529fb864
-	gitlab.com/antipy/antibuild/std/util v0.0.0-20190520114513-aced529fb864
-	gitlab.com/antipy/antibuild/std/yaml v0.0.0-20190520114513-aced529fb864
+	gitlab.com/antipy/antibuild/api v0.13.0
+	gitlab.com/antipy/antibuild/std/file v0.13.0
+	gitlab.com/antipy/antibuild/std/json v0.13.0
+	gitlab.com/antipy/antibuild/std/language v0.13.0
+	gitlab.com/antipy/antibuild/std/markdown v0.13.0
+	gitlab.com/antipy/antibuild/std/math v0.13.0
+	gitlab.com/antipy/antibuild/std/noescape v0.13.0
+	gitlab.com/antipy/antibuild/std/util v0.13.0
+	gitlab.com/antipy/antibuild/std/yaml v0.13.0
 	golang.org/x/crypto v0.0.0-20190404164418-38d8ce5564a5 // indirect
 	gopkg.in/AlecAivazis/survey.v1 v1.7.0
 )
