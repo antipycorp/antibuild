@@ -4,7 +4,6 @@ main
 test
 .vscode/launch.json
 dist
-cli
 
 .DS_Store
 
