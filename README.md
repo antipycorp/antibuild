@@ -33,9 +33,6 @@ You will be asked few basic questions about the project.
 
 1. What should the name of the project be? _The name of the folder the project should be initalized in._
 2. Choose a starting template: _The template we should use as the project baseline._
-3. Select any modules you want to pre install now (can also not choose any): _Basic modules you want to use. You can install and remove modules later aswell._
-
-Modules add functionality to antibuild like data file parsing and template manipualtion. You can learn more about modules [here](https://build.antipy.com/modules).
 
 To run antibuild in your new project navigate into the generated directory and run antibuild in development mode.
 

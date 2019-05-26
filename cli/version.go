@@ -10,8 +10,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const releaseType = "alpha"
 const version = "0.13.0"
 
 func versionCommandRun(command *cobra.Command, arguments []string) {
-	fmt.Printf("Antibuild/%s\n", version)
+	fmt.Printf("antibuild %s/%s\n", releaseType, version)
 }

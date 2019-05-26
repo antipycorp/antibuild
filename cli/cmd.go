@@ -25,14 +25,14 @@ To get started with modules go to https://antibuild.io/modules.`,
 // $ antibuild version
 var versionCommand = &cobra.Command{
 	Use:   "version",
-	Short: "Prints the version of antibuild.",
+	Short: "Prints the version of antibuild",
 	Run:   versionCommandRun,
 }
 
 // $ antibuild new
 var newCommand = &cobra.Command{
 	Use:   "new",
-	Short: "Make a new antibuild project.",
+	Short: "Make a new antibuild project",
 	Long:  `Generate a new antibuild project. To get started run "antibuild new" and follow the prompts.`,
 	Run:   newCommandRun,
 }
@@ -48,7 +48,7 @@ var buildCommand = &cobra.Command{
 // $ antibuild develop
 var developCommand = &cobra.Command{
 	Use:   "develop",
-	Short: "Develop a project using the config file file",
+	Short: "Develop a project using the config file",
 	Long:  `Develop a Antibuild project and export into the output folder.`,
 	Run:   developCommandRun,
 }
