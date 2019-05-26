@@ -125,7 +125,7 @@ func downloadTemplate(templateRepository map[string]templates.TemplateEntry, tem
 		log.Fatal(err)
 	}
 
-	err = os.MkdirAll(dir, 0755)
+	err = os.MkdirAll(dir, 0744)
 	if err != nil {
 		log.Fatal(err)
 	}

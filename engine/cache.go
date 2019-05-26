@@ -157,6 +157,7 @@ func startCachedParse(cfg *localConfig.Config, cache *cache) errors.Error {
 			cache.data[k] = v
 		} else {
 			os.Remove(path.Join(cfg.Folders.Output, k))
+			//TODO: if failled do a full rebuild??
 			removeTopEmptyDir(cfg.Folders.Output, k)
 			delete(cache.data, k)
 		}

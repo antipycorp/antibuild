@@ -56,7 +56,7 @@ func File(path string, url string, executable bool) error {
 	}
 
 	if executable {
-		out.Chmod(0777)
+		out.Chmod(0744)
 	}
 
 	return nil
@@ -84,7 +84,7 @@ func JSON(url string, data interface{}) error {
 
 // Git clones a git repo
 func Git(path string, url string, version string) error {
-	err := os.MkdirAll(path, 0755)
+	err := os.MkdirAll(path, 0744)
 	if err != nil {
 		return err
 	}
