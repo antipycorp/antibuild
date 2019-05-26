@@ -12,10 +12,10 @@
   },
   "modules": {
     "dependencies": {
-      "file": "build.antipy.com/std@0.13.0",
-      "markdown": "build.antipy.com/std@0.13.0",
-      "util": "build.antipy.com/std@0.13.0",
-      "yaml": "build.antipy.com/std@0.13.0"
+      "file": "build.antipy.com/std@v0.13.0",
+      "markdown": "build.antipy.com/std@v0.13.0",
+      "util": "build.antipy.com/std@v0.13.0",
+      "yaml": "build.antipy.com/std@v0.13.0"
     }
   },
   "pages": {
