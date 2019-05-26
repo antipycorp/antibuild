@@ -23,17 +23,17 @@ test:
 test_blog:
   stage: test
   script:
-  - cd examples/blog; go run ../../*.go build
+  - cd examples/blog; go run ../../cmd/*.go build
 
 test_iterator:
   stage: test
   script:
-    - cd examples/iterator; go run ../../*.go build
+    - cd examples/iterator; go run ../../cmd/*.go build
 
 test_simplePage:
   stage: test
   script:
-    - cd examples/simplePage; go run ../../*.go build
+    - cd examples/simplePage; go run ../../cmd/*.go build
 
 benchmark:
   stage: test
