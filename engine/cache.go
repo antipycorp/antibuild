@@ -79,7 +79,7 @@ func startCachedParse(cfg *localConfig.Config, cache *cache) errors.Error {
 	}
 
 	pagesC := site.DeepCopy(*cfg.Pages)
-	sites, err := site.Unfold(&pagesC, cfg.UILogger.(*ui.UI))
+	sites, err := site.Unfold(pagesC, cfg.UILogger.(*ui.UI))
 	if err != nil {
 		return ErrFailedUnfold.SetRoot(err.Error())
 	}

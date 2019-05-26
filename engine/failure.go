@@ -15,11 +15,14 @@ import (
 var (
 	failedtoloadconfig = []byte(
 		"<html>\n" +
-			"failed to load the config file, probably json syntax error :P <br/> more info avaiable in the console output\n" +
+			"failed to load the config file, probably json syntax error :P <br/>\n" +
+			"more info avaiable in the console output\n" +
 			"</html>")
 	failedtorender = []byte(
 		"<html>\n" +
-			"failed to render any part of the file, report bugs and suggestions for better error messages at gitlab/github :P <br/> more info avaiable in the console output\n" +
+			"failed to render any part of the file, report bugs and suggestions" +
+			"for better error messages at gitlab/github :P <br/>\n" +
+			"more info avaiable in the console output\n" +
 			"</html>")
 )
 

@@ -167,7 +167,7 @@ func (i iterator) GetPipe(variable string) modules.Pipe {
 func TestUnfold(t *testing.T) {
 	for _, test := range unfoldTests {
 		in := site.DeepCopy(test.in)
-		dat, err := site.Unfold(&in, testUI)
+		dat, err := site.Unfold(in, testUI)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -206,7 +206,7 @@ func TestUnfold(t *testing.T) {
 func TestExecute(t *testing.T) {
 	for _, test := range unfoldTests {
 		in := site.DeepCopy(test.in)
-		dat, err := site.Unfold(&in, testUI)
+		dat, err := site.Unfold(in, testUI)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -278,7 +278,7 @@ func genUnfold(benchID int) func(*testing.B) {
 	return func(b *testing.B) {
 		for n := 0; n < b.N; n++ {
 			s := site.DeepCopy(benchMarks[benchID])
-			site.Unfold(&s, testUI)
+			site.Unfold(s, testUI)
 		}
 	}
 }
@@ -293,13 +293,13 @@ func genGather(benchID int) func(*testing.B) {
 		for n := 0; n < b.N; n++ {
 			s := site.DeepCopy(benchMarks[benchID])
 
-			site.Unfold(&s, testUI)
+			site.Unfold(s, testUI)
 		}
 
 		var sites = make([][]site.ConfigSite, b.N)
 		for n := 0; n < b.N; n++ {
 			s := site.DeepCopy(benchMarks[benchID])
-			sites[n], _ = site.Unfold(&s, testUI)
+			sites[n], _ = site.Unfold(s, testUI)
 		}
 
 		b.ResetTimer()

@@ -10,8 +10,6 @@ import (
 	"net/http"
 	"time"
 
-	"context"
-
 	//pprof should only work when the host is on, otherwise its not gonna be used anyways
 	_ "net/http/pprof"
 	"os"
@@ -33,21 +31,26 @@ var (
 )
 
 //HostDebug host the /debug/pprof endpoint locally on port 5000
+//panics if it cant host the server
 func HostDebug() {
 	debug := http.Server{
 		Addr:        ":5000",
 		Handler:     http.DefaultServeMux,
 		ReadTimeout: time.Millisecond * 500,
 	}
-	go debug.ListenAndServe()
+	go func() {
+		err := debug.ListenAndServe()
+		if err != nil {
+			panic(err)
+		}
+	}()
 }
 
 //HostLocally hosts output folder
 func HostLocally(output, port string) {
 	if shutdown == nil {
 		shutdown = make(chan int, 1)
-	} else {
-		server.Shutdown(context.Background())
+	} else if len(shutdown) != 0 {
 		<-shutdown
 	}
 

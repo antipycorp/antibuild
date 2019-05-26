@@ -21,7 +21,7 @@ type (
 	ierror struct {
 		RootCause string
 		message   string
-		//Is an ID for the ierror, diferent packages can use the same code, as long as the general cause for the ierror can be derived.
+		//Is an ID for the ierror, different packages can use the same code, as long as the general cause for the ierror can be derived.
 		//"0" is reserved for imported errors
 		code string
 	}

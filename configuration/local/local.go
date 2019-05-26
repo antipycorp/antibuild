@@ -114,7 +114,7 @@ func (l *log) UnmarshalJSON(data []byte) error {
 			return err
 		}
 
-		*l = cfgl //converts cfg to a propper configLog
+		*l = cfgl //converts cfg to a proper configLog
 	default: //else just parse it add a string
 		if err := json.Unmarshal(data, &l.File); err != nil {
 			return err

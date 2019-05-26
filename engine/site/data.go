@@ -4,7 +4,6 @@
 
 package site
 
-
 import (
 	"bytes"
 
@@ -107,7 +106,7 @@ func (df *Data) UnmarshalJSON(data []byte) error {
 		copy(loader, sep[0])
 		//length is not 0 thus everything is fine
 		if len(bytes.Split(sep[0], []byte("_"))) == 1 {
-			loader = append(sep[0], append([]byte("_"), sep[0]...)...)
+			loader = append(loader, append([]byte("_"), loader...)...)
 		}
 		df.Loader = string(loader)
 		df.LoaderArguments = ""

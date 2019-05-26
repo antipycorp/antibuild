@@ -155,7 +155,7 @@ func loadModule(name string, meta *Module, path string, log host.Logger) (io.Rea
 		if err == nil {
 			requestedVersion, err := semver.Parse(meta.Version)
 			if err == nil {
-				//TODO: make this also check if the major version is the same, if so make it a warning and say a compatibel veriosn is available
+				//TODO: make this also check if the major version is the same, if so make it a warning and say a compatible veriosn is available
 				if internalVersion.GT(requestedVersion) {
 					log.Infof("Module %s has a more up to date internal version available: %s", name, v.version)
 				}
@@ -179,7 +179,7 @@ func loadModule(name string, meta *Module, path string, log host.Logger) (io.Rea
 
 	module.Stderr = os.Stderr
 
-	//start module and initaite connection
+	//start module and initiate connection
 	if errr := module.Start(); errr != nil {
 		return nil, nil, "", ErrModuleFailedStarting.SetRoot(errr.Error())
 	}

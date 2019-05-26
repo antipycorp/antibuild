@@ -16,10 +16,12 @@ var (
 	rootCMD = &cobra.Command{
 		Use:   "antibuild",
 		Short: "A fast and simple static site generator with module support.",
-		Long: `Antibuild is a static site generator that can use dynamic datasets and simple or advanced modules for endless configurability.
+		Long: `Antibuild is a static site generator that can use dynamic datasets
+and simple or advanced modules for endless configurability.
 
 To start a new antibuild project run "antibuild new"
-Antibuild is written in Golang and can be extended by modules written in Golang. To get started with modules go to https://antibuild.io/modules.`,
+Antibuild is written in Golang and can be extended by modules written in Golang.
+To get started with modules go to https://antibuild.io/modules.`,
 	}
 	versionCMD = &cobra.Command{
 		Use:   "version",

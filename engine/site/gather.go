@@ -108,7 +108,7 @@ func gatherTemplates(site *Site, templates []string) errors.Error {
 		finalTemplate.Parse(subTemplates[path])
 	}
 	//TODO: make the ID be the template path
-	//get the template with the TemplateFunctions initalized
+	//get the template with the TemplateFunctions initialized
 	id := internal.RandString(32)
 
 	globalTemplates[id] = finalTemplate

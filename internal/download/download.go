@@ -106,8 +106,8 @@ func Git(path string, url string, version string) error {
 	return nil
 }
 
-func sanitizeURL(URL string) (string, bool) {
-	u, err := url.Parse(URL)
+func sanitizeURL(rawurl string) (string, bool) {
+	u, err := url.Parse(rawurl)
 	if err != nil || u.Host == "" {
 		return "", false
 

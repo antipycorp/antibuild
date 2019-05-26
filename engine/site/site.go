@@ -85,7 +85,7 @@ var (
 */
 
 //Unfold the ConfigSite into a []ConfigSite
-func Unfold(configSite *ConfigSite, log *ui.UI) ([]ConfigSite, errors.Error) {
+func Unfold(configSite ConfigSite, log *ui.UI) ([]ConfigSite, errors.Error) {
 	var sites []ConfigSite
 	globalTemplates = make(map[string]*template.Template, len(sites))
 
@@ -97,13 +97,13 @@ func Unfold(configSite *ConfigSite, log *ui.UI) ([]ConfigSite, errors.Error) {
 	return sites, nil
 }
 
-func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]ConfigSite, log *ui.UI) (err errors.Error) {
+func unfold(cSite ConfigSite, parent *ConfigSite, sites *[]ConfigSite, log *ui.UI) errors.Error {
 	if parent != nil {
-		mergeConfigSite(cSite, parent)
+		mergeConfigSite(&cSite, parent)
 	}
 	log.Debugf("Unfolding " + cSite.Slug)
 
-	numIncludedVars := numIncludedVars(*cSite)
+	numIncludedVars := numIncludedVars(cSite)
 
 	//If this is the last in the chain, add it to the list of return values
 	if len(cSite.Sites) == 0 && numIncludedVars == 0 {
@@ -119,20 +119,20 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]ConfigSite, log *ui.
 		}
 
 		//append site to the list of sites that will be executed
-		(*sites) = append(*sites, *cSite)
+		(*sites) = append(*sites, cSite)
 		log.Debug("Unfolded to final site")
 
 		return nil
 	}
 
 	if numIncludedVars > 0 {
-		itSited, err := doIterators(*cSite, log)
+		itSited, err := doIterators(cSite, log)
 		if err != nil {
 			log.Fatalf("failled to do iterators: %v", err)
 			return err
 		}
 		for i := range itSited {
-			err := unfold(&itSited[i], nil, sites, log)
+			err := unfold(itSited[i], nil, sites, log)
 			if err != nil {
 				return err
 			}
@@ -144,13 +144,12 @@ func unfold(cSite *ConfigSite, parent *ConfigSite, sites *[]ConfigSite, log *ui.
 	gatherIterators(cSite.Iterators)
 
 	for _, childSite := range cSite.Sites {
-		err = unfold(&childSite, cSite, sites, log)
+		err := unfold(childSite, &cSite, sites, log)
 		if err != nil {
 			return err
 		}
 	}
-
-	return
+	return nil
 }
 
 //mergeConfigSite merges the src into the dst

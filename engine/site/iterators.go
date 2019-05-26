@@ -60,9 +60,8 @@ func (i *IteratorData) UnmarshalJSON(data []byte) error {
 		}
 		var loader = make([]byte, len(sep[0]))
 		copy(loader, sep[0])
-
-		if len(bytes.Split(sep[0], []byte("_"))) == 1 {
-			loader = append(sep[0], append([]byte("_"), sep[0]...)...)
+		if len(bytes.Split(loader, []byte("_"))) == 1 {
+			loader = append(loader, append([]byte("_"), loader...)...)
 		}
 
 		i.Iterator = string(loader)
@@ -96,7 +95,7 @@ func includedVars(data []byte) []string {
 	return vars
 }
 
-//fastNumIncluded vars just simply counts the number of "{{" occurances and doesnt check for wrong formatting
+//fastNumIncluded vars just simply counts the number of "{{" occurrences and doesnt check for wrong formatting
 func fastNumIncludedVars(data []byte) int {
 	return bytes.Count(data, []byte("{{"))
 }

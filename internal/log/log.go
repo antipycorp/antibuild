@@ -16,12 +16,13 @@ import (
 type UI struct {
 	LogFile        io.Writer
 	HostingEnabled bool
-	Port           string
-	failed         bool
-	log            []string
-	infolog        []string
 	PrettyLog      bool
 	DebugEnabled   bool
+	failed         bool
+	hasFileFailed  bool
+	Port           string
+	log            []string
+	infolog        []string
 }
 
 var (
@@ -125,10 +126,10 @@ func (ui *UI) Debug(err string) {
 	if ui.LogFile != nil && ui.DebugEnabled {
 		if ui.PrettyLog {
 			entry := debugPrefix + err
-			ui.LogFile.Write([]byte(entry + "\n"))
+			ui.fileWrite(entry + "\n")
 			return
 		}
-		ui.LogFile.Write([]byte(err + "\n"))
+		ui.fileWrite(err + "\n")
 	}
 }
 
@@ -141,21 +142,21 @@ func (ui *UI) Debugf(format string, a ...interface{}) {
 	ui.Debug(fmt.Sprintf(format, a...))
 }
 
-//Info logs helpfull information/warnings
+//Info logs helpful information/warnings
 func (ui *UI) Info(err string) {
 	entry := infoPrefix + err
 	ui.infolog = append(ui.infolog, entry)
 	if ui.LogFile != nil {
 		if ui.PrettyLog {
-			ui.LogFile.Write([]byte(entry + "\n"))
+			ui.fileWrite(entry + "\n")
 			return
 		}
 
-		ui.LogFile.Write([]byte(err + "\n"))
+		ui.fileWrite(err + "\n")
 	}
 }
 
-//Infof logs helpfull information/warnings
+//Infof logs helpful information/warnings
 func (ui *UI) Infof(format string, a ...interface{}) {
 	ui.Info(fmt.Sprintf(format, a...))
 }
@@ -166,10 +167,10 @@ func (ui *UI) Error(err string) {
 	ui.log = append(ui.log, entry)
 	if ui.LogFile != nil {
 		if ui.PrettyLog {
-			ui.LogFile.Write([]byte(entry + "\n"))
+			ui.fileWrite(entry + "\n")
 			return
 		}
-		ui.LogFile.Write([]byte(err + "\n"))
+		ui.fileWrite(err + "\n")
 	}
 }
 
@@ -186,10 +187,10 @@ func (ui *UI) Fatal(err string) {
 
 	if ui.LogFile != nil {
 		if ui.PrettyLog {
-			ui.LogFile.Write([]byte(entry + "\n"))
+			ui.fileWrite(entry + "\n")
 			return
 		}
-		ui.LogFile.Write([]byte(err + "\n"))
+		ui.fileWrite(err + "\n")
 	}
 }
 
@@ -217,4 +218,12 @@ func (ui *UI) SetPrettyPrint(enabled bool) {
 //ShouldEnableDebug enables/disables debug logging (performance)
 func (ui *UI) ShouldEnableDebug(enabled bool) {
 	ui.DebugEnabled = enabled
+}
+
+func (ui *UI) fileWrite(msg string) {
+	_, err := ui.LogFile.Write([]byte(msg))
+	if err != nil && !ui.hasFileFailed {
+		ui.hasFileFailed = true
+		ui.Error("could not write to the log file:" + err.Error())
+	}
 }

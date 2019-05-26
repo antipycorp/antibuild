@@ -15,6 +15,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	localConfig "gitlab.com/antipy/antibuild/cli/configuration/local"
 	"gitlab.com/antipy/antibuild/cli/internal"
+	"gitlab.com/antipy/antibuild/cli/internal/errors"
 	UI "gitlab.com/antipy/antibuild/cli/internal/log"
 )
 
@@ -176,38 +177,7 @@ func watchBuild(cfg *localConfig.Config, c *cache, configloc string, shutdown ch
 			}
 
 		case key := <-keyChannel:
-			switch key {
-			case 'R':
-				ui.Info("Reloading config...")
-				cfg, err = localConfig.CleanConfig(configloc, ui, true)
-				if err != nil {
-					failedToLoadConfig(ui, cfg.Folders.Output)
-					continue
-				}
-
-				c.configUpdate = true
-				c.checkData = true
-
-				err = startCachedParse(cfg, c)
-				if err != nil {
-					failedToRender(cfg)
-				} else {
-					ui.ShowResult()
-					//websocket.SendUpdate()
-				}
-
-			case 'r':
-				ui.Info("Refreshing pages...")
-				c.checkData = true
-				err = startCachedParse(cfg, c)
-				if err != nil {
-					failedToRender(cfg)
-				} else {
-					ui.ShowResult()
-					//websocket.SendUpdate()
-				}
-
-			}
+			handleKey(key, configloc, c, cfg, ui)
 
 		case err, ok := <-watcher.Errors:
 			if !ok {
@@ -219,6 +189,41 @@ func watchBuild(cfg *localConfig.Config, c *cache, configloc string, shutdown ch
 		case <-shutdown:
 			shutdown <- 0
 			return
+		}
+	}
+}
+
+func handleKey(key rune, configloc string, c *cache, cfg *localConfig.Config, ui *UI.UI) {
+	switch key {
+	case 'R':
+		ui.Info("Reloading config...")
+		var err errors.Error
+		cfg, err = localConfig.CleanConfig(configloc, ui, true)
+		if err != nil {
+			failedToLoadConfig(ui, cfg.Folders.Output)
+			return
+		}
+
+		c.configUpdate = true
+		c.checkData = true
+
+		err = startCachedParse(cfg, c)
+		if err != nil {
+			failedToRender(cfg)
+		} else {
+			ui.ShowResult()
+			//websocket.SendUpdate()
+		}
+
+	case 'r':
+		ui.Info("Refreshing pages...")
+		c.checkData = true
+		err := startCachedParse(cfg, c)
+		if err != nil {
+			failedToRender(cfg)
+		} else {
+			ui.ShowResult()
+			//websocket.SendUpdate()
 		}
 	}
 }

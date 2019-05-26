@@ -111,7 +111,7 @@ var newCMD = &cobra.Command{
 	},
 }
 
-func downloadTemplate(templateRepository map[string]cmdInternal.TemplateRepositoryEntry, template string, outPath string, templateBranch string) bool {
+func downloadTemplate(templateRepository map[string]cmdInternal.TemplateEntry, template, outPath, templateBranch string) bool {
 	if _, ok := templateRepository[template]; !ok {
 		println("The selected template is not available in this repository.")
 		return false
