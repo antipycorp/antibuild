@@ -58,6 +58,7 @@ func startCachedParse(cfg *localConfig.Config, cache *cache) errors.Error {
 
 	//if there is a config update reload all modules
 	if cache.configUpdate {
+		var err error
 		moduleHost, err := modules.LoadModules(cfg.Folders.Modules, cfg.Modules, cfg.UILogger)
 		if err != nil {
 			cfg.UILogger.Fatal(err.Error())
@@ -70,8 +71,8 @@ func startCachedParse(cfg *localConfig.Config, cache *cache) errors.Error {
 		site.TemplateFolder = cfg.Folders.Templates
 		site.OutputFolder = cfg.Folders.Output
 
-		er := os.RemoveAll(cfg.Folders.Output)
-		if er != nil {
+		err = os.RemoveAll(cfg.Folders.Output)
+		if err != nil {
 			return ErrFailedRemoveFile.SetRoot(err.Error())
 		}
 

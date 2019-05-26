@@ -141,7 +141,7 @@ func downloadTemplate(templateRepository map[string]cmdInternal.TemplateReposito
 			log.Fatal(err)
 		}
 
-		_, err = zip.Unzip(downloadFilePath, dir)
+		err = zip.Unzip(downloadFilePath, dir)
 		if err != nil {
 			log.Fatal(err)
 		}

@@ -6,9 +6,9 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"gitlab.com/antipy/antibuild/cli/builder"
 	"gitlab.com/antipy/antibuild/cli/cmd/modules"
 	"gitlab.com/antipy/antibuild/cli/cmd/new"
+	"gitlab.com/antipy/antibuild/cli/engine"
 )
 
 var (
@@ -21,7 +21,7 @@ var (
 			configFileDevelopCMD := *cmd.Flags().StringP("config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
 			portDevelopCMD := *cmd.Flags().StringP("port", "p", "8080", "The port that is used to host the development server.")
 
-			builder.Start(true, true, configFileDevelopCMD, true, portDevelopCMD)
+			engine.Start(true, true, configFileDevelopCMD, true, portDevelopCMD)
 		},
 	}
 
@@ -32,7 +32,7 @@ var (
 		Long:  `Build a Antibuild project and export into the output folder. Will also install any dependencies.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			configFileBuildCMD := *cmd.Flags().StringP("config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
-			builder.Start(false, false, configFileBuildCMD, true, "")
+			engine.Start(false, false, configFileBuildCMD, true, "")
 		},
 	}
 )
