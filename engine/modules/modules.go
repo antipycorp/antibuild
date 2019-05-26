@@ -45,8 +45,8 @@ type (
 )
 
 const (
-	//STDRepo is the standard repo for antibuild modules
-	STDRepo = "build.antipy.com/std"
+	//StandardRepository is the standard repo for antibuild modules
+	StandardRepository = "build.antipy.com/std"
 )
 
 var (

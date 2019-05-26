@@ -5,188 +5,107 @@
 package modules
 
 import (
-	"io/ioutil"
-	"path/filepath"
-	"runtime"
-	"strings"
-
-	"gitlab.com/antipy/antibuild/cli/engine/modules"
-	"gitlab.com/antipy/antibuild/cli/internal"
-	"gitlab.com/antipy/antibuild/cli/internal/compile"
-	"gitlab.com/antipy/antibuild/cli/internal/download"
+	"gitlab.com/antipy/antibuild/cli/cli/modules/repositories"
 	"gitlab.com/antipy/antibuild/cli/internal/errors"
 
 	tm "github.com/lucacasonato/goterm"
-	globalConfig "gitlab.com/antipy/antibuild/cli/configuration/global"
+	"github.com/spf13/cobra"
+	localConfig "gitlab.com/antipy/antibuild/cli/configuration/local"
 )
 
-type (
-	// ModuleEntry is a single entry for a module repository file
-	ModuleEntry struct {
-		Name        string `json:"name"`
-		Description string `json:"description"`
-		Source      struct {
-			Type         string `json:"type"`
-			URL          string `json:"url"`
-			SubDirectory string `json:"subdirectory"`
-		} `json:"source"`
-		CompiledStatic  map[string]map[string]map[string]string `json:"compiled_static"`
-		CompiledDynamic struct {
-			URL          string              `json:"url"`
-			Vesions      []string            `json:"versions"`
-			OSArchCombos map[string][]string `json:"os_arch_combos"`
-		} `json:"compiled_dynamic"`
-		LatestVersion string `json:"latest"`
+// InstallCommandRun is the cobra command
+func InstallCommandRun(command *cobra.Command, args []string) {
+	configfile := *command.Flags().StringP("config", "c", "config.json", "Config file that should be used for building. If not specified will use config.json")
+
+	cfg, err := localConfig.GetConfig(configfile)
+	if err != nil {
+		tm.Print(tm.Color("Config is not valid.", tm.RED) +
+			"This error message might help: " +
+			tm.Color(err.Error(), tm.WHITE) +
+			"\n \n")
+		tm.FlushAll()
+		return
 	}
-)
 
-const (
-	stdRepo = modules.STDRepo
+	for moduleName, module := range cfg.Modules.Dependencies {
+		tm.Print(tm.Color("Downloading "+tm.Bold(moduleName), tm.BLUE) +
+			tm.Color(" from repository "+tm.Bold(module.Repository), tm.BLUE) + "\n")
+		tm.FlushAll()
 
-	// NoRepositorySpecified is when you dont pass the -m flag
-	NoRepositorySpecified = ""
-)
-
-var (
-	//ErrNotExist means the module does not exist in the repository
-	ErrNotExist = errors.NewError("module does not exist in the repository", 1)
-	//ErrNoLatestSpecified means the module binary download failed
-	ErrNoLatestSpecified = errors.NewError("the module repository did not specify a latest version", 2)
-	//ErrFailedModuleBinaryDownload means the module binary download failed
-	ErrFailedModuleBinaryDownload = errors.NewError("failed downloading module binary from repository server", 3)
-	//ErrUnkownSourceRepositoryType means that source repository type was not recognized
-	ErrUnkownSourceRepositoryType = errors.NewError("source repository code is unknown", 10)
-	//ErrFailedModuleBuild means that the module could not be built
-	ErrFailedModuleBuild = errors.NewError("failed to build the module from repository source", 21)
-)
-
-//InstallModule installs a module
-func InstallModule(name string, version string, repoURL string, filePrefix string) (*modules.Module, errors.Error) {
-	var repoURLs []string
-
-	if repoURL == NoRepositorySpecified {
-		err := globalConfig.LoadDefaultGlobal()
+		installedModule, err := InstallModule(moduleName, module.Version, module.Repository, cfg.Folders.Modules)
+		checkModuleErr(err)
 		if err != nil {
-			tm.Print(tm.Color("Could not load global config file: "+err.Error(), tm.RED) + "\n")
+			return
+		}
+
+		cfg.Modules.Dependencies[moduleName] = installedModule
+
+		err = localConfig.SaveConfig(configfile, cfg)
+		if err != nil {
+			tm.Print(tm.Color("Config could not be saved.", tm.RED) +
+				"This error message might help: " +
+				tm.Color(err.Error(), tm.WHITE) +
+				"\n \n")
 			tm.FlushAll()
+			return
 		}
 
-		repoURLs = []string{
-			stdRepo,
-		}
-		repoURLs = append(repoURLs, globalConfig.DefaultGlobalConfig.Repositories...)
-	} else {
-		repoURLs = []string{
-			repoURL,
-		}
+		tm.Print(tm.Color("Finished downloading "+tm.Bold(moduleName), tm.GREEN) + "\n \n")
+		tm.FlushAll()
 	}
-
-	for _, rURL := range repoURLs {
-		repo := &ModuleRepository{}
-
-		err := repo.Download(rURL)
-		if err != nil {
-			return nil, err
-		}
-
-		if me, ok := (*repo)[name]; ok {
-			if version == "latest" {
-				if me.LatestVersion == "" {
-					return nil, ErrNoLatestSpecified
-				}
-
-				version = me.LatestVersion
-			}
-
-			if modules.MatchesInternalModule(name, version, rURL) == modules.HaveSameVersion {
-				tm.Print(tm.Color("Module is available "+tm.Bold("internally"), tm.BLUE) +
-					tm.Color(". There is no need to download.", tm.BLUE) + "\n")
-				tm.FlushAll()
-				return &modules.Module{Repository: rURL, Version: version}, nil
-			}
-
-			installedVersion, err := me.Install(version, filepath.Join(filePrefix, "abm_"+name))
-			if err != nil {
-				if err.GetCode() == ErrNotExist.GetCode() {
-					continue
-				}
-				return nil, err
-			}
-
-			return &modules.Module{Repository: rURL, Version: installedVersion}, nil
-		}
-	}
-
-	return nil, ErrNotExist.SetRoot("module does not exist in any repository")
 }
 
-//Install installs a module from a module entry
-func (me ModuleEntry) Install(version string, targetFile string) (string, errors.Error) {
-	targetFile += "@" + version
-
-	goos := runtime.GOOS
-	goarch := runtime.GOARCH
-
-	// static compiled modules
-	if _, ok := me.CompiledStatic[version]; ok {
-		if _, ok := me.CompiledStatic[version][goos]; ok {
-			if _, ok := me.CompiledStatic[version][goos][goarch]; ok {
-				err := download.File(targetFile, me.CompiledStatic[version][goos][goarch], true)
-				if err != nil {
-					return "", ErrFailedModuleBinaryDownload.SetRoot(err.Error())
-				}
-
-				return version, nil
-			}
-		}
-	}
-
-	// dynamic compiled modules
-	if me.CompiledDynamic.URL != "" && internal.Contains(me.CompiledDynamic.Vesions, version) {
-		if _, ok := me.CompiledDynamic.OSArchCombos[goos]; ok && internal.Contains(me.CompiledDynamic.OSArchCombos[goos], goarch) {
-			url := strings.ReplaceAll(me.CompiledDynamic.URL, "{{version}}", version)
-			url = strings.ReplaceAll(url, "{{os}}", goos)
-			url = strings.ReplaceAll(url, "{{arch}}", goarch)
-
-			tm.Print(tm.Color("Using "+tm.Bold(url), tm.BLUE) + tm.Color(" for download.", tm.BLUE) + "\n")
-			tm.FlushAll()
-			err := download.File(targetFile, url, true)
-			if err != nil {
-				return "", ErrFailedModuleBinaryDownload.SetRoot(err.Error())
-			}
-
-			return version, nil
-		}
-	}
-
-	// local compiled modules
-	dir, err := ioutil.TempDir("", "abm_"+me.Name+"@"+version)
+func checkModuleErr(err errors.Error) {
 	if err != nil {
-		panic(err)
-	}
-
-	switch me.Source.Type {
-	case "git":
-		v := version
-		if me.Source.SubDirectory != "" {
-			v = me.Source.SubDirectory + "/" + version
+		switch err.GetCode() {
+		case ErrFailedModuleBinaryDownload.GetCode():
+			tm.Print("" +
+				tm.Color(tm.Bold("Failed to download module."), tm.RED) + "\n" +
+				"\n" +
+				"The module you are trying to download has a pre-built binary for your architecture and os but it failed to download. The server might be down. \n" +
+				"   More info: " + err.GetRoot() + " \n" +
+				"\n")
+		case ErrNotExist.GetCode():
+			tm.Print("" +
+				tm.Color(tm.Bold("Module is not found."), tm.RED) + "\n" +
+				"\n" +
+				"   The module you requested is not listed in the module repository specified.\nIs the name of the module spelled correctly?\n" +
+				"\n")
+		case repositories.ErrFailedModuleRepositoryDownload.GetCode():
+			tm.Print("" +
+				tm.Color(tm.Bold("Failed to query the repository."), tm.RED) + "\n" +
+				"\n" +
+				"   The repository that was specified, or any in the config file, are not valid repositories. Make sure you specified the correct url.\n" +
+				"\n")
+		case ErrFailedGitRepositoryDownload.GetCode():
+			tm.Print("" +
+				tm.Color(tm.Bold("Failed to download git repository for module."), tm.RED) + "\n" +
+				"\n" +
+				"   The source code could not be cloned from repository the git repository. Do you have Git installed?\n" +
+				"\n")
+		case ErrFailedModuleBuild.GetCode():
+			tm.Print("" +
+				tm.Color(tm.Bold("Failed to build module form source."), tm.RED) + "\n" +
+				"\n" +
+				"   The module could not be built from repository source. Make sure you have Go installed.\n" +
+				"\n")
+		case ErrUnkownSourceRepositoryType.GetCode():
+			tm.Print("" +
+				tm.Color(tm.Bold("The repository is invalid."), tm.RED) + "\n" +
+				"\n" +
+				"   The source type is not supported in this version of antibuild.\n" +
+				"\n")
+		default:
+			tm.Print("" +
+				tm.Color(tm.Bold("Unknown error."), tm.RED) + "\n" +
+				"\n" +
+				"We could not directly identify the error. Does this help?\n" +
+				"		" + err.Error() + "\n" +
+				"\n" +
+				"If that doesnt help please look on our site " + tm.Color("https://build.antipy.com/", tm.BLUE) + "\n" +
+				"\n")
 		}
 
-		err = download.Git(dir, me.Source.URL, v)
-		if err != nil {
-			return "", ErrFailedGitRepositoryDownload.SetRoot(err.Error())
-		}
-
-		dir = filepath.Join(dir, filepath.Base(me.Source.URL))
-	default:
-		return "", ErrUnkownSourceRepositoryType.SetRoot(me.Source.Type + " is not a known source repository type")
+		tm.FlushAll()
 	}
-
-	dir = filepath.Join(dir, me.Source.SubDirectory)
-	err = compile.FromSource(dir, targetFile)
-	if err != nil {
-		return "", ErrFailedModuleBuild.SetRoot(err.Error())
-	}
-
-	return version, nil
 }

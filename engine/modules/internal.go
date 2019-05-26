@@ -31,11 +31,6 @@ type (
 )
 
 const (
-	// internalRepo is the default module repository
-	internalRepo = STDRepo
-)
-
-const (
 	//HaveSameVersion is for when you have the same version as internal module
 	HaveSameVersion = iota
 	//HaveHigherVersion is for when you have a higher version as internal module
@@ -56,42 +51,42 @@ var InternalModules = map[string]internalModule{
 	"file": internalModule{
 		start:      abm_file.Handler,
 		version:    abm_file.Version,
-		repository: internalRepo,
+		repository: StandardRepository,
 	},
 	"json": internalModule{
 		start:      abm_json.Handler,
 		version:    abm_json.Version,
-		repository: internalRepo,
+		repository: StandardRepository,
 	},
 	"language": internalModule{
 		start:      abm_language.Handler,
 		version:    abm_language.Version,
-		repository: internalRepo,
+		repository: StandardRepository,
 	},
 	"markdown": internalModule{
 		start:      abm_markdown.Handler,
 		version:    abm_markdown.Version,
-		repository: internalRepo,
+		repository: StandardRepository,
 	},
 	"math": internalModule{
 		start:      abm_math.Handler,
 		version:    abm_math.Version,
-		repository: internalRepo,
+		repository: StandardRepository,
 	},
 	"noescape": internalModule{
 		start:      abm_noescape.Handler,
 		version:    abm_noescape.Version,
-		repository: internalRepo,
+		repository: StandardRepository,
 	},
 	"util": internalModule{
 		start:      abm_util.Handler,
 		version:    abm_util.Version,
-		repository: internalRepo,
+		repository: StandardRepository,
 	},
 	"yaml": internalModule{
 		start:      abm_yaml.Handler,
 		version:    abm_yaml.Version,
-		repository: internalRepo,
+		repository: StandardRepository,
 	},
 }
 
