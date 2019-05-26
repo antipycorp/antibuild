@@ -10,17 +10,18 @@ import (
 	"testing"
 
 	"gitlab.com/antipy/antibuild/cli/engine/modules"
+	"gitlab.com/antipy/antibuild/cli/internal/errors"
 	ui "gitlab.com/antipy/antibuild/cli/internal/log"
 
 	"github.com/jaicewizard/tt"
 
-	"gitlab.com/antipy/antibuild/cli/engine"
+	"gitlab.com/antipy/antibuild/cli/engine/site"
 )
 
 type unfoldPair struct {
-	in    engine.ConfigSite
-	out   []*engine.Site
-	res   []*engine.Site
+	in    site.ConfigSite
+	out   []*site.Site
+	res   []*site.Site
 	files map[string]string
 }
 
@@ -47,11 +48,11 @@ func init() {
 
 	files := make(map[string][]byte)
 	files["1"] = []byte(`{"data":"nothing"}`)
-	engine.DataLoaders["l"] = loader{data: files}
-	engine.DataParsers["p"] = parser{}
-	engine.Iterators["ls"] = iterator{}
-	engine.OutputFolder = tmpDir + "/out/"
-	engine.TemplateFolder = tmpDir
+	site.DataLoaders["l"] = loader{data: files}
+	site.DataParsers["p"] = parser{}
+	site.Iterators["ls"] = iterator{}
+	site.OutputFolder = tmpDir + "/out/"
+	site.TemplateFolder = tmpDir
 	err = ioutil.WriteFile(tmpDir+"/t1", []byte("{{define \"html\"}}hello darkness my old friend{{end}}"), 0777)
 	if err != nil {
 		panic(err)
@@ -60,10 +61,10 @@ func init() {
 
 var unfoldTests = []unfoldPair{
 	unfoldPair{
-		in: engine.ConfigSite{
+		in: site.ConfigSite{
 			Slug: "/index.html",
-			Data: []engine.Data{
-				engine.Data{
+			Data: []site.Data{
+				site.Data{
 					Loader:          "l",
 					LoaderArguments: "1",
 					Parser:          "p",
@@ -73,8 +74,8 @@ var unfoldTests = []unfoldPair{
 				"t1",
 			},
 		},
-		out: []*engine.Site{
-			&engine.Site{
+		out: []*site.Site{
+			&site.Site{
 				Slug: "/index.html",
 				Data: tt.Data{
 					"data": "nothing",
@@ -86,15 +87,15 @@ var unfoldTests = []unfoldPair{
 		},
 	},
 	unfoldPair{
-		in: engine.ConfigSite{
-			Iterators: map[string]engine.IteratorData{
-				"article": engine.IteratorData{
+		in: site.ConfigSite{
+			Iterators: map[string]site.IteratorData{
+				"article": site.IteratorData{
 					Iterator: "ls",
 				},
 			},
 			Slug: "/{{article}}/index.html",
-			Data: []engine.Data{
-				engine.Data{
+			Data: []site.Data{
+				site.Data{
 					Loader:          "l",
 					LoaderArguments: "1",
 					Parser:          "p",
@@ -104,14 +105,14 @@ var unfoldTests = []unfoldPair{
 				"t1",
 			},
 		},
-		out: []*engine.Site{
-			&engine.Site{
+		out: []*site.Site{
+			&site.Site{
 				Slug: "/hello/index.html",
 				Data: tt.Data{
 					"data": "nothing",
 				},
 			},
-			&engine.Site{
+			&site.Site{
 				Slug: "/world/index.html",
 				Data: tt.Data{
 					"data": "nothing",
@@ -124,32 +125,31 @@ var unfoldTests = []unfoldPair{
 	},
 }
 
-func (l loader) Load(f string) []byte {
-	return l.data[f]
-}
-
-func (l loader) GetPipe(variable string) modules.Pipe {
-	return nil
-}
-
-func (p parser) Parse(data []byte, useless string) tt.Data {
-	var jsonData map[string]interface{}
-
-	err := json.Unmarshal(data, &jsonData)
-	if err != nil {
-		panic(err)
+func (l loader) GetPipe(f string) modules.Pipe {
+	return func([]byte) ([]byte, errors.Error) {
+		return l.data[f], nil
 	}
-
-	var retData = make(tt.Data, len(jsonData))
-	for k, v := range jsonData {
-		retData[k] = v
-	}
-
-	return retData
 }
 
-func (p parser) GetPipe(variable string) modules.Pipe {
-	return nil
+func (p parser) GetPipe(useless string) modules.Pipe {
+	return func(data []byte) ([]byte, errors.Error) {
+		var jsonData map[string]interface{}
+
+		err := json.Unmarshal(data, &jsonData)
+		if err != nil {
+			panic(err)
+		}
+
+		var retData = make(tt.Data, len(jsonData))
+		for k, v := range jsonData {
+			retData[k] = v
+		}
+		ret, err := retData.GobEncode()
+		if err != nil {
+			return nil, errors.Import(err)
+		}
+		return ret, nil
+	}
 }
 
 func (i iterator) GetIterations(location string) []string {
@@ -166,14 +166,14 @@ func (i iterator) GetPipe(variable string) modules.Pipe {
 //Testunfold doesn't test template parsing, if anything failed it will be done during execute
 func TestUnfold(t *testing.T) {
 	for _, test := range unfoldTests {
-		in := engine.DeepCopy(test.in)
-		dat, err := engine.Unfold(&in, testUI)
+		in := site.DeepCopy(test.in)
+		dat, err := site.Unfold(&in, testUI)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
 
 		for _, d := range dat {
-			s, err := engine.Gather(d, testUI)
+			s, err := site.Gather(d, testUI)
 			if err != nil {
 				t.Fatal(err.Error())
 			}
@@ -205,24 +205,24 @@ func TestUnfold(t *testing.T) {
 
 func TestExecute(t *testing.T) {
 	for _, test := range unfoldTests {
-		in := engine.DeepCopy(test.in)
-		dat, err := engine.Unfold(&in, testUI)
+		in := site.DeepCopy(test.in)
+		dat, err := site.Unfold(&in, testUI)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
 
 		for _, d := range dat {
-			s, err := engine.Gather(d, testUI)
+			s, err := site.Gather(d, testUI)
 			if err != nil {
 				t.Fatal(err.Error())
 			}
 
 			test.res = append(test.res, s)
 		}
-		engine.Execute(test.res, testUI)
+		site.Execute(test.res, testUI)
 
 		for file, data := range test.files {
-			dat, err := ioutil.ReadFile(engine.OutputFolder + file)
+			dat, err := ioutil.ReadFile(site.OutputFolder + file)
 			if err != nil {
 				t.Fatal(err.Error())
 			}
@@ -234,11 +234,11 @@ func TestExecute(t *testing.T) {
 	}
 }
 
-var benchMarks = [...]engine.ConfigSite{
-	engine.ConfigSite{
+var benchMarks = [...]site.ConfigSite{
+	site.ConfigSite{
 		Slug: "/index.html",
-		Data: []engine.Data{
-			engine.Data{
+		Data: []site.Data{
+			site.Data{
 				Loader:          "l",
 				LoaderArguments: "1",
 				Parser:          "p",
@@ -248,16 +248,16 @@ var benchMarks = [...]engine.ConfigSite{
 			"t1",
 		},
 	},
-	engine.ConfigSite{
-		Iterators: map[string]engine.IteratorData{
-			"article": engine.IteratorData{
+	site.ConfigSite{
+		Iterators: map[string]site.IteratorData{
+			"article": site.IteratorData{
 				Iterator:          "ls",
 				IteratorArguments: "/tmp/templates/iterators",
 			},
 		},
 		Slug: "/{{article}}/index.html",
-		Data: []engine.Data{
-			engine.Data{
+		Data: []site.Data{
+			site.Data{
 				Loader:          "l",
 				LoaderArguments: "1",
 				Parser:          "p",
@@ -277,8 +277,8 @@ func BenchmarkUnfold(b *testing.B) {
 func genUnfold(benchID int) func(*testing.B) {
 	return func(b *testing.B) {
 		for n := 0; n < b.N; n++ {
-			s := engine.DeepCopy(benchMarks[benchID])
-			engine.Unfold(&s, testUI)
+			s := site.DeepCopy(benchMarks[benchID])
+			site.Unfold(&s, testUI)
 		}
 	}
 }
@@ -291,21 +291,21 @@ func BenchmarkGather(b *testing.B) {
 func genGather(benchID int) func(*testing.B) {
 	return func(b *testing.B) {
 		for n := 0; n < b.N; n++ {
-			s := engine.DeepCopy(benchMarks[benchID])
+			s := site.DeepCopy(benchMarks[benchID])
 
-			engine.Unfold(&s, testUI)
+			site.Unfold(&s, testUI)
 		}
 
-		var sites = make([][]engine.ConfigSite, b.N)
+		var sites = make([][]site.ConfigSite, b.N)
 		for n := 0; n < b.N; n++ {
-			s := engine.DeepCopy(benchMarks[benchID])
-			sites[n], _ = engine.Unfold(&s, testUI)
+			s := site.DeepCopy(benchMarks[benchID])
+			sites[n], _ = site.Unfold(&s, testUI)
 		}
 
 		b.ResetTimer()
 		for n := 0; n < b.N; n++ {
 			for _, d := range sites[n] {
-				_, err := engine.Gather(d, testUI)
+				_, err := site.Gather(d, testUI)
 				if err != nil {
 					b.Fatal(err.Error())
 				}

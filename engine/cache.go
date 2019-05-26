@@ -67,8 +67,8 @@ func startCachedParse(cfg *localConfig.Config, cache *cache) errors.Error {
 			cfg.ModuleHost = moduleHost
 		}
 
-		TemplateFolder = cfg.Folders.Templates
-		OutputFolder = cfg.Folders.Output
+		site.TemplateFolder = cfg.Folders.Templates
+		site.OutputFolder = cfg.Folders.Output
 
 		er := os.RemoveAll(cfg.Folders.Output)
 		if er != nil {
@@ -77,12 +77,12 @@ func startCachedParse(cfg *localConfig.Config, cache *cache) errors.Error {
 
 	}
 
-	pagesC := DeepCopy(*cfg.Pages)
-	sites, err := Unfold(&pagesC, cfg.UILogger.(*ui.UI))
+	pagesC := site.DeepCopy(*cfg.Pages)
+	sites, err := site.Unfold(&pagesC, cfg.UILogger.(*ui.UI))
 	if err != nil {
 		return ErrFailedUnfold.SetRoot(err.Error())
 	}
-	updatedSites := make([]*Site, 0, len(sites))
+	updatedSites := make([]*site.Site, 0, len(sites))
 	for i := range sites {
 
 		cd, foundCache := cache.data[sites[i].Slug]
@@ -91,11 +91,11 @@ func startCachedParse(cfg *localConfig.Config, cache *cache) errors.Error {
 
 		cd.dependencies = sites[i].Dependencies
 
-		var s *Site
+		var s *site.Site
 
 		if cache.checkData {
 			var err errors.Error
-			s, err = Gather(sites[i], cfg.UILogger.(*ui.UI))
+			s, err = site.Gather(sites[i], cfg.UILogger.(*ui.UI))
 			if err != nil {
 				return err
 			}
@@ -112,8 +112,8 @@ func startCachedParse(cfg *localConfig.Config, cache *cache) errors.Error {
 				return ErrFailedCache.SetRoot("the template path is not inside the templates folder: " + v)
 			}
 			if abs == cache.templateUpdate {
-				path := filepath.Join(TemplateFolder, v)
-				RemoveTemplate(path)
+				path := filepath.Join(site.TemplateFolder, v)
+				site.RemoveTemplate(path)
 				//shouldChange = shouldChange || true
 				shouldChange = true
 			}
@@ -122,7 +122,7 @@ func startCachedParse(cfg *localConfig.Config, cache *cache) errors.Error {
 		if shouldChange {
 			if s == nil {
 				var err errors.Error
-				s, err = Gather(sites[i], cfg.UILogger.(*ui.UI))
+				s, err = site.Gather(sites[i], cfg.UILogger.(*ui.UI))
 				if err != nil {
 					return err
 				}
@@ -136,13 +136,13 @@ func startCachedParse(cfg *localConfig.Config, cache *cache) errors.Error {
 	}
 
 	if len(cfg.Modules.SPPs) > 0 {
-		err := PostProcess(&updatedSites, cfg.Modules.SPPs, cfg.UILogger.(*ui.UI))
+		err := site.PostProcess(&updatedSites, cfg.Modules.SPPs, cfg.UILogger.(*ui.UI))
 		if err != nil {
 			return err
 		}
 	}
 
-	err = Execute(updatedSites, cfg.UILogger.(*ui.UI))
+	err = site.Execute(updatedSites, cfg.UILogger.(*ui.UI))
 	if err != nil {
 		return ErrFailedExport.SetRoot(err.Error())
 	}
@@ -169,7 +169,7 @@ func startCachedParse(cfg *localConfig.Config, cache *cache) errors.Error {
 	return nil
 }
 
-func depChange(cd cacheData, s *ConfigSite) bool {
+func depChange(cd cacheData, s *site.ConfigSite) bool {
 	if len(s.Dependencies) != len(cd.dependencies) {
 		return true
 	}
